@@ -45,4 +45,6 @@ Type=Application
 NoDisplay=true
 MimeType=x-scheme-handler/pizzaoven;
 DESKTOP
+
+install -Dm644 "$srcdir/pizzaoven.png" "$pkgdir/usr/share/icons/hicolor/256x256/apps/pizzaoven.png"
 }

@@ -29,6 +29,7 @@ exec /usr/lib/pizzaoven/PizzaOven "$@"
 EOF
 chmod 755 %{buildroot}/usr/bin/pizzaoven
 
+
 # Desktop entries
 install -dm755 %{buildroot}/usr/share/applications
 cat > %{buildroot}/usr/share/applications/pizzaoven.desktop << 'EOF'
@@ -62,7 +63,7 @@ update-desktop-database /usr/share/applications || true
 /usr/bin/pizzaoven
 /usr/share/applications/pizzaoven.desktop
 /usr/share/applications/pizzaoven-handler.desktop
-/usr/share/pixmaps/pizzaoven.png
+/usr/share/icons/hicolor/256x256/apps/pizzaoven.png
 
 %changelog
 * Sun May 10 2026 Cristiandis <pizzaoven@izzoserver.top> - 1.0.0-1
