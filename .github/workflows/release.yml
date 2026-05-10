@@ -27,6 +27,7 @@ jobs:
 
       - name: Create tarball
         run: |
+          cp PizzaOven/Assets/PizzaOvenIcon.png publish/linux/pizzaoven.png
           cd publish/linux
           tar -czf ../../PizzaOven-linux-x64.tar.gz .
 
@@ -47,7 +48,7 @@ jobs:
           mkdir -p "$PKGDIR/usr/lib/pizzaoven"
           mkdir -p "$PKGDIR/usr/bin"
           mkdir -p "$PKGDIR/usr/share/applications"
-          mkdir -p "$PKGDIR/usr/share/pixmaps"
+          mkdir -p "$PKGDIR/usr/share/icons/hicolor/256x256/apps"
 
           cp -r publish/linux/. "$PKGDIR/usr/lib/pizzaoven/"
 
@@ -90,7 +91,7 @@ jobs:
           MimeType=x-scheme-handler/pizzaoven;
           EOF
 
-          cp PizzaOven/Assets/PizzaOvenIcon.png "$PKGDIR/usr/share/pixmaps/pizzaoven.png" 2>/dev/null || true
+          cp PizzaOven/Assets/PizzaOvenIcon.png "$PKGDIR/usr/share/icons/hicolor/256x256/apps/pizzaoven.png"
 
           cat > "$PKGDIR/DEBIAN/postinst" << 'EOF'
           #!/bin/sh
@@ -138,6 +139,7 @@ jobs:
 
           %install
           install -Dm755 PizzaOven %{buildroot}/usr/lib/pizzaoven/PizzaOven
+          install -Dm644 pizzaoven.png %{buildroot}/usr/share/icons/hicolor/256x256/apps/pizzaoven.png
 
           install -dm755 %{buildroot}/usr/bin
           cat > %{buildroot}/usr/bin/pizzaoven << 'WRAPPER'
@@ -176,6 +178,7 @@ jobs:
           /usr/bin/pizzaoven
           /usr/share/applications/pizzaoven.desktop
           /usr/share/applications/pizzaoven-handler.desktop
+          /usr/share/icons/hicolor/256x256/apps/pizzaoven.png
 
           %changelog
           * $(date '+%a %b %d %Y') Cristian <pizzaoven@izzoserver.top> - $VERSION-1
