@@ -475,6 +475,12 @@ public partial class MainWindow : Window
                 $"{Global.assemblyLocation}{Global.s}Mods{Global.s}{m.name}").ToArray();
             var gmloaderMods = modPaths.Where(ModLoader.IsGMLoaderMod).ToArray();
             var classicMods = modPaths.Where(p => !ModLoader.IsGMLoaderMod(p)).ToArray();
+            
+            if (gmloaderMods.Length > 0 && classicMods.Length > 0)
+            {
+                Global.logger.WriteLine("Cannot mix GMLoader mods with classic mods. Please select only one type at a time.", LoggerType.Error);
+                return false;
+            }
 
             foreach (var mod in classicMods)
                 if (!ModLoader.Build(mod))
@@ -706,17 +712,25 @@ public partial class MainWindow : Window
 
     private void ModGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        var mod = (Mod)ModGrid.SelectedItem;
-        if (mod != null)
-            ShowMetadata(mod.name);
         var temp = Global.ModList.ToList();
-        temp.ForEach(mod => mod.enabled = false);
+        temp.ForEach(m => m.enabled = false);
+
+        var selectedMods = ModGrid.SelectedItems.OfType<Mod>().ToList();
+        foreach (var m in selectedMods)
+        {
+            var match = temp.FirstOrDefault(x => x.name == m.name);
+            if (match != null)
+                match.enabled = true;
+        }
+
         Global.ModList = new ObservableCollection<Mod>(temp);
-        if (ModGrid.SelectedIndex == -1)
-            ShowMetadata(null);
-        else
-            Global.ModList[ModGrid.SelectedIndex].enabled = true;
         Global.config.ModList = Global.ModList;
+
+        if (selectedMods.Count > 0 && temp.Any(x => x.enabled))
+            ShowMetadata(selectedMods.Last().name);
+        else
+            ShowMetadata(null);
+
         Global.UpdateConfig();
     }
 

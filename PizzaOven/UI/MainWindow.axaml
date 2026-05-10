@@ -376,7 +376,7 @@
                             <ListBox Margin="5" ZIndex="1"
                                      HorizontalAlignment="Stretch"
                                      VerticalAlignment="Top"
-                                     SelectionMode="Single"
+                                     SelectionMode="Multiple"
                                      Background="Transparent" BorderBrush="Transparent"
                                      x:Name="ModGrid"
                                      DragDrop.AllowDrop="True"
