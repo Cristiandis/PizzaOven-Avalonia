@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Avalonia;
@@ -112,16 +113,7 @@ public static class ModLoader
     // Detects whether a mod folder contains GMLoader-style structure
     public static bool IsGMLoaderMod(string modPath)
     {
-        string[] gmLoaderFolders = { "audio", "code", "config", "csx", "lib", "room", "shader", "textures", "xdelta" };
-
-        if (gmLoaderFolders.Any(f => Directory.Exists(Path.Combine(modPath, f))))
-            return true;
-
-        foreach (var subdir in Directory.GetDirectories(modPath, "*", SearchOption.AllDirectories))
-            if (gmLoaderFolders.Any(f => Directory.Exists(Path.Combine(subdir, f))))
-                return true;
-
-        return false;
+        return GetModType(modPath) == "GMLOADER";
     }
 
     private static void CleanupGMLoader()
@@ -697,5 +689,160 @@ public static class ModLoader
         {
             return false;
         }
+    }
+    public static string GetModType(string modPath)
+    {
+        string[] gmLoaderFolders = { "audio", "code", "lib", "config", "csx", "room", "shader", "texture", "xdelta" };
+        const string AFOMHomepage = "https://gamebanana.com/mods/466970";
+
+        var jsonPath = Path.Combine(modPath, "mod.json");
+        if (File.Exists(jsonPath))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(File.ReadAllText(jsonPath));
+                var root = doc.RootElement;
+
+                if (root.TryGetProperty("homepage", out var hp) && hp.GetString() == AFOMHomepage)
+                    return "Normal";
+
+                if (root.TryGetProperty("cat", out var cat))
+                {
+                    var catStr = cat.GetString() ?? "";
+                    if (catStr.Contains("CYOP/AFOM", StringComparison.OrdinalIgnoreCase) ||
+                        catStr.Contains("Towers/Levels", StringComparison.OrdinalIgnoreCase))
+                        return "AFOM";
+                    if (catStr.Equals("GMLoader", StringComparison.OrdinalIgnoreCase))
+                        return "GMLOADER";
+                }
+            }
+            catch { }
+        }
+
+        bool potentialGMLoader = Directory.EnumerateDirectories(modPath, "*", SearchOption.AllDirectories)
+            .Any(d => gmLoaderFolders.Contains(Path.GetFileName(d), StringComparer.OrdinalIgnoreCase));
+
+        bool hasLevelsDir = Directory.EnumerateDirectories(modPath, "*", SearchOption.AllDirectories)
+            .Any(d => string.Equals(Path.GetFileName(d), "levels", StringComparison.OrdinalIgnoreCase));
+
+        bool hasXdelta = Directory.EnumerateFiles(modPath, "*.xdelta", SearchOption.AllDirectories).Any();
+
+        if (hasLevelsDir && !hasXdelta) return "AFOM";
+        if (hasXdelta) return "Normal";
+        if (potentialGMLoader) return "GMLOADER";
+        return "Normal";
+    }
+
+    public static bool IsAFOMMod(string modPath)
+    {
+        return GetModType(modPath) == "AFOM";
+    }
+
+    private static string AFOMFilepath()
+    {
+        var modsFolder = $"{Global.assemblyLocation}{Global.s}Mods";
+        const string AFOMHomepage = "https://gamebanana.com/mods/466970";
+
+        if (!Directory.Exists(modsFolder))
+            return "";
+
+        foreach (var modDir in Directory.GetDirectories(modsFolder))
+        {
+            var modJsonPath = Path.Combine(modDir, "mod.json");
+            if (!File.Exists(modJsonPath)) continue;
+            try
+            {
+                using var doc = JsonDocument.Parse(File.ReadAllText(modJsonPath));
+                if (doc.RootElement.TryGetProperty("homepage", out var homepage) &&
+                    homepage.GetString() == AFOMHomepage)
+                    return modDir;
+            }
+            catch
+            {
+            }
+        }
+
+        return "";
+    }
+
+    public static async Task<bool> BuildAFOM(string mod, Func<string, Task<bool>> confirmDialog)
+    {
+        var afomBase = AFOMFilepath();
+        if (afomBase == "")
+        {
+            Global.logger.WriteLine(
+                "You must have AFOM installed to use this mod. Download it from https://gamebanana.com/mods/466970",
+                LoggerType.Error);
+            return false;
+        }
+
+        // Find the levels folder inside the mod
+        var sourceDir = "";
+        foreach (var dir in Directory.GetDirectories(mod, "*", SearchOption.AllDirectories))
+            if (Directory.Exists(Path.Combine(dir, "levels")))
+            {
+                sourceDir = dir;
+                break;
+            }
+
+        if (string.IsNullOrEmpty(sourceDir))
+            sourceDir = mod;
+
+        // Resolve towers path
+        string towersPath;
+        if (OperatingSystem.IsWindows())
+            towersPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "PizzaTower_GM2", "towers");
+        else
+            towersPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".local", "share", "Steam", "steamapps", "compatdata", "2231450",
+                "pfx", "drive_c", "users", "steamuser", "AppData", "Roaming",
+                "PizzaTower_GM2", "towers");
+
+        if (!Directory.Exists(towersPath))
+        {
+            Global.logger.WriteLine($"AFOM towers folder not found at {towersPath}. Launch AFOM at least once first.",
+                LoggerType.Error);
+            return false;
+        }
+
+        var modName = Path.GetFileName(mod);
+        var destDir = Path.Combine(towersPath, modName);
+
+        if (Directory.Exists(destDir))
+        {
+            var replace =
+                await confirmDialog($"The folder \"{modName}\" already exists in your AFOM towers.\n\nReplace it?");
+            if (replace)
+            {
+                Directory.Delete(destDir, true);
+            }
+            else
+            {
+                var counter = 2;
+                while (Directory.Exists(destDir))
+                    destDir = Path.Combine(towersPath, $"{modName} ({counter++})");
+            }
+        }
+
+        Directory.CreateDirectory(destDir);
+
+        foreach (var dir in Directory.GetDirectories(sourceDir, "*", SearchOption.AllDirectories))
+            Directory.CreateDirectory(dir.Replace(sourceDir, destDir));
+
+        foreach (var file in Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories))
+            File.Copy(file, file.Replace(sourceDir, destDir), true);
+
+        Global.logger.WriteLine("Copied AFOM level files successfully", LoggerType.Info);
+
+        if (!Build(afomBase))
+        {
+            Global.logger.WriteLine("Failed to build AFOM base mod", LoggerType.Error);
+            return false;
+        }
+
+        return true;
     }
 }

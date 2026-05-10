@@ -78,7 +78,7 @@ Features being ported from [PizzaOven+](https://github.com/SurfyCrescent97/Pizza
 - [ ] Disable startup button / launch on boot
 
 ### Complex
-- [ ] AFOM support
+- [x] AFOM support
 - [ ] Downgrade patcher
 - [ ] Themes
 

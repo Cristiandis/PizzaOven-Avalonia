@@ -21,6 +21,7 @@ using PizzaOven.UI;
 using SharpCompress.Archives.SevenZip;
 using SharpCompress.Common;
 using SharpCompress.Readers;
+
 // Avalonia namespaces (replace System.Windows.*)
 
 // NOTE: Remove references to:
@@ -60,18 +61,19 @@ public partial class MainWindow : Window
     private static readonly List<string> FilterBoxListWhenSearched =
         new[] { "Featured", "Recent", "Popular", "- - -" }.ToList();
 
-    private bool _isLoaded;
-    private bool _updatingPageBox;
-
     private readonly string defaultText =
         "No mod is currently selected. Pressing launch will start a vanilla Pizza Tower. " +
         "Start downloading and using mods in the Browse Mods tab on top. Only one mod can be selected at a time.";
+
+    private readonly FileSystemWatcher ModsWatcher;
+
+    private bool _isLoaded;
+    private bool _updatingPageBox;
 
     public List<string> exes;
     private int imageCount;
 
     private int imageCounter;
-    private readonly FileSystemWatcher ModsWatcher;
     public string version;
 
     public MainWindow()
@@ -476,12 +478,31 @@ public partial class MainWindow : Window
             var modPaths = mods.Select(m =>
                 $"{Global.assemblyLocation}{Global.s}Mods{Global.s}{m.name}").ToArray();
             var gmloaderMods = modPaths.Where(ModLoader.IsGMLoaderMod).ToArray();
-            var classicMods = modPaths.Where(p => !ModLoader.IsGMLoaderMod(p)).ToArray();
-            
+            var afomMods = modPaths.Where(ModLoader.IsAFOMMod).ToArray();
+            var classicMods = modPaths.Where(p => !ModLoader.IsGMLoaderMod(p) && !ModLoader.IsAFOMMod(p)).ToArray();
+
             if (gmloaderMods.Length > 0 && classicMods.Length > 0)
             {
-                Global.logger.WriteLine("Cannot mix GMLoader mods with classic mods. Please select only one type at a time.", LoggerType.Error);
+                Global.logger.WriteLine("Cannot mix GMLoader mods with other mod types.", LoggerType.Error);
                 return false;
+            }
+
+            if (afomMods.Length > 1)
+            {
+                Global.logger.WriteLine("Only one AFOM level pack can be selected at a time.", LoggerType.Error);
+                return false;
+            }
+
+            if (afomMods.Length == 1)
+            {
+                var afomMod = afomMods[0];
+                var afomResult = await ModLoader.BuildAFOM(afomMod, async msg =>
+                {
+                    var result = false;
+                    await Dispatcher.UIThread.InvokeAsync(async () => { result = await ShowConfirmDialog(msg); });
+                    return result;
+                });
+                if (!afomResult) return false;
             }
 
             foreach (var mod in classicMods)
