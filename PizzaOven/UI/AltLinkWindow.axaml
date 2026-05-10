@@ -1,0 +1,36 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:local="clr-namespace:PizzaOven"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="PizzaOven.UI.AltLinkWindow"
+        Title="Alternate Download Links"
+        Background="#131313"
+        Width="520" Height="380"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid RowDefinitions="Auto,Auto,*,Auto,Auto,Auto" Margin="16" >
+
+    <TextBlock x:Name="TitleBox"       Grid.Row="0" Foreground="#ffee5f"
+               FontSize="15" FontWeight="Bold" Margin="0,0,0,8"/>
+    <TextBlock x:Name="Description"    Grid.Row="1" Foreground="#ccc"
+               TextWrapping="Wrap" Margin="0,0,0,8"/>
+
+    <ListBox x:Name="FileList" Grid.Row="2"
+             Background="#1e1e1e" Foreground="#f2f2f2">
+      <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="local:GameBananaAlternateFileSource">
+          <Button Content="{Binding Description}" Click="SelectButton_Click"
+                  HorizontalAlignment="Stretch" Margin="2"/>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+
+    <TextBlock x:Name="FetchDescription" Grid.Row="3" Foreground="#aaa"
+               TextWrapping="Wrap" Margin="0,8,0,4" FontSize="11"/>
+    <SelectableTextBlock x:Name="UrlText" Grid.Row="4" Foreground="#88aaff"
+               TextWrapping="Wrap" Margin="0,0,0,8" FontSize="11"/>
+
+    <Button Grid.Row="5" Content="Cancel" Click="CancelButton_Click"
+            HorizontalAlignment="Right"/>
+  </Grid>
+
+</Window>

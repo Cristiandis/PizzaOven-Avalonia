@@ -1,21 +1,26 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 
+namespace PizzaOven;
 
-namespace PizzaOven
+public class NaturalSort : IComparer<string>
 {
-    public class NaturalSort : IComparer<string>
-    {
-        [DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
-        public static extern int StrCmpLogicalW(string x, string y);
+    [DllImport("shlwapi.dll", CharSet = CharSet.Unicode, EntryPoint = "StrCmpLogicalW")]
+    private static extern int StrCmpLogicalW(string x, string y);
 
-        public int Compare(string x, string y)
+    public int Compare(string? x, string? y)
+    {
+        if (x == null && y == null) return 0;
+        if (x == null) return -1;
+        if (y == null) return 1;
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            return StrCmpLogicalW(x, y);
+            try { return StrCmpLogicalW(x, y); }
+            catch { /* P/Invoke not available */ }
         }
+
+        return string.Compare(x, y, StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -1,0 +1,50 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:PizzaOven"
+        x:Class="PizzaOven.UI.ChangelogBox"
+        Title="Changelog"
+        Background="#131313"
+        Width="560" Height="460"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="16">
+
+    <Image x:Name="PreviewImage" Grid.Row="0"
+           Height="140" Stretch="Uniform" Margin="0,0,0,8" IsVisible="False"/>
+
+    <TextBlock x:Name="VersionLabel" Grid.Row="1" Foreground="#ffee5f"
+               FontWeight="Bold" Margin="0,0,0,4"/>
+    <TextBlock x:Name="Text" Grid.Row="2" Foreground="#ccc"
+               Margin="0,0,0,8"/>
+
+    <ScrollViewer Grid.Row="3">
+      <StackPanel Spacing="6">
+        <TextBox x:Name="UpdateText" IsReadOnly="True"
+                 Background="#1e1e1e" Foreground="#f2f2f2"
+                 TextWrapping="Wrap" AcceptsReturn="True"/>
+        <DataGrid x:Name="ChangesGrid"
+                  Background="#1a1a1a" Foreground="#f2f2f2"
+                  IsReadOnly="True" AutoGenerateColumns="False"
+                  HeadersVisibility="Column" x:DataType="local:GameBananaItemUpdateChange">
+          <DataGrid.Columns>
+            <DataGridTextColumn Header="Type"        Binding="{Binding Category}"  Width="80"/>
+            <DataGridTextColumn Header="Description" Binding="{Binding Text}" Width="*"/>
+          </DataGrid.Columns>
+        </DataGrid>
+      </StackPanel>
+    </ScrollViewer>
+
+    <Grid Grid.Row="4" ColumnDefinitions="*,*,Auto" Margin="0,12,0,0">
+      <Button x:Name="YesButton"  Grid.Column="0" Content="Update"
+              Background="#52FF00" Foreground="#131313" Margin="0,0,4,0"
+              Click="YesButton_Click"/>
+      <Button x:Name="NoButton"   Grid.Column="1" Content="Skip This Version"
+              Margin="4,0,4,0"
+              Click="NoButton_Click"/>
+      <Button x:Name="SkipButton" Grid.Column="2" Content="Remind Me Later"
+              IsVisible="False"
+              Click="Skip_Button_Click"/>
+    </Grid>
+
+  </Grid>
+</Window>

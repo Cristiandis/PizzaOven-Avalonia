@@ -1,0 +1,24 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:local="clr-namespace:PizzaOven"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="PizzaOven.UI.ChoiceWindow"
+        Title="Choose"
+        Background="#131313"
+        Width="400" Height="300"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid RowDefinitions="*,Auto" Margin="16">
+    <ListBox x:Name="ChoiceList" Grid.Row="0"
+             Background="#1e1e1e" Foreground="#f2f2f2">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="local:Choice">
+          <Button Content="{Binding OptionText}" Click="SelectButton_Click"
+                  HorizontalAlignment="Stretch" Margin="2" />
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+    <Button Grid.Row="1" Content="Cancel" Click="CancelButton_Click"
+            Margin="0,8,0,0" HorizontalAlignment="Right" />
+  </Grid>
+
+</Window>

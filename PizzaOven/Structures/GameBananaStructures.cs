@@ -134,7 +134,7 @@ namespace PizzaOven
         [JsonPropertyName("_sIconUrl")]
         public Uri Icon { get; set; }
         [JsonIgnore]
-        public bool HasIcon => Icon.OriginalString.Length > 0;
+        public bool HasIcon => Icon?.OriginalString?.Length > 0;
     }
     public class GameBananaMember
     {
@@ -145,7 +145,7 @@ namespace PizzaOven
         [JsonPropertyName("_sUpicUrl")]
         public Uri Upic { get; set; }
         [JsonIgnore]
-        public bool HasUpic => Upic.OriginalString.Length > 0;
+        public bool HasUpic => Upic?.OriginalString?.Length > 0;
     }
     public class GameBananaItemUpdate
     {
@@ -181,6 +181,10 @@ namespace PizzaOven
         public string Title { get; set; }
         [JsonIgnore]
         public bool IsSpoiler => Title.ToUpperInvariant().StartsWith("(SPOILER)");
+        [JsonIgnore]
+        public bool IsSpoilerOrNsfw => IsSpoiler || IsNsfw;
+        [JsonIgnore]
+        public string SpoilerLabel => IsSpoiler ? "⚠ SPOILER" : "🔞 NSFW";
         [JsonPropertyName("_sProfileUrl")]
         public Uri Link { get; set; }
         [JsonPropertyName("_aAlternateFileSources")]
@@ -188,14 +192,25 @@ namespace PizzaOven
         [JsonIgnore]
         public bool HasAltLinks => AlternateFileSources != null;
         [JsonIgnore]
-        public Uri Image => Media.Where(x => x.Type == "image").ToList().Count > 0 ? new Uri($"{Media[0].Base}/{Media[0].File}") 
-            : new Uri("https://images.gamebanana.com/static/img/DefaultEmbeddables/Sound.jpg");
+        public Uri Image
+        {
+            get
+            {
+                try
+                {
+                    var img = Media?.FirstOrDefault(x => x.Type == "image");
+                    if (img == null) return new Uri("https://images.gamebanana.com/static/img/DefaultEmbeddables/Sound.jpg");
+                    return new Uri($"{img.Base}/{img.File}");
+                }
+                catch { return new Uri("https://images.gamebanana.com/static/img/DefaultEmbeddables/Sound.jpg"); }
+            }
+        }
         [JsonPropertyName("_aPreviewMedia")]
         public List<GameBananaImage> Media { get; set; }
         [JsonPropertyName("_sDescription")]
         public string Description { get; set; }
         [JsonIgnore]
-        public bool HasDescription => Description.Length > 100;
+        public bool HasDescription => Description?.Length > 100;
         [JsonPropertyName("_sText")]
         public string Text { get; set; }
         [JsonIgnore]
@@ -221,7 +236,7 @@ namespace PizzaOven
         [JsonPropertyName("_aRootCategory")]
         public GameBananaCategory RootCategory { get; set; }
         [JsonIgnore]
-        public string CategoryName => StringConverters.FormatSingular(RootCategory.Name, Category.Name);
+        public string CategoryName => StringConverters.FormatSingular(RootCategory?.Name, Category?.Name);
         [JsonIgnore]
         public bool HasLongCategoryName => CategoryName.Length > 30;
         [JsonIgnore]
@@ -246,28 +261,20 @@ namespace PizzaOven
         public string DateUpdatedAgo => $"Updated {StringConverters.FormatTimeAgo(DateTime.UtcNow - DateUpdated)}";
         private string ConvertHtmlToText(string html)
         {
-            // Newlines
             html = html.Replace("<br>", "\n");
             html = html.Replace(@"</li>", "\n");
             html = html.Replace(@"</h3>", "\n");
             html = html.Replace(@"</h2>", "\n");
             html = html.Replace(@"</h1>", "\n");
             html = html.Replace("<ul>", "\n");
-            // Bullet point
             html = html.Replace("<li>", "• ");
-            // Unique spaces
             html = html.Replace("&nbsp;", " ");
             html = html.Replace(@"\u00a0", " ");
-            // Unique characters
             html = html.Replace("&amp;", "&");
             html = html.Replace("&gt;", ">");
-            // Remove tabs
             html = html.Replace("\t", string.Empty);
-            // Remove all unaccounted html tags
             html = Regex.Replace(html, "<.*?>", string.Empty);
-            // Convert newlines of 3 or more to 2 newlines
             html = Regex.Replace(html, "[\\r\\n]{3,}", "\n\n", RegexOptions.Multiline);
-            // Trim extra whitespace at start and end
             return html.Trim();
         }
         [JsonPropertyName("_bIsNsfw")]
@@ -296,7 +303,7 @@ namespace PizzaOven
         [JsonPropertyName("_sBaseUrl")]
         public Uri Base { get; set; }
         [JsonPropertyName("_sFile")]
-        public Uri File { get; set; }
+        public string File { get; set; }
         [JsonPropertyName("_sCaption")]
         public string Caption { get; set; }
     }

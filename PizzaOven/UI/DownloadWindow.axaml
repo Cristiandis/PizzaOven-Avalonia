@@ -1,0 +1,30 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="PizzaOven.DownloadWindow"
+        Title="Download Mod"
+        Background="#131313"
+        Width="400" Height="280"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid RowDefinitions="*,Auto" Margin="16">
+    <StackPanel Grid.Row="0" Spacing="12">
+      <Image x:Name="Preview" Height="120" Stretch="Uniform" />
+      <TextBlock x:Name="DownloadText" Foreground="#f2f2f2"
+                 TextWrapping="Wrap" TextAlignment="Center" />
+    </StackPanel>
+
+      <Grid Grid.Row="1" ColumnDefinitions="*,*" Margin="0,12,0,0">
+          <Button Grid.Column="0" Content="Download" Click="Yes_Click"
+                  Background="#ffee5f" Foreground="#131313" Margin="0,0,4,0"
+                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Height="35" FontWeight="SemiBold"/>
+          <Button Grid.Column="1" Content="Cancel" Click="No_Click"
+                  Margin="4,0,0,0" Background="#303030" Foreground="#f2f2f2"
+                  BorderBrush="#353535"
+                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Height="35" FontWeight="SemiBold"/>
+      </Grid>
+  </Grid>
+
+</Window>

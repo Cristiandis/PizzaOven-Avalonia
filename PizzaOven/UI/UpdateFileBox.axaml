@@ -1,0 +1,36 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:local="clr-namespace:PizzaOven"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="PizzaOven.UI.UpdateFileBox"
+        Title="Select File to Download"
+        Background="#131313"
+        Width="480" Height="340"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid RowDefinitions="Auto,*,Auto" Margin="16">
+    <TextBlock x:Name="TitleBox" Grid.Row="0" Foreground="#ffee5f"
+               FontWeight="Bold" FontSize="14" Margin="0,0,0,8"/>
+
+    <ListBox x:Name="FileList" Grid.Row="1"
+             Background="#1e1e1e" Foreground="#f2f2f2">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="local:GameBananaItemFile">
+          <Button Click="SelectButton_Click"
+                  HorizontalAlignment="Stretch" Margin="2">
+            <StackPanel>
+              <TextBlock Text="{Binding FileName}"    FontWeight="Bold"/>
+              <TextBlock Text="{Binding Description}" Foreground="#aaa" FontSize="11"/>
+            </StackPanel>
+          </Button>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+
+    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" Margin="0,12,0,0">
+      <Button Grid.Column="1" Content="Download All" Click="DownloadAll_Click"
+              Margin="0,0,8,0" Background="#52FF00" Foreground="#131313"/>
+      <Button Grid.Column="2" Content="Cancel" Click="CancelButton_Click"/>
+    </Grid>
+  </Grid>
+
+</Window>

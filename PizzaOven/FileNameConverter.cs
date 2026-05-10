@@ -1,32 +1,15 @@
-﻿using System;
+using Avalonia.Data.Converters;
+using System;
+using System.Globalization;
 using System.IO;
-using System.Windows.Data;
-using System.Windows.Media;
 
-namespace PizzaOven.UI
+namespace PizzaOven;
+
+public class FileNameConverter : IValueConverter
 {
-    public class FileNameConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
-        {
-            return Path.GetFileNameWithoutExtension((string)value);
-        }
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is string s ? Path.GetFileName(s) : value;
 
-        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
-        {
-            return null;
-        }
-    }
-    public class PathNameConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
-        {
-            return ((string)value).Replace($@"{Global.assemblyLocation}{Global.s}Mods", "...");
-        }
-
-        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
-        {
-            return null;
-        }
-    }
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
 }

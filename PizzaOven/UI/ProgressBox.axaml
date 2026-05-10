@@ -1,0 +1,17 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="PizzaOven.ProgressBox"
+        Title="Downloading…"
+        Background="#131313"
+        Width="420" Height="110"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Closing="Window_Closing">
+
+  <StackPanel Margin="16" Spacing="10">
+    <TextBlock x:Name="StatusText" Foreground="#f2f2f2" Text="Downloading…" />
+    <ProgressBar x:Name="Progress" Minimum="0" Maximum="100" Height="18"
+                 Foreground="#ffee5f" Background="#333" />
+  </StackPanel>
+
+</Window>

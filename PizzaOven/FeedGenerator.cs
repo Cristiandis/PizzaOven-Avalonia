@@ -1,157 +1,118 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Text.Json;
 using System.Net.Http;
-using System.Xml.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Media.Imaging;
 
-namespace PizzaOven
+namespace PizzaOven;
+
+public enum FeedFilter  { Featured, Recent, Popular, None }
+public enum TypeFilter  { Mods, WiPs, Sounds }
+
+public static class FeedGenerator
 {
-    public enum GameFilter
+    private static Dictionary<string, GameBananaModList> _feed = new();
+    public static bool error;
+    public static Exception? exception;
+    public static GameBananaModList? CurrentFeed;
+
+    public static double GetHeader(this HttpResponseMessage response, string key)
     {
-        DBFZ,
-        MHOJ2,
-        GBVS,
-        GGS,
-        JF,
-        KHIII,
-        SN,
-        ToA,
-        DS,
-        IM,
-        SMTV,
-        KOFXV,
-        DNF
+        if (!response.Headers.TryGetValues(key, out var vals)) return -1;
+        return double.TryParse(vals.First(), out var d) ? d : -1;
     }
-    public enum FeedFilter
+
+    public static void ClearCache() => _feed.Clear();
+
+    public static async Task GetFeedAsync(int page, TypeFilter type, FeedFilter filter,
+        GameBananaCategory? category, GameBananaCategory? subcategory,
+        int perPage, bool nsfw, string? search)
     {
-        Featured,
-        Recent,
-        Popular,
-        None
-    }
-    public enum TypeFilter
-    {
-        Mods,
-        WiPs,
-        Sounds
-    }
-    public static class FeedGenerator
-    {
-        private static Dictionary<string, GameBananaModList> feed;
-        public static bool error;
-        public static Exception exception;
-        public static GameBananaModList CurrentFeed;
-        public static double GetHeader(this HttpResponseMessage request, string key)
+        error = false;
+
+        if (_feed.Count > 15)
+            _feed.Remove(_feed.Aggregate((l, r) =>
+                l.Value.TimeFetched < r.Value.TimeFetched ? l : r).Key);
+
+        using var http = new HttpClient();
+        var url = GenerateUrl(page, type, filter, category, subcategory, perPage, nsfw, search);
+
+        if (_feed.TryGetValue(url, out var cached) && cached.IsValid)
         {
-            IEnumerable<string> keys = null;
-            if (!request.Headers.TryGetValues(key, out keys))
-                return -1;
-            return Double.Parse(keys.First());
+            CurrentFeed = cached;
+            return;
         }
-        public static void ClearCache()
+
+        CurrentFeed = new GameBananaModList();
+        try
         {
-            if (feed != null)
-                feed.Clear();
-        }
-        public static async Task GetFeed(int page, TypeFilter type, FeedFilter filter, GameBananaCategory category, GameBananaCategory subcategory, int perPage, bool nsfw, string search)
-        {
-            error = false;
-            if (feed == null)
-                feed = new Dictionary<string, GameBananaModList>();
-            // Remove oldest key if more than 15 pages are cached
-            if (feed.Count > 15)
-                feed.Remove(feed.Aggregate((l, r) => DateTime.Compare(l.Value.TimeFetched, r.Value.TimeFetched) < 0 ? l : r).Key);
-            using (var httpClient = new HttpClient())
+            var response = await http.GetAsync(url);
+            var json = await response.Content.ReadAsStringAsync();
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var list = JsonSerializer.Deserialize<List<JsonElement>>(json) ?? new();
+            CurrentFeed.Records = new();
+            foreach (var el in list)
             {
-                var requestUrl = GenerateUrl(page, type, filter, category, subcategory, perPage, nsfw, search);
-                if (feed.ContainsKey(requestUrl) && feed[requestUrl].IsValid)
-                {
-                    CurrentFeed = feed[requestUrl];
-                    return;
-                }
-                CurrentFeed = new();
-                try
-                {
-                    var response = await httpClient.GetAsync(requestUrl);
-                    var records = JsonSerializer.Deserialize<ObservableCollection<GameBananaRecord>>(await response.Content.ReadAsStringAsync());
-                    CurrentFeed.Records = records;
-                    // Get record count from header
-                    var numRecords = response.GetHeader("X-GbApi-Metadata_nRecordCount");
-                    if (numRecords != -1)
-                    {
-                        var totalPages = Math.Ceiling(numRecords / Convert.ToDouble(perPage));
-                        if (totalPages == 0)
-                            totalPages = 1;
-                        CurrentFeed.TotalPages = totalPages;
-                    }
-                }
-                catch (Exception e)
-                {
-                    error = true;
-                    exception = e;
-                    return;
-                }
-                if (!feed.ContainsKey(requestUrl))
-                    feed.Add(requestUrl, CurrentFeed);
-                else
-                    feed[requestUrl] = CurrentFeed;
+                var record = JsonSerializer.Deserialize<GameBananaRecord>(el.GetRawText(), options);
+                if (record != null) CurrentFeed.Records.Add(record);
+            }
+            var numRecords = response.GetHeader("X-GbApi-Metadata_nRecordCount");
+            if (numRecords != -1)
+            {
+                var totalPages = Math.Ceiling(numRecords / (double)perPage);
+                CurrentFeed.TotalPages = totalPages == 0 ? 1 : totalPages;
             }
         }
-        private static string GenerateUrl(int page, TypeFilter type, FeedFilter filter, GameBananaCategory category, GameBananaCategory subcategory, int perPage, bool nsfw, string search)
+        catch (Exception e)
         {
-            // Base
-            var url = "https://gamebanana.com/apiv6/";
-            switch (type)
-            {
-                case TypeFilter.Mods:
-                    url += "Mod/";
-                    break;
-                case TypeFilter.Sounds:
-                    url += "Sound/";
-                    break;
-                case TypeFilter.WiPs:
-                    url += "Wip/";
-                    break;
-            }
-            // Different starting endpoint if requesting all mods instead of specific category
-            if (search != null)
-                url += $"ByName?_sName=*{search}*&_idGameRow=7692&";
-            else if (category.ID != null)
-                url += "ByCategory?";
-            else
-                url += $"ByGame?_aGameRowIds[]=7692&";
-            // Consistent args
-            url += $"_csvProperties=_sName,_sModelName,_sProfileUrl,_aSubmitter,_tsDateUpdated,_tsDateAdded,_aPreviewMedia,_sText,_sDescription,_aCategory,_aRootCategory,_aGame,_nViewCount," +
-                $"_nLikeCount,_nDownloadCount,_aFiles,_aModManagerIntegrations,_bIsNsfw,_aAlternateFileSources&_nPerpage={perPage}";
-            if (!nsfw)
-                url += "&_aArgs[]=_sbIsNsfw = false";
-            // Sorting filter
-            switch (filter)
-            {
-                case FeedFilter.Recent:
-                    url += "&_sOrderBy=_tsDateUpdated,DESC";
-                    break;
-                case FeedFilter.Featured:
-                    url += "&_aArgs[]=_sbWasFeatured = true& _sOrderBy=_tsDateAdded,DESC";
-                    break;
-                case FeedFilter.Popular:
-                    url += "&_sOrderBy=_nDownloadCount,DESC";
-                    break;
-            }
-            // Choose subcategory or category
-            if (subcategory.ID != null)
-                url += $"&_aCategoryRowIds[]={subcategory.ID}";
-            else if (category.ID != null)
-                url += $"&_aCategoryRowIds[]={category.ID}";
-            
-            // Get page number
-            url += $"&_nPage={page}";
-            return url;
+            error     = true;
+            exception = e;
+            return;
         }
+
+        _feed[url] = CurrentFeed;
+    }
+
+    private static string GenerateUrl(int page, TypeFilter type, FeedFilter filter,
+        GameBananaCategory? category, GameBananaCategory? subcategory,
+        int perPage, bool nsfw, string? search)
+    {
+        var url = "https://gamebanana.com/apiv6/";
+        url += type switch
+        {
+            TypeFilter.Sounds => "Sound/",
+            TypeFilter.WiPs   => "Wip/",
+            _                 => "Mod/"
+        };
+
+        if (search != null)
+            url += $"ByName?_sName=*{search}*&_idGameRow=7692&";
+        else if (category?.ID != null)
+            url += "ByCategory?";
+        else
+            url += "ByGame?_aGameRowIds[]=7692&";
+
+        url += $"_csvProperties=_sName,_sModelName,_sProfileUrl,_aSubmitter,_tsDateUpdated,_tsDateAdded," +
+               $"_aPreviewMedia,_sText,_sDescription,_aCategory,_aRootCategory,_aGame,_nViewCount," +
+               $"_nLikeCount,_nDownloadCount,_aFiles,_aModManagerIntegrations,_bIsNsfw,_aAlternateFileSources" +
+               $"&_nPerpage={perPage}";
+
+        if (!nsfw) url += "&_aArgs[]=_sbIsNsfw = false";
+
+        url += filter switch
+        {
+            FeedFilter.Recent   => "&_sOrderBy=_tsDateUpdated,DESC",
+            FeedFilter.Featured => "&_aArgs[]=_sbWasFeatured = true& _sOrderBy=_tsDateAdded,DESC",
+            FeedFilter.Popular  => "&_sOrderBy=_nDownloadCount,DESC",
+            _                   => ""
+        };
+
+        if (subcategory?.ID != null)      url += $"&_aCategoryRowIds[]={subcategory.ID}";
+        else if (category?.ID != null)    url += $"&_aCategoryRowIds[]={category.ID}";
+
+        url += $"&_nPage={page}";
+        return url;
     }
 }

@@ -1,29 +1,49 @@
-﻿using Microsoft.Win32;
+using System;
 using System.IO;
-using System.Reflection;
+using System.Runtime.InteropServices;
 
-namespace PizzaOven
+namespace PizzaOven;
+
+public static class RegistryConfig
 {
-    public static class RegistryConfig
+    public static bool InstallGBHandler()
     {
-        public static bool InstallGBHandler()
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return false;
+
+        string appPath = $"{Global.assemblyLocation}{Global.s}PizzaOven.exe";
+        const string protocolName = "pizzaoven";
+        try
         {
-            string AppPath = $"{Global.assemblyLocation}{Global.s}PizzaOven.exe";
-            string protocolName = $"pizzaoven";
-            try
+            var registryType = Type.GetType("Microsoft.Win32.Registry, Microsoft.Win32.Registry");
+            if (registryType == null)
             {
-                var reg = Registry.CurrentUser.CreateSubKey(@"Software\Classes\PizzaOven");
-                reg.SetValue("", $"URL:{protocolName}");
-                reg.SetValue("URL Protocol", "");
-                reg = reg.CreateSubKey(@"shell\open\command");
-                reg.SetValue("", $"\"{AppPath}\" -download \"%1\"");
-                reg.Close();
-                return true;
+                RegisterWindows(appPath, protocolName);
             }
-            catch
+            else
             {
-                return false;
+                RegisterWindows(appPath, protocolName);
             }
+            return true;
         }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static void RegisterWindows(string appPath, string protocolName)
+    {
+#if WINDOWS
+        var reg = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Classes\PizzaOven");
+        reg.SetValue("", $"URL:{protocolName}");
+        reg.SetValue("URL Protocol", "");
+        reg = reg.CreateSubKey(@"shell\open\command");
+        reg.SetValue("", $"\"{appPath}\" -download \"%1\"");
+        reg.Close();
+#else
+        _ = appPath;
+        _ = protocolName;
+#endif
     }
 }

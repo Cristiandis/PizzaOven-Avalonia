@@ -1,0 +1,21 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Style Selector="ComboBox">
+    <Setter Property="Background"      Value="#2a2a2a" />
+    <Setter Property="Foreground"      Value="#f2f2f2" />
+    <Setter Property="BorderBrush"     Value="#444" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius"    Value="4" />
+  </Style>
+
+  <Style Selector="ComboBoxItem">
+    <Setter Property="Background" Value="#2a2a2a" />
+    <Setter Property="Foreground" Value="#f2f2f2" />
+  </Style>
+
+  <Style Selector="ComboBoxItem:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="#3a3a3a" />
+  </Style>
+
+</Styles>

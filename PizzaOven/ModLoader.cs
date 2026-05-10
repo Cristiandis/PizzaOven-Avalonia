@@ -1,12 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Security.Cryptography.X509Certificates;
-using System.Text.Json;
 
 namespace PizzaOven
 {
@@ -88,10 +85,16 @@ namespace PizzaOven
             var FilesToPatch = Directory.GetFiles($"{Global.config.ModsFolder}{Global.s}sound{Global.s}Desktop").ToList();
             FilesToPatch.Insert(0, $"{Global.config.ModsFolder}{Global.s}data.win");
             FilesToPatch.Insert(1, $"{Global.config.ModsFolder}{Global.s}PizzaTower.exe");
-            var xdelta = $"{Global.assemblyLocation}{Global.s}Dependencies{Global.s}xdelta.exe";
-            if (!File.Exists(xdelta))
+            var xdelta = OperatingSystem.IsWindows()
+                ? $"{Global.assemblyLocation}{Global.s}Dependencies{Global.s}xdelta.exe"
+                : "xdelta3";
+            if (OperatingSystem.IsLinux() && !File.Exists(xdelta) && !IsSystemXDelta3Available())
             {
-
+                Global.logger.WriteLine("xdelta3 is not installed. Please install with your distro's package manager", LoggerType.Error);
+                return false;
+            }
+            if (OperatingSystem.IsWindows() && !File.Exists(xdelta))
+            {
                 Global.logger.WriteLine($"{xdelta} is not found. Please try redownloading Pizza Oven", LoggerType.Error);
                 return false;
             }
@@ -255,7 +258,7 @@ namespace PizzaOven
             startInfo.UseShellExecute = false;
             startInfo.FileName = xdelta;
             startInfo.WindowStyle = ProcessWindowStyle.Hidden;
-            startInfo.WorkingDirectory = Path.GetDirectoryName(xdelta);
+            startInfo.WorkingDirectory = OperatingSystem.IsWindows() ? Path.GetDirectoryName(xdelta) : Global.assemblyLocation;
             startInfo.Arguments = $@"-d -s ""{file}"" ""{patch}"" ""{output}""";
             using (Process process = new Process())
             {
@@ -271,7 +274,7 @@ namespace PizzaOven
                 foreach (var file in Directory.GetFiles(path, "*.po", SearchOption.AllDirectories)) {
                     try
                     {
-                        File.Move(file, Path.ChangeExtension(file, String.Empty), true);
+                        File.Move(file, file[..^3], true);
                     }
                     catch (Exception e)
                     {
@@ -294,7 +297,7 @@ namespace PizzaOven
             startInfo.RedirectStandardOutput = true;
             startInfo.FileName = xdelta;
             startInfo.WindowStyle = ProcessWindowStyle.Hidden;
-            startInfo.WorkingDirectory = Path.GetDirectoryName(xdelta);
+            startInfo.WorkingDirectory = OperatingSystem.IsWindows() ? Path.GetDirectoryName(xdelta) : Global.assemblyLocation;
             startInfo.Arguments = $@"printhdr ""{patch}""";
 
             // xdelta copy window length
@@ -373,6 +376,23 @@ namespace PizzaOven
             {
                 yield return line;
             }
+        }
+        private static bool IsSystemXDelta3Available()
+        {
+            try
+            {
+                var process = Process.Start(new ProcessStartInfo("xdelta3")
+                {
+                    Arguments = "-V",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                });
+                process?.WaitForExit();
+                return process?.ExitCode == 0;
+            }
+            catch { return false; }
         }
     }
 }

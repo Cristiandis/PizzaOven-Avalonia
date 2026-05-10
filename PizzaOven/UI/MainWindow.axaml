@@ -1,0 +1,860 @@
+<Window x:Class="PizzaOven.MainWindow"
+        xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
+        xmlns:local="using:PizzaOven"
+        Background="#131313"
+        Title="Pizza Oven"
+        mc:Ignorable="d"
+        WindowStartupLocation="CenterScreen"
+        Height="750" Width="1280" MinHeight="750" MinWidth="1280"
+        Icon="avares://PizzaOven/Assets/PizzaOvenIcon.ico"
+        Closing="Window_Closing"
+        Loaded="WindowLoaded"
+        KeyDown="Window_KeyDown">
+
+    <Window.Resources>
+        <FontFamily x:Key="Monospace">avares://PizzaOven/Assets#Roboto Mono</FontFamily>
+
+        <DataTemplate x:Key="BrowserTemplate" x:DataType="local:GameBananaRecord">
+            <Border CornerRadius="5" Margin="5"
+                    BorderBrush="#1a101010"
+                    Background="#1a101010">
+                <Grid VerticalAlignment="Center" Margin="3">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="180"/>
+                        <RowDefinition Height="30"/>
+                        <RowDefinition Height="80"/>
+                        <RowDefinition Height="30"/>
+                        <RowDefinition Height="35"/>
+                        <RowDefinition Height="35"/>
+                        <RowDefinition Height="35"/>
+                        <RowDefinition Height="40"/>
+                    </Grid.RowDefinitions>
+
+
+                    <TextBlock VerticalAlignment="Center"
+                               ZIndex="4" FontSize="40" FontWeight="Medium"
+                               HorizontalAlignment="Center" Foreground="#f2f2f2"
+                               IsVisible="{Binding IsSpoilerOrNsfw}"
+                               Text="{Binding SpoilerLabel}" />
+
+                    <Rectangle Height="172" ZIndex="3" Fill="#202020"
+                               Stretch="UniformToFill" Margin="5,10,5,5"
+                               VerticalAlignment="Center"
+                               IsVisible="{Binding IsSpoilerOrNsfw}" />
+
+                    <Image Margin="5,10,5,5"
+                           asyncImageLoader:ImageLoader.Source="{Binding Image, Mode=OneWay}"
+                           Height="168" ZIndex="2"
+                           VerticalAlignment="Center" Stretch="Uniform"
+                           IsVisible="{Binding !IsSpoilerOrNsfw}"/>
+                    <Image Margin="5,10,5,5"
+                           asyncImageLoader:ImageLoader.Source="{Binding Image, Mode=OneWay}"
+                           Height="168" ZIndex="2"
+                           VerticalAlignment="Center" Stretch="Uniform"
+                           IsVisible="{Binding IsSpoilerOrNsfw}">
+                        <Image.Effect>
+                            <BlurEffect Radius="20"/>
+                        </Image.Effect>
+                    </Image>
+                    
+                    <Border Height="168" ZIndex="1" Background="Black"
+                            Margin="5,10,5,5" VerticalAlignment="Center" Opacity="0.3"/>
+
+                    <TextBlock x:Name="TitleText" Margin="5" Grid.Row="1"
+                               FontWeight="Medium" TextTrimming="WordEllipsis"
+                               Background="Transparent" VerticalAlignment="Center"
+                               Foreground="#f2f2f2" Text="{Binding Title}"/>
+                    
+                    <materialIcons:MaterialIcon Grid.Row="0" ZIndex="-1"
+                                                Kind="Loading"
+                                                Foreground="#ffee5f" Width="50" Height="50"
+                                                VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <materialIcons:MaterialIcon.RenderTransform>
+                            <RotateTransform/>
+                        </materialIcons:MaterialIcon.RenderTransform>
+                    </materialIcons:MaterialIcon>
+
+                    <StackPanel Grid.Row="2" Margin="10,-5,10,5" Orientation="Horizontal">
+                        <Image VerticalAlignment="Center"
+                               Source="{Binding Owner.Avatar}"
+                               Margin="0,0,10,0" Height="35"/>
+                        <TextBlock VerticalAlignment="Center" Foreground="#909090"
+                                   Text="{Binding Owner.Name}"
+                                   IsVisible="{Binding !Owner.HasUpic}" />
+                        <Image VerticalAlignment="Center"
+                               Source="{Binding Owner.Upic}" Height="25"/>
+                    </StackPanel>
+
+                    <Grid x:Name="CatGrid" HorizontalAlignment="Center"
+                          Grid.Row="5" Background="Transparent">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <Image x:Name="CatIcon" Grid.Column="0"
+                               VerticalAlignment="Center"
+                               Source="{Binding Category.Icon}"
+                               Margin="0,0,10,0" Stretch="Uniform"
+                               Height="35" Width="35"/>
+                        <TextBlock x:Name="CatText" Grid.Column="1"
+                                   VerticalAlignment="Center" Foreground="#f2f2f2"
+                                   Text="{Binding CategoryName}"
+                                   TextTrimming="WordEllipsis">
+                            <ToolTip.Tip>
+                                <Border CornerRadius="5" Margin="10"
+                                        BorderBrush="#e6101010"
+                                        Background="#e6101010">
+                                    <Grid HorizontalAlignment="Center" Margin="10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition/>
+                                        </Grid.ColumnDefinitions>
+                                        <Image Grid.Column="0" VerticalAlignment="Center"
+                                               Source="{Binding Category.Icon}"
+                                               Margin="0,0,10,0" Stretch="Uniform" Height="35"/>
+                                        <TextBlock Grid.Column="1"
+                                                   VerticalAlignment="Center" FontSize="18"
+                                                   FontWeight="SemiBold" Foreground="#f2f2f2"
+                                                   Text="{Binding CategoryName}"/>
+                                    </Grid>
+                                </Border>
+                            </ToolTip.Tip>
+                        </TextBlock>
+                    </Grid>
+
+                    <TextBlock x:Name="Desc" Margin="5,0,5,2" TextWrapping="Wrap"
+                               Grid.Row="3" Height="50"
+                               TextTrimming="WordEllipsis" Background="Transparent"
+                               VerticalAlignment="Center" Foreground="#f2f2f2"
+                               Text="{Binding Description}">
+                        <ToolTip.Tip>
+                            <Border CornerRadius="5" Margin="10"
+                                    BorderBrush="#e6101010"
+                                    Background="#e6101010">
+                                <TextBlock Margin="10" Text="{Binding Description}"
+                                           Foreground="#f2f2f2" TextWrapping="Wrap"
+                                           FontSize="18" VerticalAlignment="Center"/>
+                            </Border>
+                        </ToolTip.Tip>
+                    </TextBlock>
+
+                    <StackPanel Grid.Row="4" Background="Transparent"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <materialIcons:MaterialIcon Kind="Download" Margin="0,0,5,0" Width="15" Height="15" Foreground="#f2f2f2"/>
+                        <TextBlock Margin="5,0,10,0" VerticalAlignment="Center"
+                                   Foreground="#f2f2f2" Text="{Binding DownloadString}"/>
+                        <materialIcons:MaterialIcon Kind="ThumbUp" Margin="5,0,5,0" Width="15" Height="15" Foreground="#f2f2f2"/>
+                        <TextBlock Margin="5,0,10,0" VerticalAlignment="Center"
+                                   Foreground="#f2f2f2" Text="{Binding LikeString}"/>
+                        <materialIcons:MaterialIcon Kind="Eye" Margin="5,0,5,0" Width="15" Height="15" Foreground="#f2f2f2"/>
+                        <TextBlock Margin="5,0,0,0" VerticalAlignment="Center"
+                                   Foreground="#f2f2f2" Text="{Binding ViewString}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="6" Margin="0,0,0,5"
+                                HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <StackPanel Background="Transparent" Orientation="Horizontal"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    IsVisible="{Binding !HasUpdates}">
+                            <materialIcons:MaterialIcon Kind="CalendarPlus" Margin="0,0,5,0" Width="15" Height="15" Foreground="#f2f2f2"/>
+                            <TextBlock Margin="5,0,0,0" VerticalAlignment="Center"
+                                       Foreground="#f2f2f2"
+                                       Text="{Binding DateAddedFormatted}"/>
+                        </StackPanel>
+                        <StackPanel Background="Transparent" Orientation="Horizontal"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    IsVisible="{Binding HasUpdates}">
+                            <materialIcons:MaterialIcon Kind="CalendarClock" Margin="0,0,5,0" Width="15" Height="15" Foreground="#f2f2f2"/>
+                            <TextBlock Margin="5,0,0,0" VerticalAlignment="Center"
+                                       Foreground="#f2f2f2"
+                                       Text="{Binding DateUpdatedAgo}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <Grid Grid.Row="7" Margin="5,5,5,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Foreground="#f2f2f2" FontWeight="Medium"
+                                Height="30" HorizontalAlignment="Stretch" Margin="3,0,3,0"
+                                Background="#303030" BorderBrush="#353535"
+                                VerticalAlignment="Center" Content="More Info"
+                                Click="MoreInfo_Click"/>
+                        <Button Grid.Column="1" Foreground="#f2f2f2" FontWeight="Medium"
+                                Height="30" HorizontalAlignment="Stretch" Margin="3,0,3,0"
+                                Background="#303030" BorderBrush="#353535"
+                                VerticalAlignment="Center" Content="Download"
+                                IsEnabled="{Binding Compatible}"
+                                Click="Download_Click"/>
+                    </Grid>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="ModTemplate" x:DataType="local:Mod">
+            <Border CornerRadius="5" Margin="5"
+                    BorderBrush="#1a101010"
+                    BorderThickness="1"
+                    Background="#1a101010">
+                <Grid VerticalAlignment="Center" Margin="3">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock VerticalAlignment="Center" ZIndex="4"
+                               FontSize="40" FontWeight="Medium"
+                               HorizontalAlignment="Center" Foreground="#f2f2f2"/>
+                    <Image Margin="5,10,5,5"
+                           asyncImageLoader:ImageLoader.Source="{Binding preview, Mode=OneWay}"
+                           Height="168" ZIndex="3"
+                           VerticalAlignment="Center" Stretch="Uniform"/>
+                    <Border Height="168" ZIndex="1" Background="Black"
+                            Margin="5,10,5,5" VerticalAlignment="Center" Opacity="0.3"/>
+
+                    <TextBlock x:Name="ModTitleText" Margin="5" Grid.Row="1"
+                               FontWeight="Medium" TextTrimming="WordEllipsis"
+                               Background="Transparent" VerticalAlignment="Center"
+                               Foreground="#f2f2f2" Text="{Binding name}">
+                        <ToolTip.Tip>
+                            <Border CornerRadius="5" Margin="10"
+                                    BorderBrush="#e6101010"
+                                    Background="#e6101010">
+                                <TextBlock Margin="10" Text="{Binding name}"
+                                           Foreground="#f2f2f2" FontWeight="Medium"
+                                           FontSize="18" VerticalAlignment="Center"/>
+                            </Border>
+                        </ToolTip.Tip>
+                    </TextBlock>
+                    <materialIcons:MaterialIcon Grid.Row="0"
+                                                Kind="Loading"
+                                                Foreground="#ffee5f" Width="50" Height="50"
+                                                VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <materialIcons:MaterialIcon.RenderTransform>
+                            <RotateTransform/>
+                        </materialIcons:MaterialIcon.RenderTransform>
+                    </materialIcons:MaterialIcon>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid>
+        <StackPanel ZIndex="3" Orientation="Horizontal"
+                    VerticalAlignment="Top" HorizontalAlignment="Right">
+            <TextBox BorderThickness="0" FontSize="18" Margin="5"
+                     Background="Transparent" BorderBrush="Transparent"
+                     IsReadOnly="True" Foreground="#f2f2f2"
+                     FontWeight="Medium" x:Name="Stats" />
+        </StackPanel>
+
+        <TabControl Background="#202020" BorderBrush="#606060"
+                    SelectionChanged="TabControl_SelectionChanged">
+            <TabControl.Styles>
+                <Style Selector="TabItem">
+                    <Setter Property="Background" Value="#1d1d1d"/>
+                    <Setter Property="BorderBrush" Value="#353535"/>
+                    <Setter Property="BorderThickness" Value="0"/>
+                    <Setter Property="MinWidth" Value="100"/>
+                    <Setter Property="MinHeight" Value="30"/>
+                    <Setter Property="FontFamily" Value="Arial"/>
+                    <Setter Property="FontWeight" Value="Medium"/>
+                    <Setter Property="FontSize" Value="15"/>
+                    <Setter Property="Foreground" Value="#f2f2f2"/>
+                    <Setter Property="VerticalContentAlignment" Value="Center"/>
+                    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                    <Setter Property="Padding" Value="8,3"/>
+                </Style>
+                <Style Selector="TabItem:pointerover">
+                    <Setter Property="Background" Value="#353535"/>
+                </Style>
+                <Style Selector="TabItem:selected">
+                    <Setter Property="Background" Value="#353535"/>
+                </Style>
+            </TabControl.Styles>
+
+            <TabItem x:Name="ModManager" FontSize="18" HorizontalAlignment="Center" Header="Manage Mods">
+                <Grid x:Name="MainGrid">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="50"/>
+                        <RowDefinition Height="1.6*" MinHeight="100"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button FontSize="18" FontWeight="Medium" x:Name="LaunchButton"
+                            Margin="10,0,10,0" Height="35"
+                            VerticalAlignment="Center" HorizontalAlignment="Stretch"
+                            Grid.Column="0" Content="Launch"
+                            Background="#181818" BorderBrush="#252525"
+                            Foreground="#f2f2f2" Click="Launch_Click"/>
+                    <Button FontSize="18" FontWeight="Medium" x:Name="ConfigButton"
+                            Margin="10,0,10,0" Height="35"
+                            HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                            Grid.Column="1" Content="Setup"
+                            Background="#181818" BorderBrush="#252525"
+                            Foreground="#f2f2f2" Click="Setup_Click"/>
+                    <Button FontSize="18" FontWeight="Medium" x:Name="ClearButton"
+                            Margin="10,0,10,0" Height="35"
+                            HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                            Grid.Column="2" Content="Clear Selection"
+                            Background="#181818" BorderBrush="#252525"
+                            Foreground="#f2f2f2" Click="Clear_Click"/>
+                    <Button FontSize="18" FontWeight="Medium" x:Name="UpdateButton"
+                            Margin="0,0,10,0" Height="35"
+                            VerticalAlignment="Center" HorizontalAlignment="Stretch"
+                            Grid.Column="3" Content="Check for Updates"
+                            Background="#181818" BorderBrush="#252525"
+                            Foreground="#f2f2f2" Click="Update_Click"/>
+
+                    <Grid x:Name="MiddleGrid" Grid.Row="1" Grid.ColumnSpan="4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1.8*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition/>
+                        </Grid.RowDefinitions>
+
+                        <Grid IsVisible="True" Grid.Row="1" x:Name="DropBox"
+                              Margin="10,5,3,3" ZIndex="2"
+                              Background="Transparent">
+                            <Border Opacity="0.7" Background="Black"/>
+                            <TextBlock Foreground="#f2f2f2" FontSize="40" ZIndex="3"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap">Drop files here to install mod&#x0a;or use Browse Mods tab on top</TextBlock>
+                        </Grid>
+
+                        <Grid x:Name="ModGridSearchBarGrid" ZIndex="2"
+                              Margin="10,5,3,5" Height="35" VerticalAlignment="Center">
+                            <TextBox Margin="0,0,35,0" Background="#353535"
+                                     Foreground="#f2f2f2" BorderBrush="#353535"
+                                     x:Name="ModGrid_SearchBar"
+                                     KeyDown="ModGrid_SearchBar_KeyDown"
+                                     Padding="5" TextWrapping="NoWrap"/>
+                            <TextBlock Padding="8,5,5,5" Foreground="#f2f2f2"
+                                       ZIndex="3" IsHitTestVisible="False"
+                                       Height="35" HorizontalAlignment="Left"
+                                       Text="Search..." VerticalAlignment="Center"
+                                       IsVisible="{Binding #ModGrid_SearchBar.Text, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+                            <Button HorizontalAlignment="Right" Background="Transparent"
+                                    BorderBrush="Transparent" Margin="0,0,40,0"
+                                    Width="25" Height="25" Padding="0"
+                                    IsVisible="{Binding !#ModGrid_SearchBar.Text, Converter={x:Static StringConverters.IsNullOrEmpty}}"
+                                    Click="Clear_PreviewMouseLeftButtonDown">
+                                <materialIcons:MaterialIcon Kind="Close" Foreground="#f2f2f2" Width="15" Height="15"/>
+                            </Button>
+                            <Button HorizontalAlignment="Right" ZIndex="3"
+                                    Focusable="False"
+                                    Click="ModGridSearchButton_Click"
+                                    x:Name="ModGridSearchButton"
+                                    Height="35" Width="35">
+                                <materialIcons:MaterialIcon Kind="Magnify" Foreground="#f2f2f2" Width="16" Height="16"/>
+                            </Button>
+                        </Grid>
+
+                        <Border CornerRadius="5" Grid.Row="1" Margin="10,5,3,3"
+                                BorderBrush="#bf000000"
+                                Background="#bf000000">
+                            <ListBox Margin="5" ZIndex="1"
+                                     HorizontalAlignment="Stretch"
+                                     VerticalAlignment="Top"
+                                     SelectionMode="Single"
+                                     Background="Transparent" BorderBrush="Transparent"
+                                     x:Name="ModGrid"
+                                     DragDrop.AllowDrop="True"
+                                     SelectionChanged="ModGrid_SelectionChanged"
+                                     ItemTemplate="{StaticResource ModTemplate}">
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel ItemWidth="420"/>
+                                    </ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                                <ListBox.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="Fetch Metadata" Click="FetchItem_Click"/>
+                                        <MenuItem Header="Rename Mod" Click="EditItem_Click"/>
+                                        <MenuItem Header="Open Mod Folder" Click="OpenItem_Click"/>
+                                        <MenuItem Header="Delete Mod" Click="DeleteItem_Click"/>
+                                    </ContextMenu>
+                                </ListBox.ContextMenu>
+                                <ListBox.Styles>
+                                    <Style Selector="ListBoxItem">
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                        <Setter Property="Focusable" Value="False"/>
+                                        <Setter Property="Background" Value="Transparent"/>
+                                    </Style>
+                                </ListBox.Styles>
+                            </ListBox>
+                        </Border>
+
+                        <GridSplitter Grid.Column="1" Grid.RowSpan="2"
+                                      HorizontalAlignment="Stretch"
+                                      VerticalAlignment="Stretch"
+                                      Width="10" Background="Transparent"/>
+
+                        <Grid Grid.Column="2" Grid.RowSpan="2">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="1.5*"/>
+                                <RowDefinition/>
+                            </Grid.RowDefinitions>
+                            <Image Margin="3,3,10,5" x:Name="Preview"
+                                   Grid.Row="0" ZIndex="2"/>
+                            <Image Margin="3,3,10,5" x:Name="PreviewBG"
+                                   Grid.Row="0" Stretch="UniformToFill" ZIndex="1">
+                                <Image.Effect>
+                                    <BlurEffect Radius="40"/>
+                                </Image.Effect>
+                            </Image>
+                            <materialIcons:MaterialIcon Grid.Row="0"
+                                                        Kind="Loading" 
+                                                        
+                                                        Foreground="#ffee5f" Width="50" Height="50"
+                                                        VerticalAlignment="Center" HorizontalAlignment="Center">
+                                <materialIcons:MaterialIcon.RenderTransform>
+                                    <RotateTransform/>
+                                </materialIcons:MaterialIcon.RenderTransform>
+                            </materialIcons:MaterialIcon>
+                            <ScrollViewer Grid.Row="1" Margin="3,5,10,3"
+                                          VerticalScrollBarVisibility="Auto">
+                                <SelectableTextBlock x:Name="DescriptionWindow"
+                                                     Foreground="#F2F2F2"
+                                                     Background="#202020"
+                                                     FontSize="12"
+                                                     FontWeight="Medium"
+                                                     Padding="10"
+                                                     TextWrapping="Wrap"/>
+                            </ScrollViewer>
+                        </Grid>
+                    </Grid>
+
+                    <GridSplitter Grid.Row="2" Grid.ColumnSpan="4"
+                                  HorizontalAlignment="Stretch"
+                                  Height="10" Background="Transparent"/>
+
+                    <ScrollViewer Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="4"
+                                  Margin="10,3,10,10"
+                                  VerticalScrollBarVisibility="Auto">
+                        <TextBox x:Name="ConsoleWindow"
+                                             FontFamily="{StaticResource Monospace}"
+                                             FontSize="12"
+                                             Background="#202020"
+                                             BorderBrush="#424242"
+                                             BorderThickness="1"
+                                             Foreground="#f2f2f2"
+                                             TextWrapping="Wrap"
+                                             Padding="4"
+                                             IsReadOnly="True"
+                                             />
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+
+            <TabItem x:Name="ModBrowser" FontSize="18"
+                     HorizontalAlignment="Center" Header="Browse Mods"
+                     IsSelected="False">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="50"/>
+                        <RowDefinition/>
+                        <RowDefinition Height="50"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.2*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="1.5*"/>
+                        <ColumnDefinition Width="1.85*"/>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="0.65*"/>
+                        <ColumnDefinition Width="0.4*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Grid Grid.RowSpan="3" Grid.ColumnSpan="7"
+                          x:Name="MediaPanel" ZIndex="5" IsVisible="False">
+                        <Grid.RowDefinitions>
+                            <RowDefinition/>
+                            <RowDefinition Height="90"/>
+                        </Grid.RowDefinitions>
+                        <Border Grid.RowSpan="2" ZIndex="-1"
+                                BorderBrush="#f2080808"
+                                Background="#f2080808"/>
+                        <Border>
+                            <StackPanel Margin="10" x:Name="BigImagePanel"
+                                        VerticalAlignment="Center" Grid.Row="0">
+                                <Grid HorizontalAlignment="Center"
+                                      VerticalAlignment="Center">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="0.15*"/>
+                                        <ColumnDefinition/>
+                                        <ColumnDefinition Width="0.15*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button HorizontalAlignment="Right"
+                                            VerticalAlignment="Center"
+                                            Click="ImageLeft_Click"
+                                            x:Name="BigImageLeft"
+                                            Content="&lt;" Height="50" Width="50"
+                                            FontWeight="SemiBold" FontSize="20"/>
+                                    <Image Grid.Column="1" x:Name="BigScreenshot"
+                                           Stretch="Uniform"
+                                           Margin="20,0,20,0"
+                                           VerticalAlignment="Center"/>
+                                    <materialIcons:MaterialIcon ZIndex="-1" Grid.Column="1"
+                                                                Kind="Loading" 
+                                                                
+                                                                Foreground="#ffee5f" Width="40" Height="40"
+                                                                VerticalAlignment="Center" HorizontalAlignment="Center">
+                                        <materialIcons:MaterialIcon.RenderTransform>
+                                            <RotateTransform/>
+                                        </materialIcons:MaterialIcon.RenderTransform>
+                                    </materialIcons:MaterialIcon>
+                                    <Button Grid.Column="2"
+                                            HorizontalAlignment="Left"
+                                            VerticalAlignment="Center"
+                                            Click="ImageRight_Click"
+                                            x:Name="BigImageRight"
+                                            Content=">" Height="50" Width="50"
+                                            FontWeight="SemiBold" FontSize="20"/>
+                                </Grid>
+                                <TextBlock x:Name="BigCaptionText"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Center"
+                                           FontSize="18" Foreground="#f2f2f2"
+                                           Padding="5"/>
+                            </StackPanel>
+                        </Border>
+                        <StackPanel Grid.ColumnSpan="2" Margin="20"
+                                    Orientation="Horizontal" Grid.Row="1"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center">
+                            <Button Click="CloseMedia_Click" Content="Close"
+                                    Height="50" Width="200" FontSize="20"
+                                    FontWeight="SemiBold" Foreground="#f2f2f2"
+                                    CornerRadius="2"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid Grid.ColumnSpan="7" Grid.RowSpan="3"
+                          x:Name="DescPanel" ZIndex="4" IsVisible="False"   x:DataType="local:GameBananaRecord">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="2"/>
+                            <RowDefinition/>
+                            <RowDefinition Height="90"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.RowSpan="4" Grid.ColumnSpan="2" ZIndex="-1"
+                                BorderBrush="#f2080808"
+                                Background="#f2080808"/>
+                        <Border Grid.ColumnSpan="2" BorderThickness="0">
+                            <TextBlock Grid.ColumnSpan="2" VerticalAlignment="Center"
+                                       Text="{Binding Title}"
+                                       TextTrimming="WordEllipsis"
+                                       Foreground="#f2f2f2" FontWeight="SemiBold"
+                                       FontSize="40" Padding="6,3,3,3"/>
+                        </Border>
+
+                        <StackPanel x:Name="ImagePanel" IsVisible="False"
+                                    VerticalAlignment="Center"
+                                    Grid.Column="1" Grid.Row="2">
+                            <Grid HorizontalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="0.15*"/>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition Width="0.15*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        Click="ImageLeft_Click"
+                                        x:Name="ImageLeft"
+                                        Content="&lt;" Height="50" Width="50"
+                                        FontWeight="SemiBold" FontSize="20"/>
+                                <Image Grid.Column="1" Cursor="Hand"
+                                       PointerPressed="Image_Click"
+                                       x:Name="Screenshot" Stretch="Uniform"
+                                       MaxHeight="400" Margin="20,0,20,0"
+                                       VerticalAlignment="Center"/>
+                                <materialIcons:MaterialIcon ZIndex="-1" Grid.Column="1"
+                                                            Kind="Loading" 
+                                                            
+                                                            Foreground="#ffee5f" Width="40" Height="40"
+                                                            VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <materialIcons:MaterialIcon.RenderTransform>
+                                        <RotateTransform/>
+                                    </materialIcons:MaterialIcon.RenderTransform>
+                                </materialIcons:MaterialIcon>
+                                <Button Grid.Column="2"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Center"
+                                        Click="ImageRight_Click"
+                                        x:Name="ImageRight"
+                                        Content=">" Height="50" Width="50"
+                                        FontWeight="SemiBold" FontSize="20"/>
+                            </Grid>
+                            <TextBlock x:Name="CaptionText"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Center"
+                                       FontSize="18" Foreground="#f2f2f2"
+                                       Padding="5"/>
+                        </StackPanel>
+
+                        <Border Grid.Row="1" Grid.ColumnSpan="2" Background="#404040"/>
+
+                        <ScrollViewer Margin="5" x:Name="DescTextScroller"
+                                      Grid.Row="2"
+                                      VerticalScrollBarVisibility="Auto">
+                            <SelectableTextBlock x:Name="DescText"
+                                                 Background="Transparent"
+                                                 Foreground="#f2f2f2"
+                                                 Padding="10,0,10,10"
+                                                 FontSize="18"
+                                                 TextWrapping="Wrap"/>
+                        </ScrollViewer>
+
+                        <StackPanel Grid.ColumnSpan="2" Margin="20"
+                                    Orientation="Horizontal"
+                                    Grid.Row="3"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center">
+                            <Button x:Name="AltButton" Click="AltDownload_Click"
+                                    Content="Alt. Downloads"
+                                    IsEnabled="{Binding Compatible}"
+                                    Margin="0,0,20,0" Height="50" Width="200"
+                                    FontSize="20" FontWeight="SemiBold"
+                                    Foreground="#f2f2f2" CornerRadius="2"/>
+                            <Border x:Name="DownloadButton" Margin="0,0,20,0"
+                                    Height="50" Width="200"
+                                    CornerRadius="2" Background="#ffee5f">
+                                <Button Margin="3" Click="Download_Click"
+                                        Content="Download"
+                                        IsEnabled="{Binding Compatible}"
+                                        FontSize="20" FontWeight="SemiBold"
+                                        Foreground="#f2f2f2" CornerRadius="2"
+                                        HorizontalContentAlignment="Center"
+                                        HorizontalAlignment="Stretch"/>
+                            </Border>
+                            <Button x:Name="HomepageButton" Click="Homepage_Click"
+                                    Margin="0,0,20,0" Height="50" Width="200"
+                                    FontSize="20" FontWeight="SemiBold"
+                                    Foreground="#f2f2f2" CornerRadius="2"/>
+                            <Button Click="CloseDesc_Click" Content="Close"
+                                    Height="50" Width="200" FontSize="20"
+                                    FontWeight="SemiBold" Foreground="#f2f2f2"
+                                    CornerRadius="2"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <ComboBox Margin="5,0,0,0" Grid.Column="0" IsEnabled="False"
+                              x:Name="FilterBox" Height="35" MinWidth="130"
+                              HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                              FontSize="18" FontWeight="Medium"
+                              SelectionChanged="FilterSelectionChanged"/>
+                    <ComboBox Margin="5,0,0,0" Grid.Column="1" IsEnabled="False"
+                              FontWeight="Medium" FontSize="18"
+                              x:Name="TypeBox" Height="35"
+                              HorizontalAlignment="Stretch" VerticalAlignment="Center" MinWidth="100"
+                              SelectionChanged="TypeFilterSelectionChanged">
+                        <ComboBoxItem IsSelected="True">Mods</ComboBoxItem>
+                        <ComboBoxItem>WiPs</ComboBoxItem>
+                        <ComboBoxItem>Sounds</ComboBoxItem>
+                    </ComboBox>
+                    <ComboBox Margin="5,0,0,0" Grid.Column="2" IsEnabled="False"
+                              x:Name="CatBox" Height="35"
+                              HorizontalAlignment="Stretch" VerticalAlignment="Center" MinWidth="150"
+                              SelectionChanged="MainFilterSelectionChanged">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="local:GameBananaCategory">
+                                <StackPanel Orientation="Horizontal">
+                                    <Image Margin="0,0,5,0" VerticalAlignment="Center"
+                                           Height="25" Source="{Binding Icon}"/>
+                                    <TextBlock VerticalAlignment="Center"
+                                               FontSize="15" FontWeight="Medium"
+                                               Text="{Binding Name}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <ComboBox Margin="5,0,0,0" Grid.Column="3" IsEnabled="False"
+                              x:Name="SubCatBox" Height="35"
+                              HorizontalAlignment="Stretch" VerticalAlignment="Center" MinWidth="200"
+                              SelectionChanged="SubFilterSelectionChanged">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="local:GameBananaCategory">
+                                <StackPanel Orientation="Horizontal">
+                                    <Image Margin="0,0,5,0" VerticalAlignment="Center"
+                                           Height="25" Source="{Binding Icon}"/>
+                                    <TextBlock VerticalAlignment="Center"
+                                               FontSize="15" FontWeight="Medium"
+                                               Text="{Binding Name}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+
+                    <TextBox Margin="5,0,35,0" Background="#353535"
+                             Foreground="#f2f2f2" BorderBrush="#353535"
+                             Padding="4,0,0,0" Grid.Column="4"
+                             IsEnabled="False"
+                             KeyDown="SearchBar_KeyDown"
+                             x:Name="SearchBar" Height="35" MinWidth="200"
+                             HorizontalAlignment="Stretch"
+                             VerticalAlignment="Center"
+                             VerticalContentAlignment="Center"/>
+                    <TextBlock Margin="5,0,35,0" Padding="7,5.5,3,3"
+                               Grid.Column="4" IsHitTestVisible="False"
+                               Height="35" MinWidth="200" HorizontalAlignment="Left"
+                               Text="Search..." VerticalAlignment="Center"
+                               Foreground="#f2f2f2"
+                               IsVisible="{Binding #SearchBar.Text, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+                    <Button Grid.Column="4" IsEnabled="False"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Click="SearchButton_Click"
+                            x:Name="SearchButton" Height="35" Width="35">
+                        <materialIcons:MaterialIcon Kind="Magnify" Foreground="#f2f2f2" Width="16" Height="16"/>
+                    </Button>
+
+                    <StackPanel Grid.Column="5" Orientation="Horizontal"
+                                HorizontalAlignment="Center" Margin="5,0,0,0">
+                        <CheckBox x:Name="NSFWCheckbox" IsEnabled="False"
+                                  IsCheckedChanged="NSFWCheckbox_Checked"
+                                  Margin="0,0,5,0" VerticalAlignment="Center"/>
+                        <TextBlock Foreground="#f2f2f2" VerticalAlignment="Center"
+                                   HorizontalAlignment="Center"
+                                   FontSize="14" FontWeight="Medium"
+                                   TextAlignment="Center">Include&#x0a;NSFW</TextBlock>
+                    </StackPanel>
+
+                    <Image Grid.Column="6" x:Name="GB"
+                           VerticalAlignment="Center" HorizontalAlignment="Center"
+                           Height="35"
+                           Source="avares://PizzaOven/Assets/GameBanana.png"
+                           Cursor="Hand"
+                           PointerPressed="GameBanana_Click">
+                        <ToolTip.Tip>Go to gamebanana.com</ToolTip.Tip>
+                    </Image>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
+                                Grid.ColumnSpan="7" Grid.Row="2">
+                        <Button IsEnabled="False" x:Name="PageLeft"
+                                Click="DecrementPage" Content="&lt;"
+                                HorizontalAlignment="Right" Margin="0,0,15,0"
+                                FontSize="18" FontWeight="Medium"
+                                Height="35" Width="35"
+                                Background="#181818" BorderBrush="#252525"
+                                Foreground="#f2f2f2"/>
+                        <TextBlock x:Name="Page" Text="Page 1" Foreground="#f2f2f2"
+                                   VerticalAlignment="Center" HorizontalAlignment="Center"
+                                   FontSize="18" FontWeight="Medium"/>
+                        <Button IsEnabled="False" x:Name="PageRight"
+                                Click="IncrementPage" Content=">"
+                                HorizontalAlignment="Left" Margin="15,0,0,0"
+                                FontSize="18" FontWeight="Medium"
+                                Height="35" Width="35"
+                                Background="#181818" BorderBrush="#252525"
+                                Foreground="#f2f2f2"/>
+                        <ComboBox IsEnabled="False" Margin="15,0,15,0"
+                                  x:Name="PageBox"
+                                  SelectionChanged="PageBox_SelectionChanged"
+                                  Height="35" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <StackPanel Margin="5,5,10,5" Grid.ColumnSpan="7"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Right" Grid.Row="2">
+                        <Button Margin="0,0,15,0" Click="ClearCache"
+                                x:Name="ClearCacheButton" Content="Refresh"
+                                HorizontalAlignment="Center"
+                                FontSize="18" FontWeight="Medium"
+                                Height="35" Width="90"
+                                Background="#181818" BorderBrush="#252525"
+                                IsEnabled="False" Foreground="#f2f2f2"
+                                CornerRadius="5"/>
+                        <TextBlock Margin="0,0,15,0" Foreground="#f2f2f2"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Center"
+                                   FontSize="18" FontWeight="Medium">Per Page:</TextBlock>
+                        <ComboBox IsEnabled="False" x:Name="PerPageBox"
+                                  SelectionChanged="PerPageSelectionChanged"
+                                  Height="35" VerticalAlignment="Center">
+                            <ComboBoxItem>10</ComboBoxItem>
+                            <ComboBoxItem IsSelected="True">20</ComboBoxItem>
+                            <ComboBoxItem>30</ComboBoxItem>
+                            <ComboBoxItem>40</ComboBoxItem>
+                            <ComboBoxItem>50</ComboBoxItem>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <materialIcons:MaterialIcon x:Name="LoadingBar" Grid.ColumnSpan="7"
+                                                Kind="Loading" 
+                                                
+                                                Foreground="#ffee5f" ZIndex="1" Grid.Row="1"
+                                                Width="110" Height="110"
+                                                VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <materialIcons:MaterialIcon.RenderTransform>
+                            <RotateTransform/>
+                        </materialIcons:MaterialIcon.RenderTransform>
+                    </materialIcons:MaterialIcon>
+
+                    <StackPanel x:Name="ErrorPanel" Grid.ColumnSpan="7"
+                                Grid.Row="1" ZIndex="1"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center">
+                        <TextBlock x:Name="BrowserMessage"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#f2f2f2" FontWeight="Medium"
+                                   TextWrapping="Wrap" Width="800"
+                                   TextAlignment="Center" FontSize="25"/>
+                        <Button Margin="10" Click="BrowserRefresh"
+                                x:Name="BrowserRefreshButton" Content="Retry"
+                                HorizontalAlignment="Center"
+                                FontSize="18" FontWeight="Medium"
+                                Height="40" Width="140"
+                                Background="#181818" BorderBrush="#252525"
+                                Foreground="#f2f2f2" CornerRadius="5"/>
+                    </StackPanel>
+
+                    <Border Grid.ColumnSpan="7" Grid.Row="1"
+                            CornerRadius="5" Margin="10,0,10,0"
+                            BorderBrush="#bf000000"
+                            Background="#bf000000"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch">
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                      VerticalScrollBarVisibility="Auto">
+                            <ItemsControl x:Name="FeedBox"
+                                          HorizontalAlignment="Stretch"
+                                          ItemTemplate="{StaticResource BrowserTemplate}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>

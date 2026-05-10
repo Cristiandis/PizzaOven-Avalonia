@@ -1,58 +1,75 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
 using System.Text.Json;
 using System.Diagnostics;
 using System.Reflection;
-using System.Windows.Documents;
 using System.Text.RegularExpressions;
-using System.Windows.Media.Imaging;
-using System.Xml.Linq;
 using System.Net.Http;
-using System.Windows.Media;
+using System.Threading;
+
+// Avalonia namespaces (replace System.Windows.*)
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Media;
+using Avalonia.Threading;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
+
+// NOTE: Remove references to:
+//   System.Windows, System.Windows.Controls, System.Windows.Media,
+//   System.Windows.Documents, System.Windows.Input, System.Windows.Data
+//   Microsoft.Win32 (use Avalonia's StorageProvider instead)
+//
+// Third-party replacements:
+//   gong-wpf-dragdrop  → Avalonia.Input.DragDrop (built-in)
+//   FontAwesome.WPF    → Projektanker.Icons.Avalonia (NuGet)
+//   RichTextBox        → SelectableTextBlock / AvaloniaEdit (NuGet)
+
 using PizzaOven.UI;
-using System.Windows.Controls.Primitives;
-using System.Security.Cryptography;
-using Microsoft.Win32;
-using System.Windows.Input;
-using System.Windows.Data;
 using SharpCompress.Archives.SevenZip;
 using SharpCompress.Common;
 using SharpCompress.Readers;
-using System.Threading;
 
 namespace PizzaOven
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
         public string version;
-        // Separated from Global.config so that order is updated when datagrid is modified
+        private bool _updatingPageBox = false;
         public List<string> exes;
         private FileSystemWatcher ModsWatcher;
-        private FlowDocument defaultFlow = new FlowDocument();
+
         private string defaultText = "No mod is currently selected. Pressing launch will start a vanilla Pizza Tower. " +
             "Start downloading and using mods in the Browse Mods tab on top. Only one mod can be selected at a time.";
+
         public MainWindow()
         {
             InitializeComponent();
+            ModGrid.AddHandler(DragDrop.DragOverEvent, new EventHandler<DragEventArgs>(Add_Enter));
+            var spinTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
+            double spinAngle = 0;
+            spinTimer.Tick += (_, _) =>
+            {
+                spinAngle = (spinAngle + 4) % 360;
+                if (LoadingBar.RenderTransform is RotateTransform rt)
+                    rt.Angle = spinAngle;
+            };
+            spinTimer.Start();
             Global.logger = new Logger(ConsoleWindow);
             Global.config = new();
 
-            // Get Version Number
             var PizzaOvenVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
             version = PizzaOvenVersion.Substring(0, PizzaOvenVersion.LastIndexOf('.'));
 
             Global.logger.WriteLine($"Launched PizzaOven Mod Manager v{version}!", LoggerType.Info);
-            // Get Global.config if it exists
+
             if (File.Exists($@"{Global.assemblyLocation}{Global.s}Config.json"))
             {
                 try
@@ -66,7 +83,6 @@ namespace PizzaOven
                 }
             }
 
-            // Last saved windows settings
             if (Global.config.Height != null && Global.config.Height >= MinHeight)
                 Height = (double)Global.config.Height;
             if (Global.config.Width != null && Global.config.Width >= MinWidth)
@@ -86,10 +102,8 @@ namespace PizzaOven
                 Global.config.ModList = new();
             Global.ModList = Global.config.ModList;
 
-
             Directory.CreateDirectory($@"{Global.assemblyLocation}{Global.s}Mods");
 
-            // Watch mods folder to detect
             ModsWatcher = new FileSystemWatcher($@"{Global.assemblyLocation}{Global.s}Mods");
             ModsWatcher.Created += OnModified;
             ModsWatcher.Deleted += OnModified;
@@ -99,10 +113,10 @@ namespace PizzaOven
             SelectItem();
 
             ModsWatcher.EnableRaisingEvents = true;
+            
+            DescriptionWindow.Text = defaultText;
 
-            defaultFlow.Blocks.Add(ConvertToFlowParagraph(defaultText));
-            DescriptionWindow.Document = defaultFlow;
-            var bitmap = new BitmapImage(new Uri("pack://application:,,,/PizzaOven;component/Assets/PizzaOvenPreview.png"));
+            var bitmap = new Bitmap(AssetLoader.Open(new Uri("avares://PizzaOven/Assets/PizzaOvenPreview.png")));
             Preview.Source = bitmap;
             PreviewBG.Source = null;
 
@@ -113,42 +127,38 @@ namespace PizzaOven
             ClearButton.IsEnabled = false;
             UpdateButton.IsEnabled = false;
             ModGridSearchButton.IsEnabled = false;
-            App.Current.Dispatcher.Invoke(() =>
-            {
-                ModUpdater.CheckForUpdates($"{Global.assemblyLocation}{Global.s}Mods", this);
-            });
+
+            _ = ModUpdater.CheckForUpdatesAsync($"{Global.assemblyLocation}{Global.s}Mods", this);
+
             if (Global.config.ModsFolder == null)
             {
-                // Setup on launch if not setup yet
-                if (Setup.GameSetup())
-                    LaunchButton.IsEnabled = true;
-                else
+                Opened += async (_, _) =>
                 {
-                    LaunchButton.IsEnabled = false;
-                    Global.logger.WriteLine("Please click Setup before starting!", LoggerType.Warning);
-                }
+                    if (await Setup.GameSetupAsync(this))
+                        LaunchButton.IsEnabled = true;
+                    else
+                    {
+                        LaunchButton.IsEnabled = false;
+                        Global.logger.WriteLine("Please click Setup before starting!", LoggerType.Warning);
+                    }
+                };
             }
         }
-        private void WindowLoaded(object sender, RoutedEventArgs e)
-        {
 
-        }
+        private void WindowLoaded(object sender, RoutedEventArgs e) { }
+
         private void OnModified(object sender, FileSystemEventArgs e)
         {
             Refresh();
             Global.UpdateConfig();
-            // Bring window to front after download is done
-            App.Current.Dispatcher.Invoke((Action)delegate
-            {
-                Activate();
-            });
+            Dispatcher.UIThread.Post(() => Activate());
         }
+
         private async void SelectItem()
         {
-           
             await Task.Run(() =>
             {
-                App.Current.Dispatcher.Invoke((Action)delegate
+                Dispatcher.UIThread.Invoke(() =>
                 {
                     var index = Global.ModList.ToList().FindIndex(mod => mod.enabled == true);
                     if (index != -1)
@@ -168,7 +178,6 @@ namespace PizzaOven
         private async void Refresh()
         {
             var currentModDirectory = $@"{Global.assemblyLocation}{Global.s}Mods";
-            // Add new folders found in Mods to the ModList
             foreach (var mod in Directory.GetDirectories(currentModDirectory))
             {
                 if (Global.ModList.ToList().Where(x => x.name == Path.GetFileName(mod)).Count() == 0)
@@ -179,29 +188,23 @@ namespace PizzaOven
                     Thread.Sleep(1000);
                     if (File.Exists($"{mod}{Global.s}mod.json"))
                     {
-                        FlowDocument descFlow = new FlowDocument();
                         var metadataString = File.ReadAllText($"{mod}{Global.s}mod.json");
                         Metadata metadata = JsonSerializer.Deserialize<Metadata>(metadataString);
                         m.preview = metadata.preview;
                     }
                     else
-                        m.preview = new Uri("pack://application:,,,/PizzaOven;component/Assets/PizzaOvenLogo.png");
-                    App.Current.Dispatcher.Invoke((Action)delegate
-                    {
-                        Global.ModList.Add(m);
-                    });
+                        m.preview = new Uri("avares://PizzaOven/Assets/PizzaOvenLogo.png");
+
+                    Dispatcher.UIThread.Invoke(() => Global.ModList.Add(m));
                     Global.logger.WriteLine($"Added {Path.GetFileName(mod)}", LoggerType.Info);
                 }
             }
-            // Remove deleted folders that are still in the ModList
+
             foreach (var mod in Global.ModList.ToList())
             {
                 if (!Directory.GetDirectories(currentModDirectory).ToList().Select(x => Path.GetFileName(x)).Contains(mod.name))
                 {
-                    App.Current.Dispatcher.Invoke((Action)delegate
-                    {
-                        Global.ModList.Remove(mod);
-                    });
+                    Dispatcher.UIThread.Invoke(() => Global.ModList.Remove(mod));
                     Global.logger.WriteLine($"Deleted {mod.name}", LoggerType.Info);
                     continue;
                 }
@@ -209,13 +212,13 @@ namespace PizzaOven
 
             await Task.Run(() =>
             {
-                App.Current.Dispatcher.Invoke((Action)delegate
+                Dispatcher.UIThread.Invoke(() =>
                 {
                     ModGrid.ItemsSource = Global.ModList;
                     if (ModGrid.Items.Count == 0)
-                        DropBox.Visibility = Visibility.Visible;
+                        DropBox.IsVisible = true;
                     else
-                        DropBox.Visibility = Visibility.Collapsed;
+                        DropBox.IsVisible = false;
                     Stats.Text = $"{Global.ModList.Count} mods • {Directory.GetFiles($@"{Global.assemblyLocation}{Global.s}Mods", "*", SearchOption.AllDirectories).Length.ToString("N0")} files • " +
                     $"{StringConverters.FormatSize(new DirectoryInfo($@"{Global.assemblyLocation}{Global.s}Mods").GetDirectorySize())} • v{version}";
                 });
@@ -226,20 +229,12 @@ namespace PizzaOven
 
         private async void Setup_Click(object sender, RoutedEventArgs e)
         {
-            await Task.Run(() =>
-            {
-                if (Setup.GameSetup())
-                {
-                    Dispatcher.Invoke(() =>
-                    {
-                        LaunchButton.IsEnabled = true;
-                    });
-                }
-            });
+            if (await Setup.GameSetupAsync(this))
+                LaunchButton.IsEnabled = true;
         }
+
         private async void Launch_Click(object sender, RoutedEventArgs e)
         {
-            // Build Mod Loadout
             if (Global.config.ModsFolder != null)
             {
                 ModGrid.IsEnabled = false;
@@ -248,7 +243,6 @@ namespace PizzaOven
                 ClearButton.IsEnabled = false;
                 UpdateButton.IsEnabled = false;
                 ModGridSearchButton.IsEnabled = false;
-                Refresh();
                 Directory.CreateDirectory(Global.config.ModsFolder);
                 Global.logger.WriteLine($"Cooking mods for Pizza Tower", LoggerType.Info);
                 if (!await Build(Global.config.ModsFolder))
@@ -274,7 +268,7 @@ namespace PizzaOven
                 Global.logger.WriteLine("Please click Setup before starting!", LoggerType.Warning);
                 return;
             }
-            // Launch game
+
             if (Global.config.Launcher != null && File.Exists(Global.config.Launcher))
             {
                 var path = Global.config.Launcher;
@@ -282,12 +276,24 @@ namespace PizzaOven
                 {
                     Global.UpdateConfig();
                     Global.logger.WriteLine($"Launching {path}", LoggerType.Info);
-                    var ps = new ProcessStartInfo(path)
+                    ProcessStartInfo ps;
+                    if (OperatingSystem.IsLinux())
                     {
-                        WorkingDirectory = Path.GetDirectoryName(Global.config.Launcher),
-                        UseShellExecute = true,
-                        Verb = "open"
-                    };
+                        ps = new ProcessStartInfo("steam")
+                        {
+                            Arguments = "steam://rungameid/2231450",
+                            UseShellExecute = true
+                        };
+                    }
+                    else
+                    {
+                        ps = new ProcessStartInfo(path)
+                        {
+                            WorkingDirectory = Path.GetDirectoryName(Global.config.Launcher),
+                            UseShellExecute = true,
+                            Verb = "open"
+                        };
+                    }
                     Process.Start(ps);
                 }
                 catch (Exception ex)
@@ -298,65 +304,133 @@ namespace PizzaOven
             else
                 Global.logger.WriteLine($"Please click Setup before starting!", LoggerType.Warning);
         }
-        private void GameBanana_Click(object sender, RoutedEventArgs e)
+
+        private void GameBanana_Click(object sender, PointerPressedEventArgs e)
         {
             var id = "7692";
             try
             {
-                var ps = new ProcessStartInfo($"https://gamebanana.com/games/{id}")
-                {
-                    UseShellExecute = true,
-                    Verb = "open"
-                };
-                Process.Start(ps);
+                Process.Start(new ProcessStartInfo($"https://gamebanana.com/games/{id}") { UseShellExecute = true });
             }
             catch (Exception ex)
             {
                 Global.logger.WriteLine($"Couldn't open up GameBanana ({ex.Message})", LoggerType.Error);
             }
         }
-        private void ScrollToBottom(object sender, TextChangedEventArgs args)
+
+        private void Window_Closing(object sender, WindowClosingEventArgs e)
         {
-            ConsoleWindow.ScrollToEnd();
+            if (WindowState == WindowState.Maximized)
+            {
+                Global.config.Maximized = true;
+            }
+            else
+            {
+                Global.config.Height = Height;
+                Global.config.Width = Width;
+                Global.config.Maximized = false;
+            }
+            Global.config.TopGridHeight = MainGrid.RowDefinitions[1].Height.Value;
+            Global.config.BottomGridHeight = MainGrid.RowDefinitions[3].Height.Value;
+            Global.config.LeftGridWidth = MiddleGrid.ColumnDefinitions[0].Width.Value;
+            Global.config.RightGridWidth = MiddleGrid.ColumnDefinitions[2].Width.Value;
+            Global.UpdateConfig();
         }
 
-        private void ModGrid_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        private void OnResize(object sender, SizeChangedEventArgs e)
         {
-            FrameworkElement element = sender as FrameworkElement;
-            if (element == null)
-            {
-                return;
-            }
+            BigScreenshot.MaxHeight = Bounds.Height - 240;
+        }
+        
+        private void UniformGrid_SizeChanged(object sender, SizeChangedEventArgs e) { }
 
-            if (ModGrid.SelectedItem == null)
-                element.ContextMenu.Visibility = Visibility.Collapsed;
-            else
-                element.ContextMenu.Visibility = Visibility.Visible;
+        private void OpenItem_Click(object sender, RoutedEventArgs e)
+        {
+            var selectedMods = ModGrid.SelectedItems;
+            foreach (var row in selectedMods.OfType<Mod>())
+            {
+                var folderName = $@"{Global.assemblyLocation}{Global.s}Mods{Global.s}{row.name}";
+                if (Directory.Exists(folderName))
+                {
+                    try
+                    {
+                        Process.Start(new ProcessStartInfo(folderName) { UseShellExecute = true });
+                        Global.logger.WriteLine($@"Opened {folderName}.", LoggerType.Info);
+                    }
+                    catch (Exception ex)
+                    {
+                        Global.logger.WriteLine($@"Couldn't open {folderName}. ({ex.Message})", LoggerType.Error);
+                    }
+                }
+            }
+        }
+
+        private void EditItem_Click(object sender, RoutedEventArgs e)
+        {
+            var selectedMods = ModGrid.SelectedItems.OfType<Mod>().ToArray();
+            ModsWatcher.EnableRaisingEvents = false;
+            foreach (var row in selectedMods)
+            {
+                EditWindow ew = new EditWindow(row.name, true);
+                ew.ShowDialog(this);
+            }
+            ModsWatcher.EnableRaisingEvents = true;
+            Global.UpdateConfig();
+            ModGrid.ItemsSource = null;
+            ModGrid.ItemsSource = Global.ModList;
+        }
+
+        private void FetchItem_Click(object sender, RoutedEventArgs e)
+        {
+            var selectedMods = ModGrid.SelectedItems.OfType<Mod>().ToArray();
+            ModsWatcher.EnableRaisingEvents = false;
+            foreach (var row in selectedMods)
+            {
+                FetchWindow fw = new FetchWindow(row);
+                fw.ShowDialog(this);
+                if (fw.success)
+                {
+                    ShowMetadata(row.name);
+                    ModGrid.ItemsSource = null;
+                    ModGrid.ItemsSource = Global.ModList;
+                }
+            }
+            ModsWatcher.EnableRaisingEvents = true;
         }
 
         private async void DeleteItem_Click(object sender, RoutedEventArgs e)
         {
-            var selectedMods = ModGrid.SelectedItems;
-            var temp = new Mod[selectedMods.Count];
-            selectedMods.CopyTo(temp, 0);
-            foreach (var row in temp)
-                if (row != null)
+            var selectedMods = ModGrid.SelectedItems.OfType<Mod>().ToArray();
+            foreach (var row in selectedMods)
+            {
+                var dialog = new Window();
+                bool confirmed = await ShowConfirmDialog($"Are you sure you want to delete {row.name}?\nThis cannot be undone.");
+                if (confirmed)
                 {
-                    var dialogResult = MessageBox.Show($@"Are you sure you want to delete {row.name}?" + Environment.NewLine + "This cannot be undone.", $@"Deleting {row.name}: Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-                    if (dialogResult == MessageBoxResult.Yes)
+                    try
                     {
-                        try
-                        {
-                            await Task.Run(() => Directory.Delete($@"{Global.assemblyLocation}{Global.s}Mods{Global.s}{row.name}", true));
-                            Global.logger.WriteLine($@"Deleting {row.name}.", LoggerType.Info);
-                            ShowMetadata(null);
-                        }
-                        catch (Exception ex)
-                        {
-                            Global.logger.WriteLine($@"Couldn't delete {row.name} ({ex.Message})", LoggerType.Error);
-                        }
+                        await Task.Run(() => Directory.Delete($@"{Global.assemblyLocation}{Global.s}Mods{Global.s}{row.name}", true));
+                        Global.logger.WriteLine($@"Deleting {row.name}.", LoggerType.Info);
+                        ShowMetadata(null);
+                    }
+                    catch (Exception ex)
+                    {
+                        Global.logger.WriteLine($@"Couldn't delete {row.name} ({ex.Message})", LoggerType.Error);
                     }
                 }
+            }
+        }
+
+        private async Task<bool> ShowConfirmDialog(string message)
+        {
+            var choices = new List<Choice>
+            {
+                new Choice { OptionText = "Yes", Index = 0 },
+                new Choice { OptionText = "No", Index = 1 }
+            };
+            var dialog = new ChoiceWindow(choices, message);
+            await dialog.ShowDialog(this);
+            return dialog.choice == 0;
         }
 
         private async Task<bool> Build(string path)
@@ -374,116 +448,37 @@ namespace PizzaOven
                     return false;
             });
         }
-
-        private void Window_Closing(object sender, CancelEventArgs e)
-        {
-            if (WindowState == WindowState.Maximized)
-            {
-                Global.config.Height = RestoreBounds.Height;
-                Global.config.Width = RestoreBounds.Width;
-                Global.config.Maximized = true;
-            }
-            else
-            {
-                Global.config.Height = Height;
-                Global.config.Width = Width;
-                Global.config.Maximized = false;
-            }
-            Global.config.TopGridHeight = MainGrid.RowDefinitions[1].Height.Value;
-            Global.config.BottomGridHeight = MainGrid.RowDefinitions[3].Height.Value;
-            Global.config.LeftGridWidth = MiddleGrid.ColumnDefinitions[0].Width.Value;
-            Global.config.RightGridWidth = MiddleGrid.ColumnDefinitions[2].Width.Value;
-            Global.UpdateConfig();
-            Application.Current.Shutdown();
-        }
-
-        private void OpenItem_Click(object sender, RoutedEventArgs e)
-        {
-            var selectedMods = ModGrid.SelectedItems;
-            var temp = new Mod[selectedMods.Count];
-            selectedMods.CopyTo(temp, 0);
-            foreach (var row in temp)
-                if (row != null)
-                {
-                    var folderName = $@"{Global.assemblyLocation}{Global.s}Mods{Global.s}{row.name}";
-                    if (Directory.Exists(folderName))
-                    {
-                        try
-                        {
-                            Process process = Process.Start("explorer.exe", folderName);
-                            Global.logger.WriteLine($@"Opened {folderName}.", LoggerType.Info);
-                        }
-                        catch (Exception ex)
-                        {
-                            Global.logger.WriteLine($@"Couldn't open {folderName}. ({ex.Message})", LoggerType.Error);
-                        }
-                    }
-                }
-        }
-        private void EditItem_Click(object sender, RoutedEventArgs e)
-        {
-            var selectedMods = ModGrid.SelectedItems;
-            var temp = new Mod[selectedMods.Count];
-            selectedMods.CopyTo(temp, 0);
-
-            // Stop refreshing while renaming folders
-            ModsWatcher.EnableRaisingEvents = false;
-            foreach (var row in temp)
-                if (row != null)
-                {
-                    EditWindow ew = new EditWindow(row.name, true);
-                    ew.ShowDialog();
-                }
-            ModsWatcher.EnableRaisingEvents = true;
-            Global.UpdateConfig();
-            ModGrid.Items.Refresh();
-        }
-        private void FetchItem_Click(object sender, RoutedEventArgs e)
-        {
-            var selectedMods = ModGrid.SelectedItems;
-            var temp = new Mod[selectedMods.Count];
-            selectedMods.CopyTo(temp, 0);
-            ModsWatcher.EnableRaisingEvents = false;
-            foreach (var row in temp)
-                if (row != null)
-                {
-                    FetchWindow fw = new FetchWindow(row);
-                    fw.ShowDialog();
-                    if (fw.success)
-                    {
-                        ShowMetadata(row.name);
-                        ModGrid.Items.Refresh();
-                    }
-                }
-            ModsWatcher.EnableRaisingEvents = true;
-        }
+        
         private void Add_Enter(object sender, DragEventArgs e)
         {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            if (e.Data.Contains(DataFormats.Files))
             {
                 e.Handled = true;
-                e.Effects = DragDropEffects.Move;
-                DropBox.Visibility = Visibility.Visible;
+                e.DragEffects = DragDropEffects.Move;
+                DropBox.IsVisible = true;
             }
         }
+
         private void Add_Leave(object sender, DragEventArgs e)
         {
             e.Handled = true;
-            DropBox.Visibility = Visibility.Collapsed;
+            DropBox.IsVisible = false;
         }
+
         private async void Add_Drop(object sender, DragEventArgs e)
         {
             e.Handled = true;
             var ModsFolder = $"{Global.assemblyLocation}{Global.s}Mods";
-            // Ensure that mods folder exists
             Directory.CreateDirectory(ModsFolder);
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            if (e.Data.Contains(DataFormats.Files))
             {
-                string[] fileList = (string[])e.Data.GetData(DataFormats.FileDrop, false);
+                var files = e.Data.GetFiles();
+                var fileList = files?.Select(f => f.Path.LocalPath).ToArray() ?? Array.Empty<string>();
                 await Task.Run(() => ExtractPackages(fileList));
             }
-            DropBox.Visibility = Visibility.Collapsed;
+            DropBox.IsVisible = false;
         }
+
         private void ExtractPackages(string[] fileList)
         {
             var temp = $"{Global.assemblyLocation}{Global.s}temp";
@@ -491,7 +486,6 @@ namespace PizzaOven
             foreach (var file in fileList)
             {
                 Directory.CreateDirectory(temp);
-                // Move folder
                 if (Directory.Exists(file))
                 {
                     string path = $@"{temp}{Global.s}{Path.GetFileName(file)}";
@@ -503,11 +497,9 @@ namespace PizzaOven
                     }
                     MoveDirectory(file, path);
                 }
-                // Extract zip
                 else if (Path.GetExtension(file).ToLower() == ".7z" || Path.GetExtension(file).ToLower() == ".rar" || Path.GetExtension(file).ToLower() == ".zip")
                 {
                     string _ArchiveSource = file;
-                    string _ArchiveType = Path.GetExtension(file);
                     if (File.Exists(_ArchiveSource))
                     {
                         try
@@ -536,20 +528,18 @@ namespace PizzaOven
                                     while (reader.MoveToNextEntry())
                                     {
                                         if (!reader.Entry.IsDirectory)
-                                        {
                                             reader.WriteEntryToDirectory($"{temp}{Global.s}{Path.GetFileNameWithoutExtension(file)}", new ExtractionOptions()
                                             {
                                                 ExtractFullPath = true,
                                                 Overwrite = true
                                             });
-                                        }
                                     }
                                 }
                             }
                         }
                         catch (Exception e)
                         {
-                            MessageBox.Show($"Couldn't extract {file}: {e.Message}", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            Global.logger.WriteLine($"Couldn't extract {file}: {e.Message}", LoggerType.Error);
                         }
                         File.Delete(_ArchiveSource);
                     }
@@ -569,9 +559,9 @@ namespace PizzaOven
                     Directory.Delete(temp, true);
             }
         }
+
         private static void MoveDirectory(string sourcePath, string targetPath)
         {
-            //Copy all the files & Replaces any files with the same name
             foreach (var path in Directory.GetFiles(sourcePath, "*.*", SearchOption.AllDirectories))
             {
                 var newPath = path.Replace(sourcePath, targetPath);
@@ -579,6 +569,7 @@ namespace PizzaOven
                 File.Copy(path, newPath, true);
             }
         }
+
         private void Clear_Click(object sender, RoutedEventArgs e)
         {
             var temp = Global.ModList.ToList();
@@ -588,6 +579,7 @@ namespace PizzaOven
             Global.UpdateConfig();
             ModGrid.SelectedIndex = -1;
         }
+
         private void Update_Click(object sender, RoutedEventArgs e)
         {
             Global.logger.WriteLine("Checking for updates...", LoggerType.Info);
@@ -597,133 +589,74 @@ namespace PizzaOven
             ClearButton.IsEnabled = false;
             UpdateButton.IsEnabled = false;
             ModGridSearchButton.IsEnabled = false;
-            App.Current.Dispatcher.Invoke(() =>
+            Dispatcher.UIThread.Invoke(async () =>
             {
-                ModUpdater.CheckForUpdates($"{Global.assemblyLocation}{Global.s}Mods", this);
+                await ModUpdater.CheckForUpdatesAsync($"{Global.assemblyLocation}{Global.s}Mods", this);
             });
         }
-        private Paragraph ConvertToFlowParagraph(string text)
-        {
-            var flowDocument = new FlowDocument();
-
-            var regex = new Regex(@"(https?:\/\/[^\s]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-            var matches = regex.Matches(text).Cast<Match>().Select(m => m.Value).ToList();
-
-            var paragraph = new Paragraph();
-            flowDocument.Blocks.Add(paragraph);
-
-
-            foreach (var segment in regex.Split(text))
-            {
-                if (matches.Contains(segment))
-                {
-                    var hyperlink = new Hyperlink(new Run(segment))
-                    {
-                        NavigateUri = new Uri(segment),
-                    };
-
-                    hyperlink.RequestNavigate += (sender, args) =>
-                    {
-                        var ps = new ProcessStartInfo(segment)
-                        {
-                            UseShellExecute = true,
-                            Verb = "open"
-                        };
-                        Process.Start(ps);
-                    };
-
-                    paragraph.Inlines.Add(hyperlink);
-                }
-                else
-                {
-                    paragraph.Inlines.Add(new Run(segment));
-                }
-            }
-
-            return paragraph;
-        }
-
-        private void ShowMetadata(string mod)
+        
+        private async void ShowMetadata(string mod)
         {
             if (mod == null || !File.Exists($"{Global.assemblyLocation}{Global.s}Mods{Global.s}{mod}{Global.s}mod.json"))
             {
-                DescriptionWindow.Document = defaultFlow;
-                var bitmap = new BitmapImage(new Uri("pack://application:,,,/PizzaOven;component/Assets/PizzaOvenPreview.png"));
+                DescriptionWindow.Text = defaultText;
+                var bitmap = new Bitmap(AssetLoader.Open(new Uri("avares://PizzaOven/Assets/PizzaOvenPreview.png")));
                 Preview.Source = bitmap;
                 PreviewBG.Source = null;
             }
             else
             {
-                FlowDocument descFlow = new FlowDocument();
                 var metadataString = File.ReadAllText($"{Global.assemblyLocation}{Global.s}Mods{Global.s}{mod}{Global.s}mod.json");
                 Metadata metadata = JsonSerializer.Deserialize<Metadata>(metadataString);
 
-                var para = new Paragraph();
+                var descText = "";
                 if (metadata.submitter != null)
-                {
-                    para.Inlines.Add($"Submitter: ");
-                    if (metadata.avi != null && metadata.avi.ToString().Length > 0)
-                    {
-                        BitmapImage bm = new BitmapImage(metadata.avi);
-                        Image image = new Image();
-                        image.Source = bm;
-                        image.Height = 35;
-                        para.Inlines.Add(image);
-                        para.Inlines.Add(" ");
-                    }
-                    if (metadata.upic != null && metadata.upic.ToString().Length > 0)
-                    {
-                        BitmapImage bm = new BitmapImage(metadata.upic);
-                        Image image = new Image();
-                        image.Source = bm;
-                        image.Height= 25;
-                        para.Inlines.Add(image);
-                    }
-                    else
-                        para.Inlines.Add(metadata.submitter);
-                    descFlow.Blocks.Add(para);
-                }
+                    descText += $"Submitter: {metadata.submitter}\n";
+                descText += $"Category: {metadata.cat}\n";
+                if (!String.IsNullOrEmpty(metadata.description))
+                    descText += $"Description: {metadata.description}\n\n";
+                if (!String.IsNullOrEmpty(metadata.filedescription))
+                    descText += $"File Description: {metadata.filedescription}\n\n";
+                if (metadata.homepage != null && metadata.homepage.ToString().Length > 0)
+                    descText += $"Home Page: {metadata.homepage}";
+
+                DescriptionWindow.Text = descText;
+                
                 if (metadata.preview != null)
                 {
-                    var bitmap = new BitmapImage();
-                    bitmap.BeginInit();
-                    bitmap.UriSource = metadata.preview;
-                    bitmap.EndInit();
-                    Preview.Source = bitmap;
-                    PreviewBG.Source = bitmap;
+                    try
+                    {
+                        Bitmap bitmap;
+                        if (metadata.preview.IsFile)
+                        {
+                            bitmap = new Bitmap(metadata.preview.LocalPath);
+                        }
+                        else
+                        {
+                            using var http = new System.Net.Http.HttpClient();
+                            var bytes = await http.GetByteArrayAsync(metadata.preview);
+                            using var ms = new System.IO.MemoryStream(bytes);
+                            bitmap = new Bitmap(ms);
+                        }
+                        Preview.Source = bitmap;
+                        PreviewBG.Source = bitmap;
+                    }
+                    catch
+                    {
+                        var bitmap = new Bitmap(AssetLoader.Open(new Uri("avares://PizzaOven/Assets/PizzaOvenPreview.png")));
+                        Preview.Source = bitmap;
+                        PreviewBG.Source = null;
+                    }
                 }
                 else
                 {
-                    var bitmap = new BitmapImage(new Uri("pack://application:,,,/PizzaOven;component/Assets/PizzaOvenPreview.png"));
+                    var bitmap = new Bitmap(AssetLoader.Open(new Uri("avares://PizzaOven/Assets/PizzaOvenPreview.png")));
                     Preview.Source = bitmap;
                     PreviewBG.Source = null;
                 }
-                    para = new Paragraph();
-                    para.Inlines.Add("Category: ");
-                if (metadata.caticon != null && metadata.caticon.ToString().Length > 0)
-                {
-                    BitmapImage bm = new BitmapImage(metadata.caticon);
-                    Image image = new Image();
-                    image.Source = bm;
-                    image.Width = 20;
-                    para.Inlines.Add(image);
-                }
-                para.Inlines.Add($" {metadata.cat}");
-                descFlow.Blocks.Add(para);
-                var text = "";
-                if (!String.IsNullOrEmpty(metadata.description))
-                    text += $"Description: {metadata.description}\n\n";
-                if (!String.IsNullOrEmpty(metadata.filedescription))
-                    text += $"File Description: {metadata.filedescription}\n\n";
-                if (metadata.homepage != null && metadata.homepage.ToString().Length > 0)
-                    text += $"Home Page: {metadata.homepage}";
-                var init = ConvertToFlowParagraph(text);
-                descFlow.Blocks.Add(init);
-                DescriptionWindow.Document = descFlow;
-                var descriptionText = new TextRange(DescriptionWindow.Document.ContentStart, DescriptionWindow.Document.ContentEnd);
-                descriptionText.ApplyPropertyValue(Inline.BaselineAlignmentProperty, BaselineAlignment.Center);
             }
         }
+
         private void ModGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             Mod mod = (Mod)ModGrid.SelectedItem;
@@ -746,116 +679,65 @@ namespace PizzaOven
             var item = button.DataContext as GameBananaRecord;
             new ModDownloader().BrowserDownload("Pizza Tower", item);
         }
+
         private void AltDownload_Click(object sender, RoutedEventArgs e)
         {
             Button button = sender as Button;
             var item = button.DataContext as GameBananaRecord;
-            new AltLinkWindow(item.AlternateFileSources, item.Title,
-                "Pizza Tower",
-                item.Link.AbsoluteUri).ShowDialog();
+            new AltLinkWindow(item.AlternateFileSources, item.Title, "Pizza Tower", item.Link.AbsoluteUri).ShowDialog(this);
         }
+
         private void Homepage_Click(object sender, RoutedEventArgs e)
         {
             Button button = sender as Button;
             var item = button.DataContext as GameBananaRecord;
             try
             {
-                var ps = new ProcessStartInfo(item.Link.ToString())
-                {
-                    UseShellExecute = true,
-                    Verb = "open"
-                };
-                Process.Start(ps);
+                Process.Start(new ProcessStartInfo(item.Link.ToString()) { UseShellExecute = true });
             }
             catch (Exception ex)
             {
                 Global.logger.WriteLine($"Couldn't open up {item.Link} ({ex.Message})", LoggerType.Error);
             }
         }
+
         private int imageCounter;
         private int imageCount;
-        private FlowDocument ConvertToFlowDocument(string text)
-        {
-            var flowDocument = new FlowDocument();
 
-            var regex = new Regex(@"(https?:\/\/[^\s]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-            var matches = regex.Matches(text).Cast<Match>().Select(m => m.Value).ToList();
-
-            var paragraph = new Paragraph();
-            flowDocument.Blocks.Add(paragraph);
-
-
-            foreach (var segment in regex.Split(text))
-            {
-                if (matches.Contains(segment))
-                {
-                    var hyperlink = new Hyperlink(new Run(segment))
-                    {
-                        NavigateUri = new Uri(segment),
-                    };
-
-                    hyperlink.RequestNavigate += (sender, args) => Process.Start(segment);
-
-                    paragraph.Inlines.Add(hyperlink);
-                }
-                else
-                {
-                    paragraph.Inlines.Add(new Run(segment));
-                }
-            }
-
-            return flowDocument;
-        }
         private void MoreInfo_Click(object sender, RoutedEventArgs e)
         {
-            HomepageButton.Content = $"{(TypeBox.SelectedValue as ComboBoxItem).Content.ToString().Trim().TrimEnd('s')} Page";
+            HomepageButton.Content = $"{(TypeBox.SelectedItem as ComboBoxItem)?.Content?.ToString()?.Trim()?.TrimEnd('s')} Page";
             Button button = sender as Button;
             var item = button.DataContext as GameBananaRecord;
-            if (item.Compatible)
-                DownloadButton.Visibility = Visibility.Visible;
-            else
-                DownloadButton.Visibility = Visibility.Collapsed;
-            if (item.HasAltLinks)
-                AltButton.Visibility = Visibility.Visible;
-            else
-                AltButton.Visibility = Visibility.Collapsed;
+
+            DownloadButton.IsVisible = item.Compatible;
+            AltButton.IsVisible = item.HasAltLinks;
+
             DescPanel.DataContext = button.DataContext;
             MediaPanel.DataContext = button.DataContext;
-            DescText.ScrollToHome();
-            var text = "";
-            text += item.ConvertedText;
-            DescText.Document = ConvertToFlowDocument(text);
+
+            DescText.Text = item.ConvertedText;
+
             ImageLeft.IsEnabled = true;
             ImageRight.IsEnabled = true;
             BigImageLeft.IsEnabled = true;
             BigImageRight.IsEnabled = true;
+
             imageCount = item.Media.Where(x => x.Type == "image").ToList().Count;
             imageCounter = 0;
+
             if (imageCount > 0)
             {
-                Grid.SetColumnSpan(DescText, 1);
-                ImagePanel.Visibility = Visibility.Visible;
-                var image = new BitmapImage(new Uri($"{item.Media[imageCounter].Base}/{item.Media[imageCounter].File}"));
-                Screenshot.Source = image;
-                BigScreenshot.Source = image;
-                CaptionText.Text = item.Media[imageCounter].Caption;
-                BigCaptionText.Text = item.Media[imageCounter].Caption;
-                if (!String.IsNullOrEmpty(CaptionText.Text))
-                {
-                    BigCaptionText.Visibility = Visibility.Visible;
-                    CaptionText.Visibility = Visibility.Visible;
-                }
-                else
-                {
-                    BigCaptionText.Visibility = Visibility.Collapsed;
-                    CaptionText.Visibility = Visibility.Collapsed;
-                }
+                Grid.SetColumnSpan(DescTextScroller, 1);
+                ImagePanel.IsVisible = true;
+                LoadImage(item, imageCounter);
             }
             else
             {
-                Grid.SetColumnSpan(DescText, 2);
-                ImagePanel.Visibility = Visibility.Collapsed;
+                Grid.SetColumnSpan(DescTextScroller, 2);
+                ImagePanel.IsVisible = false;
             }
+
             if (imageCount == 1)
             {
                 ImageLeft.IsEnabled = false;
@@ -864,93 +746,71 @@ namespace PizzaOven
                 BigImageRight.IsEnabled = false;
             }
 
-            DescPanel.Visibility = Visibility.Visible;
-        }
-        private void CloseDesc_Click(object sender, RoutedEventArgs e)
-        {
-            DescPanel.Visibility = Visibility.Collapsed;
-        }
-        private void CloseMedia_Click(object sender, RoutedEventArgs e)
-        {
-            MediaPanel.Visibility = Visibility.Collapsed;
+            DescPanel.IsVisible = true;
         }
 
-        private void Image_Click(object sender, RoutedEventArgs e)
+        private async void LoadImage(GameBananaRecord item, int idx)
         {
-            MediaPanel.Visibility = Visibility.Visible;
+            try
+            {
+                var uri = new Uri($"{item.Media[idx].Base}/{item.Media[idx].File}");
+                CaptionText.Text = item.Media[idx].Caption;
+                BigCaptionText.Text = item.Media[idx].Caption;
+                CaptionText.IsVisible = !string.IsNullOrEmpty(CaptionText.Text);
+                using var http = new System.Net.Http.HttpClient();
+                var bytes = await http.GetByteArrayAsync(uri);
+                using var ms = new System.IO.MemoryStream(bytes);
+                var bitmap = new Avalonia.Media.Imaging.Bitmap(ms);
+                Screenshot.Source = bitmap;
+                BigScreenshot.Source = bitmap;
+                BigCaptionText.IsVisible = !String.IsNullOrEmpty(BigCaptionText.Text);
+            }
+            catch { }
         }
+
+        private void CloseDesc_Click(object sender, RoutedEventArgs e) => DescPanel.IsVisible = false;
+        private void CloseMedia_Click(object sender, RoutedEventArgs e) => MediaPanel.IsVisible = false;
+        private void Image_Click(object sender, PointerPressedEventArgs e) => MediaPanel.IsVisible = true;
 
         private void ImageLeft_Click(object sender, RoutedEventArgs e)
         {
             Button button = sender as Button;
             var item = button.DataContext as GameBananaRecord;
-            if (--imageCounter == -1)
-                imageCounter = imageCount - 1;
-            var image = new BitmapImage(new Uri($"{item.Media[imageCounter].Base}/{item.Media[imageCounter].File}"));
-            Screenshot.Source = image;
-            CaptionText.Text = item.Media[imageCounter].Caption;
-            BigScreenshot.Source = image;
-            BigCaptionText.Text = item.Media[imageCounter].Caption;
-            if (!String.IsNullOrEmpty(CaptionText.Text))
-            {
-                BigCaptionText.Visibility = Visibility.Visible;
-                CaptionText.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                BigCaptionText.Visibility = Visibility.Collapsed;
-                CaptionText.Visibility = Visibility.Collapsed;
-            }
+            if (--imageCounter == -1) imageCounter = imageCount - 1;
+            LoadImage(item, imageCounter);
         }
 
         private void ImageRight_Click(object sender, RoutedEventArgs e)
         {
             Button button = sender as Button;
             var item = button.DataContext as GameBananaRecord;
-            if (++imageCounter == imageCount)
-                imageCounter = 0;
-            var image = new BitmapImage(new Uri($"{item.Media[imageCounter].Base}/{item.Media[imageCounter].File}"));
-            Screenshot.Source = image;
-            CaptionText.Text = item.Media[imageCounter].Caption;
-            BigScreenshot.Source = image;
-            BigCaptionText.Text = item.Media[imageCounter].Caption;
-            if (!String.IsNullOrEmpty(CaptionText.Text))
-            {
-                BigCaptionText.Visibility = Visibility.Visible;
-                CaptionText.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                BigCaptionText.Visibility = Visibility.Collapsed;
-                CaptionText.Visibility = Visibility.Collapsed;
-            }
+            if (++imageCounter == imageCount) imageCounter = 0;
+            LoadImage(item, imageCounter);
         }
+
         private static bool selected = false;
-
         private static Dictionary<TypeFilter, List<GameBananaCategory>> cats = new();
-
         private static readonly List<GameBananaCategory> All = new GameBananaCategory[]
         {
-            new GameBananaCategory()
-            {
-                Name = "All",
-                ID = null
-            }
+            new GameBananaCategory() { Name = "All", ID = null }
         }.ToList();
         private static readonly List<GameBananaCategory> None = new GameBananaCategory[]
         {
-            new GameBananaCategory()
-            {
-                Name = "- - -",
-                ID = null
-            }
+            new GameBananaCategory() { Name = "- - -", ID = null }
         }.ToList();
+        private void OnBrowserTabSelected(object sender, RoutedEventArgs e)
+        {
+            if (!selected)
+                InitializeBrowser();
+        }
+
         private async void InitializeBrowser()
         {
             using (var httpClient = new HttpClient())
             {
-                ErrorPanel.Visibility = Visibility.Collapsed;
-                // Initialize categories and games
+                ErrorPanel.IsVisible = false;
+                if (TypeBox.SelectedIndex < 0) TypeBox.SelectedIndex = 0;
+                if (PerPageBox.SelectedIndex < 0) PerPageBox.SelectedIndex = 1;
                 var gameID = "7692";
                 var types = new string[] { "Mod", "Wip", "Sound" };
                 double totalPages = 0;
@@ -967,55 +827,40 @@ namespace PizzaOven
                         responseString = Regex.Replace(responseString, @"""(\d+)""", @"$1");
                         var numRecords = responseMessage.GetHeader("X-GbApi-Metadata_nRecordCount");
                         if (numRecords != -1)
-                        {
-                            totalPages = Math.Ceiling(numRecords / 50);
-                        }
+                            totalPages = Math.Ceiling(numRecords / 50.0);
                     }
                     catch (HttpRequestException ex)
                     {
-                        LoadingBar.Visibility = Visibility.Collapsed;
-                        ErrorPanel.Visibility = Visibility.Visible;
-                        BrowserRefreshButton.Visibility = Visibility.Visible;
-                        switch (Regex.Match(ex.Message, @"\d+").Value)
-                        {
-                            case "443":
-                                BrowserMessage.Text = "Your internet connection is down.";
-                                break;
-                            case "500":
-                            case "503":
-                            case "504":
-                                BrowserMessage.Text = "GameBanana's servers are down.";
-                                break;
-                            default:
-                                BrowserMessage.Text = ex.Message;
-                                break;
-                        }
+                        LoadingBar.IsVisible = false;
+                        ErrorPanel.IsVisible = true;
+                        BrowserRefreshButton.IsVisible = true;
+                        BrowserMessage.Text = GetHttpErrorMessage(ex.Message);
                         return;
                     }
                     catch (Exception ex)
                     {
-                        LoadingBar.Visibility = Visibility.Collapsed;
-                        ErrorPanel.Visibility = Visibility.Visible;
-                        BrowserRefreshButton.Visibility = Visibility.Visible;
+                        LoadingBar.IsVisible = false;
+                        ErrorPanel.IsVisible = true;
+                        BrowserRefreshButton.IsVisible = true;
                         BrowserMessage.Text = ex.Message;
                         return;
                     }
+
                     List<GameBananaCategory> response = new();
                     try
                     {
                         response = JsonSerializer.Deserialize<List<GameBananaCategory>>(responseString);
                     }
-                    catch (Exception)
+                    catch
                     {
-                        LoadingBar.Visibility = Visibility.Collapsed;
-                        ErrorPanel.Visibility = Visibility.Visible;
-                        BrowserRefreshButton.Visibility = Visibility.Visible;
+                        LoadingBar.IsVisible = false;
+                        ErrorPanel.IsVisible = true;
+                        BrowserRefreshButton.IsVisible = true;
                         BrowserMessage.Text = "Uh oh! Something went wrong while deserializing the categories...";
                         return;
                     }
                     cats.Add((TypeFilter)counter, response);
 
-                    // Make more requests if needed
                     if (totalPages > 1)
                     {
                         for (double i = 2; i <= totalPages; i++)
@@ -1028,42 +873,30 @@ namespace PizzaOven
                             }
                             catch (HttpRequestException ex)
                             {
-                                LoadingBar.Visibility = Visibility.Collapsed;
-                                ErrorPanel.Visibility = Visibility.Visible;
-                                BrowserRefreshButton.Visibility = Visibility.Visible;
-                                switch (Regex.Match(ex.Message, @"\d+").Value)
-                                {
-                                    case "443":
-                                        BrowserMessage.Text = "Your internet connection is down.";
-                                        break;
-                                    case "500":
-                                    case "503":
-                                    case "504":
-                                        BrowserMessage.Text = "GameBanana's servers are down.";
-                                        break;
-                                    default:
-                                        BrowserMessage.Text = ex.Message;
-                                        break;
-                                }
+                                LoadingBar.IsVisible = false;
+                                ErrorPanel.IsVisible = true;
+                                BrowserRefreshButton.IsVisible = true;
+                                BrowserMessage.Text = GetHttpErrorMessage(ex.Message);
                                 return;
                             }
                             catch (Exception ex)
                             {
-                                LoadingBar.Visibility = Visibility.Collapsed;
-                                ErrorPanel.Visibility = Visibility.Visible;
-                                BrowserRefreshButton.Visibility = Visibility.Visible;
+                                LoadingBar.IsVisible = false;
+                                ErrorPanel.IsVisible = true;
+                                BrowserRefreshButton.IsVisible = true;
                                 BrowserMessage.Text = ex.Message;
                                 return;
                             }
+
                             try
                             {
                                 response = JsonSerializer.Deserialize<List<GameBananaCategory>>(responseString);
                             }
-                            catch (Exception ex)
+                            catch
                             {
-                                LoadingBar.Visibility = Visibility.Collapsed;
-                                ErrorPanel.Visibility = Visibility.Visible;
-                                BrowserRefreshButton.Visibility = Visibility.Visible;
+                                LoadingBar.IsVisible = false;
+                                ErrorPanel.IsVisible = true;
+                                BrowserRefreshButton.IsVisible = true;
                                 BrowserMessage.Text = "Uh oh! Something went wrong while deserializing the categories...";
                                 return;
                             }
@@ -1084,32 +917,30 @@ namespace PizzaOven
             RefreshFilter();
             selected = true;
         }
-        private void OnBrowserTabSelected(object sender, RoutedEventArgs e)
+
+        private static string GetHttpErrorMessage(string message)
         {
-            if (!selected)
-                InitializeBrowser();
+            return Regex.Match(message, @"\d+").Value switch
+            {
+                "443" => "Your internet connection is down.",
+                "500" or "503" or "504" => "GameBanana's servers are down.",
+                _ => message
+            };
         }
 
         private static int page = 1;
-        private void DecrementPage(object sender, RoutedEventArgs e)
-        {
-            --page;
-            RefreshFilter();
-        }
-        private void IncrementPage(object sender, RoutedEventArgs e)
-        {
-            ++page;
-            RefreshFilter();
-        }
+        private void DecrementPage(object sender, RoutedEventArgs e) { --page; RefreshFilter(); }
+        private void IncrementPage(object sender, RoutedEventArgs e) { ++page; RefreshFilter(); }
+
         private void BrowserRefresh(object sender, RoutedEventArgs e)
         {
-            if (!selected)
-                InitializeBrowser();
-            else
-                RefreshFilter();
+            if (!selected) InitializeBrowser();
+            else RefreshFilter();
         }
+
         private static bool filterSelect;
         private static bool searched = false;
+
         private async void RefreshFilter()
         {
             NSFWCheckbox.IsEnabled = false;
@@ -1124,64 +955,58 @@ namespace PizzaOven
             PageBox.IsEnabled = false;
             PerPageBox.IsEnabled = false;
             ClearCacheButton.IsEnabled = false;
-            ErrorPanel.Visibility = Visibility.Collapsed;
+            ErrorPanel.IsVisible = false;
             filterSelect = true;
-            PageBox.SelectedValue = page;
+            PageBox.SelectedItem = page;
             filterSelect = false;
             Page.Text = $"Page {page}";
-            LoadingBar.Visibility = Visibility.Visible;
-            FeedBox.Visibility = Visibility.Collapsed;
-            PageLeft.IsEnabled = false;
-            PageRight.IsEnabled = false;
+            LoadingBar.IsVisible = true;
+            FeedBox.IsVisible = false;
+
             var search = searched ? SearchBar.Text : null;
-            await FeedGenerator.GetFeed(page, (TypeFilter)TypeBox.SelectedIndex, (FeedFilter)FilterBox.SelectedIndex, (GameBananaCategory)CatBox.SelectedItem,
-                (GameBananaCategory)SubCatBox.SelectedItem, (PerPageBox.SelectedIndex + 1) * 10, (bool)NSFWCheckbox.IsChecked, search);
+            await FeedGenerator.GetFeedAsync(page, (TypeFilter)TypeBox.SelectedIndex, (FeedFilter)FilterBox.SelectedIndex,
+                (GameBananaCategory)CatBox.SelectedItem, (GameBananaCategory)SubCatBox.SelectedItem,
+                (PerPageBox.SelectedIndex < 0 ? 10 : (PerPageBox.SelectedIndex + 1) * 10), (bool)NSFWCheckbox.IsChecked, search);
+
             FeedBox.ItemsSource = FeedGenerator.CurrentFeed.Records;
+
             if (FeedGenerator.error)
             {
-                LoadingBar.Visibility = Visibility.Collapsed;
-                ErrorPanel.Visibility = Visibility.Visible;
-                BrowserRefreshButton.Visibility = Visibility.Visible;
+                LoadingBar.IsVisible = false;
+                ErrorPanel.IsVisible = true;
+                BrowserRefreshButton.IsVisible = true;
                 if (FeedGenerator.exception.Message.Contains("JSON tokens"))
                 {
                     BrowserMessage.Text = "Uh oh! Pizza Oven failed to deserialize the GameBanana feed.";
                     return;
                 }
-                switch (Regex.Match(FeedGenerator.exception.Message, @"\d+").Value)
-                {
-                    case "443":
-                        BrowserMessage.Text = "Your internet connection is down.";
-                        break;
-                    case "500":
-                    case "503":
-                    case "504":
-                        BrowserMessage.Text = "GameBanana's servers are down.";
-                        break;
-                    default:
-                        BrowserMessage.Text = FeedGenerator.exception.Message;
-                        break;
-                }
+                BrowserMessage.Text = GetHttpErrorMessage(FeedGenerator.exception.Message);
                 return;
             }
-            if (page < FeedGenerator.CurrentFeed.TotalPages)
-                PageRight.IsEnabled = true;
-            if (page != 1)
-                PageLeft.IsEnabled = true;
-            if (FeedBox.Items.Count > 0)
+
+            PageRight.IsEnabled = page < FeedGenerator.CurrentFeed.TotalPages;
+            PageLeft.IsEnabled = page != 1;
+
+            if (FeedGenerator.CurrentFeed.Records?.Count > 0)
             {
+                LoadingBar.IsVisible = false;
                 FeedBox.ScrollIntoView(FeedBox.Items[0]);
-                FeedBox.Visibility = Visibility.Visible;
+                FeedBox.IsVisible = true;
             }
             else
             {
-                ErrorPanel.Visibility = Visibility.Visible;
-                BrowserRefreshButton.Visibility = Visibility.Collapsed;
-                BrowserMessage.Visibility = Visibility.Visible;
+                ErrorPanel.IsVisible = true;
+                BrowserRefreshButton.IsVisible = false;
+                BrowserMessage.IsVisible = true;
                 BrowserMessage.Text = "Pizza Oven couldn't find any mods.";
             }
-            PageBox.ItemsSource = Enumerable.Range(1, (int)(FeedGenerator.CurrentFeed.TotalPages));
 
-            LoadingBar.Visibility = Visibility.Collapsed;
+            _updatingPageBox = true;
+            PageBox.ItemsSource = Enumerable.Range(1, (int)(FeedGenerator.CurrentFeed.TotalPages));
+            PageBox.SelectedItem = page;
+            _updatingPageBox = false;
+            LoadingBar.IsVisible = false;
+
             CatBox.IsEnabled = true;
             SubCatBox.IsEnabled = true;
             TypeBox.IsEnabled = true;
@@ -1196,7 +1021,7 @@ namespace PizzaOven
 
         private void FilterSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (IsLoaded && !filterSelect)
+            if (IsLoaded() && !filterSelect)
             {
                 if (!searched || FilterBox.SelectedIndex != 3)
                 {
@@ -1212,17 +1037,20 @@ namespace PizzaOven
                 RefreshFilter();
             }
         }
+
         private void PerPageSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (IsLoaded && !filterSelect)
+            if (IsLoaded() && !filterSelect)
             {
                 page = 1;
                 RefreshFilter();
             }
         }
+
         private void TypeFilterSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (IsLoaded && !filterSelect)
+            if (TypeBox.SelectedIndex < 0 || !cats.ContainsKey((TypeFilter)TypeBox.SelectedIndex)) return;
+            if (IsLoaded() && !filterSelect)
             {
                 SearchBar.Clear();
                 searched = false;
@@ -1232,7 +1060,6 @@ namespace PizzaOven
                     FilterBox.ItemsSource = FilterBoxList;
                     FilterBox.SelectedIndex = 1;
                 }
-                // Set categories
                 if (cats[(TypeFilter)TypeBox.SelectedIndex].Any(x => x.RootID == 0))
                     CatBox.ItemsSource = All.Concat(cats[(TypeFilter)TypeBox.SelectedIndex].Where(x => x.RootID == 0).OrderBy(y => y.ID));
                 else
@@ -1249,9 +1076,10 @@ namespace PizzaOven
                 RefreshFilter();
             }
         }
+
         private void MainFilterSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (IsLoaded && !filterSelect)
+            if (IsLoaded() && !filterSelect)
             {
                 SearchBar.Clear();
                 searched = false;
@@ -1261,7 +1089,6 @@ namespace PizzaOven
                     FilterBox.ItemsSource = FilterBoxList;
                     FilterBox.SelectedIndex = 1;
                 }
-                // Set Categories
                 var cat = (GameBananaCategory)CatBox.SelectedValue;
                 if (cats[(TypeFilter)TypeBox.SelectedIndex].Any(x => x.RootID == cat.ID))
                     SubCatBox.ItemsSource = All.Concat(cats[(TypeFilter)TypeBox.SelectedIndex].Where(x => x.RootID == cat.ID).OrderBy(y => y.ID));
@@ -1273,9 +1100,10 @@ namespace PizzaOven
                 RefreshFilter();
             }
         }
+
         private void SubFilterSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (!filterSelect && IsLoaded)
+            if (!filterSelect && IsLoaded())
             {
                 SearchBar.Clear();
                 searched = false;
@@ -1283,27 +1111,20 @@ namespace PizzaOven
                 RefreshFilter();
             }
         }
-        private void UniformGrid_SizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            var grid = sender as UniformGrid;
-            grid.Columns = (int)grid.ActualWidth / 400 + 1;
-        }
-        private void OnResize(object sender, RoutedEventArgs e)
-        {
-            BigScreenshot.MaxHeight = ActualHeight - 240;
-        }
 
         private void PageBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (!filterSelect && IsLoaded)
+            if (!filterSelect && IsLoaded())
             {
-                page = (int)PageBox.SelectedValue;
+                if (_updatingPageBox || PageBox.SelectedItem == null) return;
+                page = (int)PageBox.SelectedItem;
                 RefreshFilter();
             }
         }
+
         private void NSFWCheckbox_Checked(object sender, RoutedEventArgs e)
         {
-            if (!filterSelect && IsLoaded)
+            if (!filterSelect && IsLoaded())
             {
                 if (searched)
                 {
@@ -1318,6 +1139,7 @@ namespace PizzaOven
                 RefreshFilter();
             }
         }
+
         private void ClearCache(object sender, RoutedEventArgs e)
         {
             FeedGenerator.ClearCache();
@@ -1326,13 +1148,12 @@ namespace PizzaOven
 
         private void Search()
         {
-            if (!filterSelect && IsLoaded && !String.IsNullOrWhiteSpace(SearchBar.Text))
+            if (!filterSelect && IsLoaded() && !String.IsNullOrWhiteSpace(SearchBar.Text))
             {
                 filterSelect = true;
                 FilterBox.ItemsSource = FilterBoxListWhenSearched;
                 FilterBox.SelectedIndex = 3;
                 NSFWCheckbox.IsChecked = true;
-                // Set categories
                 if (cats[(TypeFilter)TypeBox.SelectedIndex].Any(x => x.RootID == 0))
                     CatBox.ItemsSource = All.Concat(cats[(TypeFilter)TypeBox.SelectedIndex].Where(x => x.RootID == 0).OrderBy(y => y.ID));
                 else
@@ -1350,60 +1171,70 @@ namespace PizzaOven
                 RefreshFilter();
             }
         }
+
         private void SearchBar_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Enter)
-                Search();
+            if (e.Key == Key.Enter) Search();
         }
+
         private static readonly List<string> FilterBoxList = new string[] { "Featured", "Recent", "Popular" }.ToList();
         private static readonly List<string> FilterBoxListWhenSearched = new string[] { "Featured", "Recent", "Popular", "- - -" }.ToList();
 
-        private void SearchButton_Click(object sender, RoutedEventArgs e)
-        {
-            Search();
-        }
+        private void SearchButton_Click(object sender, RoutedEventArgs e) => Search();
 
         private void Window_KeyDown(object sender, KeyEventArgs e)
         {
-            if (IsLoaded && ModGridSearchButton.IsEnabled)
-            if (e.KeyboardDevice.IsKeyDown(Key.LeftCtrl) || e.KeyboardDevice.IsKeyDown(Key.RightCtrl))
+            if (IsLoaded() && ModGridSearchButton.IsEnabled)
             {
-                switch (e.Key)
+                if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
                 {
-                    case Key.F:
-                        ModGrid_SearchBar.Focus();
-                        break;
+                    switch (e.Key)
+                    {
+                        case Key.F:
+                            ModGrid_SearchBar.Focus();
+                            break;
+                    }
                 }
             }
         }
 
         private void ModGrid_SearchBar_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyboardDevice.IsKeyDown(Key.Enter))
-                ModGridSearch();
+            if (e.Key == Key.Enter) ModGridSearch();
         }
+
         private void ModGridSearch()
         {
             if (!String.IsNullOrEmpty(ModGrid_SearchBar.Text) && ModGridSearchButton.IsEnabled && Global.ModList.Count > 0)
             {
                 string text = ModGrid_SearchBar.Text;
-                Global.ModList = new ObservableCollection<Mod>(Global.ModList.Where(mod => mod.name.Contains(text, StringComparison.InvariantCultureIgnoreCase))
+                Global.ModList = new ObservableCollection<Mod>(
+                    Global.ModList.Where(mod => mod.name.Contains(text, StringComparison.InvariantCultureIgnoreCase))
                     .Concat(Global.ModList.Where(mod => !mod.name.Contains(text, StringComparison.InvariantCultureIgnoreCase))));
-                
                 Refresh();
-                ModGrid.ScrollIntoView(ModGrid.Items[0]);             
+                ModGrid.ScrollIntoView(ModGrid.Items[0]);
             }
         }
 
-        private void ModGridSearchButton_Click(object sender, RoutedEventArgs e)
-        {
-            ModGridSearch();
-        }
+        private void ModGridSearchButton_Click(object sender, RoutedEventArgs e) => ModGridSearch();
 
-        private void Clear_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void Clear_PreviewMouseLeftButtonDown(object sender, RoutedEventArgs e)
         {
             ModGrid_SearchBar.Clear();
         }
+        
+        private bool _isLoaded = false;
+        private bool IsLoaded() => _isLoaded;
+        protected override void OnOpened(EventArgs e)
+        {
+            base.OnOpened(e);
+            _isLoaded = true;
+        }
 
+        private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (e.AddedItems.Count > 0 && e.AddedItems[0] == ModBrowser)
+                OnBrowserTabSelected(sender, e);
+        }
     }
 }

@@ -1,0 +1,23 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="PizzaOven.UI.EditWindow"
+        Title="Edit"
+        Background="#131313"
+        Width="360" Height="130"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid RowDefinitions="Auto,Auto" Margin="16" >
+    <TextBox x:Name="NameBox" Grid.Row="0"
+             Background="#1e1e1e" Foreground="#f2f2f2"
+             Margin="0,0,0,12"
+             KeyDown="NameBox_KeyDown"/>
+    <Grid Grid.Row="1" ColumnDefinitions="*,*">
+      <Button Grid.Column="0" Content="Confirm" Click="ConfirmButton_Click"
+              Background="#ffee5f" Foreground="#131313" Margin="0,0,4,0"/>
+      <Button Grid.Column="1" Content="Cancel"  Click="CancelButton_Click"
+              Margin="4,0,0,0"/>
+    </Grid>
+  </Grid>
+
+</Window>
