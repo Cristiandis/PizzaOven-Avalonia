@@ -1,0 +1,289 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish Linux
+        run: |
+          cd PizzaOven
+          dotnet publish -c Release -r linux-x64 --self-contained false -p:PublishSingleFile=true -o ../publish/linux
+
+      - name: Create tarball
+        run: |
+          cd publish/linux
+          tar -czf ../../PizzaOven-linux-x64.tar.gz .
+
+      - name: Upload linux tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-tarball
+          path: PizzaOven-linux-x64.tar.gz
+
+      - name: Build .deb
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          PKGNAME="pizzaoven"
+          ARCH="amd64"
+          PKGDIR="${PKGNAME}_${VERSION}_${ARCH}"
+
+          mkdir -p "$PKGDIR/DEBIAN"
+          mkdir -p "$PKGDIR/usr/lib/pizzaoven"
+          mkdir -p "$PKGDIR/usr/bin"
+          mkdir -p "$PKGDIR/usr/share/applications"
+          mkdir -p "$PKGDIR/usr/share/pixmaps"
+
+          cp -r publish/linux/. "$PKGDIR/usr/lib/pizzaoven/"
+
+          cat > "$PKGDIR/usr/bin/pizzaoven" << 'EOF'
+          #!/bin/sh
+          exec /usr/lib/pizzaoven/PizzaOven "$@"
+          EOF
+          chmod 755 "$PKGDIR/usr/bin/pizzaoven"
+
+          cat > "$PKGDIR/DEBIAN/control" << EOF
+          Package: $PKGNAME
+          Version: $VERSION
+          Section: games
+          Priority: optional
+          Architecture: $ARCH
+          Depends: dotnet-runtime-8.0, xdelta3
+          Maintainer: Cristiandis <pizzaoven@izzoserver.top>
+          Homepage: https://github.com/Cristiandis/PizzaOven-Avalonia
+          Description: Cross-platform mod manager for Pizza Tower
+           Pizza Oven allows you to download, install, and manage mods
+           for Pizza Tower using GameBanana integration.
+          EOF
+
+          cat > "$PKGDIR/usr/share/applications/pizzaoven.desktop" << 'EOF'
+          [Desktop Entry]
+          Name=Pizza Oven
+          Comment=Mod manager for Pizza Tower
+          Exec=/usr/bin/pizzaoven
+          Icon=pizzaoven
+          Type=Application
+          Categories=Game;
+          EOF
+
+          cat > "$PKGDIR/usr/share/applications/pizzaoven-handler.desktop" << 'EOF'
+          [Desktop Entry]
+          Name=Pizza Oven
+          Exec=/usr/bin/pizzaoven -download %u
+          Type=Application
+          NoDisplay=true
+          MimeType=x-scheme-handler/pizzaoven;
+          EOF
+
+          cp PizzaOven/Assets/PizzaOvenIcon.png "$PKGDIR/usr/share/pixmaps/pizzaoven.png" 2>/dev/null || true
+
+          cat > "$PKGDIR/DEBIAN/postinst" << 'EOF'
+          #!/bin/sh
+          xdg-mime default pizzaoven-handler.desktop x-scheme-handler/pizzaoven
+          update-desktop-database /usr/share/applications || true
+          EOF
+          chmod 755 "$PKGDIR/DEBIAN/postinst"
+
+          dpkg-deb --build "$PKGDIR"
+          mv "${PKGDIR}.deb" "pizzaoven_${VERSION}_amd64.deb"
+
+      - name: Upload .deb
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb-package
+          path: pizzaoven_*.deb
+
+      - name: Build .rpm
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          sudo apt-get install -y rpm
+
+          mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+          cp PizzaOven-linux-x64.tar.gz ~/rpmbuild/SOURCES/
+
+          cat > ~/rpmbuild/SPECS/pizzaoven.spec << EOF
+          Name:           pizzaoven
+          Version:        $VERSION
+          Release:        1%{?dist}
+          Summary:        Cross-platform mod manager for Pizza Tower
+          License:        GPLv3
+          URL:            https://github.com/Cristiandis/PizzaOven-Avalonia
+          Source0:        PizzaOven-linux-x64.tar.gz
+
+          Requires:       dotnet-runtime-8.0
+          Requires:       xdelta
+
+          BuildArch:      x86_64
+
+          %description
+          Pizza Oven allows you to download, install, and manage mods
+          for Pizza Tower using GameBanana integration.
+
+          %prep
+          %setup -q -c
+
+          %install
+          install -Dm755 PizzaOven %{buildroot}/usr/lib/pizzaoven/PizzaOven
+
+          install -dm755 %{buildroot}/usr/bin
+          cat > %{buildroot}/usr/bin/pizzaoven << 'WRAPPER'
+          #!/bin/sh
+          exec /usr/lib/pizzaoven/PizzaOven "\$@"
+          WRAPPER
+          chmod 755 %{buildroot}/usr/bin/pizzaoven
+
+          install -dm755 %{buildroot}/usr/share/applications
+
+          cat > %{buildroot}/usr/share/applications/pizzaoven.desktop << 'DESKTOP'
+          [Desktop Entry]
+          Name=Pizza Oven
+          Comment=Mod manager for Pizza Tower
+          Exec=/usr/bin/pizzaoven
+          Icon=pizzaoven
+          Type=Application
+          Categories=Game;
+          DESKTOP
+
+          cat > %{buildroot}/usr/share/applications/pizzaoven-handler.desktop << 'DESKTOP'
+          [Desktop Entry]
+          Name=Pizza Oven
+          Exec=/usr/bin/pizzaoven -download %u
+          Type=Application
+          NoDisplay=true
+          MimeType=x-scheme-handler/pizzaoven;
+          DESKTOP
+
+          %post
+          xdg-mime default pizzaoven-handler.desktop x-scheme-handler/pizzaoven
+          update-desktop-database /usr/share/applications || true
+
+          %files
+          /usr/lib/pizzaoven/PizzaOven
+          /usr/bin/pizzaoven
+          /usr/share/applications/pizzaoven.desktop
+          /usr/share/applications/pizzaoven-handler.desktop
+
+          %changelog
+          * $(date '+%a %b %d %Y') Cristian <pizzaoven@izzoserver.top> - $VERSION-1
+          - Release $VERSION
+          EOF
+
+          rpmbuild -ba ~/rpmbuild/SPECS/pizzaoven.spec
+          cp ~/rpmbuild/RPMS/x86_64/pizzaoven-*.rpm .
+
+      - name: Upload .rpm
+        uses: actions/upload-artifact@v4
+        with:
+          name: rpm-package
+          path: pizzaoven-*.rpm
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish Windows
+        run: |
+          cd PizzaOven
+          dotnet publish -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o ../publish/windows
+
+      - name: Zip Windows build
+        run: |
+          Compress-Archive -Path publish/windows/* -DestinationPath PizzaOven-windows-x64.zip
+
+      - name: Upload Windows zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-zip
+          path: PizzaOven-windows-x64.zip
+
+  publish-copr:
+    needs: [build-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install copr-cli
+        run: |
+          sudo apt-get install -y copr-cli
+
+      - name: Download RPM
+        uses: actions/download-artifact@v4
+        with:
+          name: rpm-package
+          path: artifacts/rpm
+
+      - name: Configure copr-cli
+        run: |
+          mkdir -p ~/.config
+          cat > ~/.config/copr << EOF
+          [copr-cli]
+          login = ${{ secrets.COPR_LOGIN }}
+          username = ${{ secrets.COPR_USERNAME }}
+          token = ${{ secrets.COPR_TOKEN }}
+          copr_url = https://copr.fedorainfracloud.org
+          EOF
+
+      - name: Upload to COPR
+        run: |
+          copr-cli build ${{ secrets.COPR_USERNAME }}/pizzaoven artifacts/rpm/pizzaoven-*.rpm
+
+  release:
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Get version
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Update PKGBUILD sha256sum
+        run: |
+          SHA256=$(sha256sum artifacts/linux-tarball/PizzaOven-linux-x64.tar.gz | awk '{print $1}')
+          sed -i "s/sha256sums=('SKIP'/sha256sums=('$SHA256'/" packaging/PKGBUILD
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Pizza Oven v${{ steps.version.outputs.VERSION }}
+          body: |
+            ## Pizza Oven v${{ steps.version.outputs.VERSION }}
+
+            ### Downloads
+            - **Windows**: `PizzaOven-windows-x64.zip`
+            - **Linux (tarball)**: `PizzaOven-linux-x64.tar.gz`
+            - **Linux (Debian/Ubuntu)**: `pizzaoven_${{ steps.version.outputs.VERSION }}_amd64.deb`
+            - **Linux (Fedora/RHEL)**: `pizzaoven-${{ steps.version.outputs.VERSION }}-1.x86_64.rpm`
+            - **Arch Linux**: Use the PKGBUILD from the `packaging/` folder or install via AUR
+
+            ### Requirements
+            - .NET 8 Runtime
+            - xdelta3 (Linux only, not required on Windows)
+          files: |
+            artifacts/linux-tarball/PizzaOven-linux-x64.tar.gz
+            artifacts/deb-package/pizzaoven_*.deb
+            artifacts/rpm-package/pizzaoven-*.rpm
+            artifacts/windows-zip/PizzaOven-windows-x64.zip
+            packaging/PKGBUILD
