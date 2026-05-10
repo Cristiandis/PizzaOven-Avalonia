@@ -169,6 +169,7 @@ public partial class MainWindow : Window
                     Global.logger.WriteLine("Please click Setup before starting!", LoggerType.Warning);
                 }
             };
+        POPRESENCE.Initialize();
     }
 
     private void WindowLoaded(object sender, RoutedEventArgs e)
@@ -363,6 +364,7 @@ public partial class MainWindow : Window
         Global.config.LeftGridWidth = MiddleGrid.ColumnDefinitions[0].Width.Value;
         Global.config.RightGridWidth = MiddleGrid.ColumnDefinitions[2].Width.Value;
         Global.UpdateConfig();
+        POPRESENCE.Shutdown();
     }
 
     private void OnResize(object sender, SizeChangedEventArgs e)

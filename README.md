@@ -69,6 +69,7 @@ Features being ported from [PizzaOven+](https://github.com/SurfyCrescent97/Pizza
 - [ ] Announcements on startup
 - [ ] Search allowing `'` and `"` characters
 - [ ] Launch with debug toggle
+- [x] Discord RPC
 
 ### Medium
 - [x] GMLoader mod support (single and multiple mods)
@@ -80,7 +81,7 @@ Features being ported from [PizzaOven+](https://github.com/SurfyCrescent97/Pizza
 - [ ] AFOM support
 - [ ] Downgrade patcher
 - [ ] Themes
-- [ ] Discord RPC
+
 
 ## FAQ
 ### Why isn't the modded .xdelta patch working?

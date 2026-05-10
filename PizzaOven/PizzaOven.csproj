@@ -20,6 +20,7 @@
     <PackageReference Include="Material.Icons.Avalonia" Version="2.1.0" />
     <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.1.4" />
     <PackageReference Include="Avalonia.Diagnostics" Version="11.1.4" Condition="'$(Configuration)' == 'Debug'" />
+    <PackageReference Include="DiscordRichPresence" Version="1.6.1.70" />
   </ItemGroup>
 
   <ItemGroup>
@@ -35,6 +36,7 @@
     <EmbeddedResource Include="Dependencies\XDelta_Common_Checksum.txt">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
+    <EmbeddedResource Include="POSECRETS.json" />
   </ItemGroup>
 
   <ItemGroup>
