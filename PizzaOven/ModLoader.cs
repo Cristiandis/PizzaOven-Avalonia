@@ -152,6 +152,8 @@ public static class ModLoader
         if (File.Exists(backupWin))
         {
             File.Copy(backupWin, dataWin, true);
+            if (File.Exists(dataWin + ".po"))
+                File.Delete(dataWin + ".po");
             Global.logger.WriteLine("[GMLoader] Restored vanilla data.win from backup.win", LoggerType.Info);
         }
 
