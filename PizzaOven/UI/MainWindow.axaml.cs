@@ -1224,6 +1224,8 @@ public partial class MainWindow : Window
 
     private void ClearCache(object sender, RoutedEventArgs e)
     {
+        searched = false;
+        SearchBar.Clear();
         FeedGenerator.ClearCache();
         RefreshFilter();
     }
