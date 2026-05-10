@@ -10,9 +10,28 @@ public static class Global
     public static Config config = new();
     public static Logger logger = null!;
     public static char s = Path.DirectorySeparatorChar;
-    public static string assemblyLocation =
-        AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+    public static string assemblyLocation = GetUserDataPath();
     public static ObservableCollection<Mod> ModList = new();
+
+    private static string GetUserDataPath()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return AppDomain.CurrentDomain.BaseDirectory
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+        else
+        {
+            var xdgDataHome = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
+            var baseDir = string.IsNullOrEmpty(xdgDataHome)
+                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    ".local", "share")
+                : xdgDataHome;
+            var appDir = Path.Combine(baseDir, "pizzaoven");
+            Directory.CreateDirectory(appDir);
+            return appDir;
+        }
+    }
 
     public static void UpdateConfig()
     {
