@@ -253,7 +253,7 @@ jobs:
             - **Linux (tarball)**: `PizzaOven-linux-x64.tar.gz`
             - **Linux (Debian/Ubuntu)**: `pizzaoven_${{ steps.version.outputs.VERSION }}_amd64.deb`
             - **Linux (Fedora/RHEL)**: `pizzaoven-${{ steps.version.outputs.VERSION }}-1.x86_64.rpm`
-            - **Arch Linux**: Use the PKGBUILD from the `packaging/` folder or install via AUR
+            - **Arch Linux**: Use the PKGBUILD from the `packaging/` folder or install via [AUR](https://aur.archlinux.org/packages/pizzaoven-bin)
 
             ### Requirements
             - .NET 8 Runtime
