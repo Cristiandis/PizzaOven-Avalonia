@@ -67,7 +67,7 @@ Features being ported from [PizzaOven+](https://github.com/SurfyCrescent97/Pizza
 ### Easy 
 - [ ] Disable mod updater toggle
 - [ ] Announcements on startup
-- [ ] Search allowing `'` and `"` characters
+- [x] Search allowing `'` and `"` characters
 - [ ] Launch with debug toggle
 - [x] Discord RPC
 

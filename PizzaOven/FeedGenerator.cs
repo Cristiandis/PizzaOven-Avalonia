@@ -50,6 +50,12 @@ public static class FeedGenerator
         {
             var response = await http.GetAsync(url);
             var json = await response.Content.ReadAsStringAsync();
+            if (string.IsNullOrWhiteSpace(json) || json.Trim() == "[]" || json.Trim() == "")
+            {
+                CurrentFeed.Records = new();
+                CurrentFeed.TotalPages = 1;
+                return;
+            }
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             var list = JsonSerializer.Deserialize<List<JsonElement>>(json) ?? new();
             CurrentFeed.Records = new();
@@ -88,7 +94,7 @@ public static class FeedGenerator
         };
 
         if (search != null)
-            url += $"ByName?_sName=*{search}*&_idGameRow=7692&";
+            url += $"ByName?_sName=*{Uri.EscapeDataString(search)}*&_idGameRow=7692&";
         else if (category?.ID != null)
             url += "ByCategory?";
         else
