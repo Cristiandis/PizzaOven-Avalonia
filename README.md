@@ -1,4 +1,6 @@
-<img src="https://media.discordapp.net/attachments/796396777090711635/1088971726676828300/PizzaOvenPreview.png?width=1074&height=604" width="500">
+<img src="https://raw.githubusercontent.com/Cristiandis/PizzaOven-Avalonia/main/PizzaOven/Assets/PizzaOvenPreview.png" width="500">
+
+> This is a cross-platform Linux/Windows port of the original [Pizza Oven](https://github.com/TekkaGB/PizzaOven) by TekkaGB, rewritten using Avalonia UI.
 
 Pizza Oven is a tool that allows gamers to download, install, and manage mods for Pizza Tower. The aim for it is to make installing mods a much better quality of life experience. Unfortunately, this tool does not solve the issue of combining multiple mods as there is no easy way to combine xdelta patches (the main method of modding Pizza Tower).
 
