@@ -96,7 +96,6 @@ jobs:
           chmod 755 "$PKGDIR/DEBIAN/postinst"
 
           dpkg-deb --build "$PKGDIR"
-          mv "${PKGDIR}.deb" "pizzaoven_${VERSION}_amd64.deb"
 
       - name: Upload .deb
         uses: actions/upload-artifact@v4
