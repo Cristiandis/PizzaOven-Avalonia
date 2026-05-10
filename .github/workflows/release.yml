@@ -218,13 +218,16 @@ jobs:
     steps:
       - name: Install copr-cli
         run: |
-          sudo apt-get install -y copr-cli
+          sudo apt-get update
+          sudo apt-get install -y python3-pip
+          pip install --break-system-packages copr-cli
+
 
       - name: Download RPM
         uses: actions/download-artifact@v4
         with:
           name: rpm-package
-          path: artifacts/rpm
+          path: .
 
       - name: Configure copr-cli
         run: |
@@ -239,7 +242,7 @@ jobs:
 
       - name: Upload to COPR
         run: |
-          copr-cli build ${{ secrets.COPR_USERNAME }}/pizzaoven artifacts/rpm/pizzaoven-*.rpm
+          copr-cli build ${{ secrets.COPR_PROJECT_NAME || 'pizzaoven' }} pizzaoven-*.rpm
 
   release:
     needs: [build-linux, build-windows]
