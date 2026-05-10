@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/Cristiandis/PizzaOven-Avalonia/main/PizzaOven/Assets/PizzaOvenPreview.png" width="500">
+<img src="https://raw.githubusercontent.com/Cristiandis/PizzaOven-Avalonia/master/PizzaOven/Assets/PizzaOvenPreview.png" width="500">
 
 > This is a cross-platform Linux/Windows port of the original [Pizza Oven](https://github.com/TekkaGB/PizzaOven) by TekkaGB, rewritten using Avalonia UI.
 
