@@ -11,6 +11,8 @@ public static class Global
     public static Logger logger = null!;
     public static char s = Path.DirectorySeparatorChar;
     public static string assemblyLocation = GetUserDataPath();
+    public static string appLocation = AppDomain.CurrentDomain.BaseDirectory
+    .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
     public static ObservableCollection<Mod> ModList = new();
 
     private static string GetUserDataPath()
