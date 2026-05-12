@@ -1009,7 +1009,7 @@
                                 <Button Content="Convert XDelta/Win to GMLoader"
                                         HorizontalAlignment="Left" Height="35" Padding="10,0"
                                         Background="#303030" BorderBrush="#353535" Foreground="#f2f2f2"
-                                        FontSize="14" IsEnabled="False" Click="ConvertToGMLoader_Click" />
+                                        FontSize="14" Click="ConvertToGMLoader_Click" />
                                 <Button Content="Kill GMLoader (kill background GMLoader processes)"
                                         HorizontalAlignment="Left" Height="35" Padding="10,0"
                                         Background="#303030" BorderBrush="#353535" Foreground="#f2f2f2"

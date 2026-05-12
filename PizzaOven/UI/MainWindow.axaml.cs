@@ -160,11 +160,13 @@ public partial class MainWindow : Window
                     Global.logger.WriteLine("Please click Setup before starting!", LoggerType.Warning);
                 }
             };
-        POPRESENCE.Initialize();
+        if (PLUSSavesystem.read_ini_bool("Discord", "RPC", true))
+            POPRESENCE.Initialize();
     }
 
     private void WindowLoaded(object sender, RoutedEventArgs e)
     {
+        InitToggles();
     }
 
     private void OnModified(object sender, FileSystemEventArgs e)

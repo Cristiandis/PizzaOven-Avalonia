@@ -568,7 +568,56 @@ public static class ModLoader
         process.Start();
         process.WaitForExit();
     }
+    public static void PathFixPatch(string file, string patch, string outputFileName, string xdelta)
+    {
+        string baseDir = Path.Combine(Path.GetDirectoryName(outputFileName)!, "PizzaOvenPatching");
+        string workingDir = baseDir;
+        int count = 1;
 
+        while (Directory.Exists(workingDir))
+        {
+            workingDir = baseDir + count;
+            count++;
+        }
+
+        Directory.CreateDirectory(workingDir);
+
+        try
+        {
+            string xdeltaName = Path.GetFileName(xdelta);
+            string tempXdeltaPath = Path.Combine(workingDir, xdeltaName);
+            if (OperatingSystem.IsWindows())
+                File.Copy(xdelta, tempXdeltaPath, true);
+
+            string tempFile = Path.Combine(workingDir, Path.GetFileName(file));
+            string tempPatch = Path.Combine(workingDir, Path.GetFileName(patch));
+            File.Copy(file, tempFile, true);
+            File.Copy(patch, tempPatch, true);
+
+            string tempOutput = Path.Combine(workingDir, Path.GetFileName(outputFileName));
+
+            var startInfo = new ProcessStartInfo
+            {
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                FileName = OperatingSystem.IsWindows() ? tempXdeltaPath : xdelta,
+                WorkingDirectory = workingDir,
+                WindowStyle = ProcessWindowStyle.Hidden,
+                Arguments = $@"-d -s ""{tempFile}"" ""{tempPatch}"" ""{tempOutput}"""
+            };
+
+            using var process = new Process { StartInfo = startInfo };
+            process.Start();
+            process.WaitForExit();
+
+            File.Copy(tempOutput, outputFileName, true);
+        }
+        finally
+        {
+            if (Directory.Exists(workingDir))
+                Directory.Delete(workingDir, true);
+        }
+    }
     private static void RestoreDirectory(string path)
     {
         if (Directory.Exists(path))

@@ -45,10 +45,13 @@
 </None>
   </ItemGroup>
 
-  <ItemGroup>
-  <None Update="GMLOADER-windows\**">
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-  </None>
+ <ItemGroup>
+    <None Update="GMLOADER-windows\**">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="GMLOADER-linux\**">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
 </ItemGroup>
 
 </Project>
