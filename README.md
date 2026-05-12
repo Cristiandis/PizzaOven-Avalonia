@@ -61,28 +61,6 @@ It will look if the .bank file exists in the sound/Desktop folder. If it does it
 ### GMLoader mods
 If the mod contains GMLoader-style folders (`audio`, `code`, `csx`, `textures`, etc.), Pizza Oven will copy the GMLoader runtime into the game folder, place the mod files in the game's `mods/` subfolder, and swap the game executable so Steam launches GMLoader automatically. After the game closes, all changes are reverted and the vanilla executable is restored.
 
-## Roadmap
-Features being ported from [PizzaOven+](https://github.com/SurfyCrescent97/PizzaOvenPLUS):
-
-### Easy 
-- [ ] Disable mod updater toggle
-- [ ] Announcements on startup
-- [x] Search allowing `'` and `"` characters
-- [ ] Launch with debug toggle
-- [x] Discord RPC
-
-### Medium
-- [x] GMLoader mod support (single and multiple mods)
-- [ ] Mod folders (grouping mods into subfolders in the UI)
-- [ ] Better language update support
-- [ ] Disable startup button / launch on boot
-
-### Complex
-- [x] AFOM support
-- [ ] Downgrade patcher
-- [ ] Themes
-
-
 ## FAQ
 ### Why isn't the modded .xdelta patch working?
 Either your game needs to be updated to the latest version or the mod creator needs to update their .xdelta patch for the latest version.
