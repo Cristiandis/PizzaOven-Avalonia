@@ -166,6 +166,8 @@ public partial class MainWindow : Window
 
     private void WindowLoaded(object sender, RoutedEventArgs e)
     {
+        InitSettingsPanels();
+        InitThemes();
         InitToggles();
     }
 

@@ -21,6 +21,7 @@
     <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.1.4" />
     <PackageReference Include="Avalonia.Diagnostics" Version="11.1.4" Condition="'$(Configuration)' == 'Debug'" />
     <PackageReference Include="DiscordRichPresence" Version="1.6.1.70" />
+    <PackageReference Include="Avalonia.Controls.ColorPicker" Version="11.1.4" />
   </ItemGroup>
 
   <ItemGroup>
@@ -52,6 +53,12 @@
     <None Update="GMLOADER-linux\**">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+</ItemGroup>
+
+<ItemGroup>
+  <None Update="Themes\**\*">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </None>
 </ItemGroup>
 
 </Project>

@@ -3,10 +3,17 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Reflection;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 
@@ -14,6 +21,14 @@ namespace PizzaOven;
 
 public partial class MainWindow
 {
+    private static readonly string[] themebrushes = { "Primary", "Secondary", "Inner", "Loading", "Text" };
+    private static readonly string[] themeimageExtensions = { ".png", ".jpg", ".jpeg", ".bmp" };
+    private static readonly string[] transparentboxes = { "Logger", "ModDescription", "ModGrid" };
+    private readonly Dictionary<string, string> defaultBrushHexes = new();
+
+    private static string CustomAssetsFolder =>
+        Path.Combine(Global.assemblyLocation, "CustomAssets");
+
     #region Tutorial
 
     private void ReplayTutorial_Click(object sender, RoutedEventArgs e)
@@ -60,7 +75,6 @@ public partial class MainWindow
 
     private void SettingsNav_Click(object sender, RoutedEventArgs e)
     {
-        if (_settingsPanels.Count == 0) InitSettingsPanels();
         if (sender is not Button btn) return;
         foreach (var panel in _settingsPanels.Values)
             panel.IsVisible = false;
@@ -238,9 +252,9 @@ public partial class MainWindow
 
     private async void ConvertToGMLoader_Click(object sender, RoutedEventArgs e)
     {
-        string gmLoaderFolder = Path.Combine(Global.appLocation, 
+        var gmLoaderFolder = Path.Combine(Global.appLocation,
             OperatingSystem.IsWindows() ? "GMLOADER-windows" : "GMLOADER-linux");
-        string gmLoaderExe = Path.Combine(gmLoaderFolder, 
+        var gmLoaderExe = Path.Combine(gmLoaderFolder,
             OperatingSystem.IsWindows() ? "GMLoader.exe" : "GMLoader.bin");
 
         if (!File.Exists(gmLoaderExe))
@@ -390,7 +404,7 @@ public partial class MainWindow
         var i = 1;
         while (Directory.Exists(finalPath))
             finalPath = $"{basePath} ({i++})";
-        
+
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
             ModsWatcher.EnableRaisingEvents = false;
@@ -398,7 +412,7 @@ public partial class MainWindow
             ModsWatcher.EnableRaisingEvents = true;
             Refresh();
         });
-        
+
 
         foreach (var path in toDelete)
         {
@@ -423,6 +437,343 @@ public partial class MainWindow
         {
             Global.logger.WriteLine($"Failed to kill GMLoader: {ex.Message}", LoggerType.Error);
         }
+    }
+
+    #endregion
+
+    #region Themes
+
+    private void InitThemes()
+    {
+        Directory.CreateDirectory(CustomAssetsFolder);
+        _settingsPanels["NavThemes"] = PanelThemes;
+
+        foreach (var name in themebrushes)
+        {
+            if (!defaultBrushHexes.ContainsKey(name))
+                defaultBrushHexes[name] = PLUSThemes.Get_BrushColorAsHex($"{name}Brush");
+            Theme_Update(name, true);
+        }
+
+        ApplyTransparentBoxes(true);
+        LoadThemePresets();
+        ApplyBackgroundImage();
+    }
+
+    private void LoadThemePresets()
+    {
+        var themesPath = Path.Combine(Global.appLocation, "Themes");
+        if (!Directory.Exists(themesPath)) return;
+
+        ThemePresetsCombo.Items.Clear();
+        foreach (var file in Directory.GetFiles(themesPath))
+            if (Path.GetFileName(file).ToLower().Contains("potheme"))
+                ThemePresetsCombo.Items.Add(Path.GetFileNameWithoutExtension(file));
+
+        if (ThemePresetsCombo.Items.Count > 0)
+            ThemePresetsCombo.SelectedIndex = 0;
+    }
+
+    public void Theme_Update(string brushname, bool skippicker = false)
+    {
+        if (skippicker)
+        {
+            var saved = PLUSSavesystem.read_ini("Themes", brushname);
+            if (saved != "" && PLUSThemes.validhex(saved))
+                PLUSThemes.Set_BrushColor($"{brushname}Brush", saved);
+            return;
+        }
+
+        Themes_GrabColor(brushname);
+    }
+
+    private async void Themes_GrabColor(string brushname)
+    {
+        var current = PLUSSavesystem.read_ini("Themes", brushname,
+            defaultBrushHexes.GetValueOrDefault(brushname, "#131313"));
+        var hex = await ShowColorPickerDialog(current);
+        if (hex != null && PLUSThemes.validhex(hex))
+        {
+            PLUSSavesystem.write_ini("Themes", brushname, hex);
+            PLUSThemes.Set_BrushColor($"{brushname}Brush", hex);
+        }
+    }
+
+    private async Task<string?> ShowColorPickerDialog(string current)
+    {
+        Color initialColor = Color.TryParse(current, out var c) ? c : Colors.Black;
+
+        var colorView = new ColorView
+        {
+            Color = initialColor,
+            IsAlphaEnabled = false,
+            IsAlphaVisible = false
+        };
+
+        var dialog = new Window
+        {
+            Title = "Pick a Color",
+            Width = 400,
+            Height = 500,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Content = new StackPanel
+            {
+                Children =
+                {
+                    colorView,
+                    new Button
+                    {
+                        Content = "OK",
+                        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                        Margin = new Thickness(8)
+                    }
+                }
+            }
+        };
+
+        string? result = null;
+        var okButton = ((StackPanel)dialog.Content).Children.OfType<Button>().First();
+        okButton.Click += (_, _) =>
+        {
+            result = "#" + colorView.Color.ToString().Substring(3);
+            dialog.Close();
+        };
+
+        await dialog.ShowDialog(this);
+        return result;
+    }
+
+    public void Themes_Reset(string brushname)
+    {
+        PLUSSavesystem.delete_ini_value("Themes", brushname);
+        PLUSThemes.Set_BrushColor($"{brushname}Brush", defaultBrushHexes.GetValueOrDefault(brushname, "#131313"));
+    }
+
+    private void ApplyTransparentBoxes(bool init = false)
+    {
+        foreach (var key in transparentboxes)
+        {
+            var value = PLUSSavesystem.read_ini("Themes", $"Transparency_{key}", "100");
+            var slider = this.FindControl<Slider>($"Transparency_{key}");
+            if (slider == null) continue;
+
+            var parsed = double.TryParse(value, out var p) ? p : 100;
+
+            if (init) slider.Value = parsed;
+        }
+
+        if (init) return;
+
+        var loggerOpacity = GetTransparency("Logger");
+        var descOpacity = GetTransparency("ModDescription");
+        var gridOpacity = GetTransparency("ModGrid");
+
+        ConsoleWindow.Opacity = loggerOpacity;
+        DescriptionWindow.Opacity = descOpacity;
+        ModGridBorder.Opacity = gridOpacity;
+    }
+
+    private double GetTransparency(string key)
+    {
+        var value = PLUSSavesystem.read_ini("Themes", $"Transparency_{key}", "100");
+        return double.TryParse(value, out var p) ? p / 100.0 : 1.0;
+    }
+
+    private async void ApplyBackgroundImage()
+    {
+        if (!Directory.Exists(CustomAssetsFolder)) return;
+        var bgPath = Directory.GetFiles(CustomAssetsFolder)
+            .FirstOrDefault(f =>
+                Path.GetFileNameWithoutExtension(f).Equals("background", StringComparison.OrdinalIgnoreCase)
+                && themeimageExtensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase));
+
+        if (string.IsNullOrEmpty(bgPath) || !File.Exists(bgPath)) return;
+
+        try
+        {
+            using var http = new HttpClient();
+            var bytes = File.ReadAllBytes(bgPath);
+            using var ms = new MemoryStream(bytes);
+            var bitmap = new Bitmap(ms);
+            var brush = new ImageBrush(bitmap) { Stretch = Stretch.UniformToFill };
+            MainGrid.Background = brush;
+        }
+        catch
+        {
+        }
+    }
+
+    private void Theme_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn) return;
+        var key = btn.Name?.Replace("Themes", "").Replace("Reset", "") ?? "";
+        Theme_Update(key);
+    }
+
+    private void ThemeReset_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn) return;
+        var key = btn.Name?.Replace("Themes", "").Replace("Reset", "") ?? "";
+        Themes_Reset(key);
+    }
+
+    private void Transparent_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+    {
+        if (sender is Slider slider)
+        {
+            PLUSSavesystem.write_ini("Themes", slider.Name, ((int)slider.Value).ToString());
+            ApplyTransparentBoxes();
+        }
+    }
+
+    private async void ThemesSave_Click(object sender, RoutedEventArgs e)
+    {
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Save Theme",
+            DefaultExtension = "potheme",
+            FileTypeChoices = new[] { new FilePickerFileType("PO Theme") { Patterns = new[] { "*.potheme" } } }
+        });
+        if (file == null) return;
+        ThemesSaveFile(file.Path.LocalPath);
+    }
+
+    private async void ThemesLoad_Click(object sender, RoutedEventArgs e)
+    {
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Load Theme",
+            AllowMultiple = false,
+            FileTypeFilter = new[] { new FilePickerFileType("PO Theme") { Patterns = new[] { "*.potheme" } } }
+        });
+        if (files.Count == 0) return;
+        ThemesFileLoad(files[0].Path.LocalPath);
+    }
+
+    private void ThemesResetAll_Click(object sender, RoutedEventArgs e)
+    {
+        foreach (var brush in themebrushes)
+            Themes_Reset(brush);
+
+        if (Directory.Exists(CustomAssetsFolder))
+        {
+            var bgPath = Directory.GetFiles(CustomAssetsFolder)
+                .FirstOrDefault(f =>
+                    Path.GetFileNameWithoutExtension(f).Equals("background", StringComparison.OrdinalIgnoreCase)
+                    && themeimageExtensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase));
+            if (!string.IsNullOrEmpty(bgPath) && File.Exists(bgPath))
+                File.Delete(bgPath);
+        }
+
+        MainGrid.Background = null;
+
+        foreach (var t in transparentboxes)
+            PLUSSavesystem.write_ini("Themes", $"Transparency_{t}", "100");
+        ApplyTransparentBoxes(true);
+    }
+
+    private void ThemePresetsApply_Click(object sender, RoutedEventArgs e)
+    {
+        var theme = ThemePresetsCombo.SelectedItem as string;
+        var filepath = Path.Combine(Global.appLocation, "Themes", $"{theme}.potheme");
+        if (File.Exists(filepath))
+            ThemesFileLoad(filepath);
+    }
+
+    private async void ThemesBackgroundUpload_Click(object sender, RoutedEventArgs e)
+    {
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Select Background Image",
+            AllowMultiple = false,
+            FileTypeFilter = new[]
+                { new FilePickerFileType("Images") { Patterns = new[] { "*.png", "*.jpg", "*.jpeg", "*.bmp" } } }
+        });
+        if (files.Count == 0) return;
+        var src = files[0].Path.LocalPath;
+        Directory.CreateDirectory(CustomAssetsFolder);
+        File.Copy(src, Path.Combine(CustomAssetsFolder, $"background{Path.GetExtension(src)}"), true);
+        ApplyBackgroundImage();
+    }
+
+    private void ThemesBackgroundReset_Click(object sender, RoutedEventArgs e)
+    {
+        var bgPath = Directory.GetFiles(CustomAssetsFolder)
+            .FirstOrDefault(f =>
+                Path.GetFileNameWithoutExtension(f).Equals("background", StringComparison.OrdinalIgnoreCase)
+                && themeimageExtensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase));
+        if (!string.IsNullOrEmpty(bgPath) && File.Exists(bgPath))
+            File.Delete(bgPath);
+        MainGrid.Background = null;
+    }
+
+    private void AssetsFolder_Click(object sender, RoutedEventArgs e)
+    {
+        Directory.CreateDirectory(CustomAssetsFolder);
+        Process.Start(new ProcessStartInfo { FileName = CustomAssetsFolder, UseShellExecute = true });
+    }
+
+    private void ThemesSaveFile(string path)
+    {
+        var theme = new Dictionary<string, string>
+        {
+            ["saveversion"] = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0"
+        };
+        foreach (var brush in themebrushes)
+            theme[brush] = PLUSSavesystem.read_ini("Themes", brush, defaultBrushHexes.GetValueOrDefault(brush, ""));
+
+        theme["background"] = "";
+        var bgPath = Directory.Exists(CustomAssetsFolder)
+            ? Directory.GetFiles(CustomAssetsFolder)
+                .FirstOrDefault(f =>
+                    Path.GetFileNameWithoutExtension(f).Equals("background", StringComparison.OrdinalIgnoreCase)
+                    && themeimageExtensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase))
+            : null;
+        if (!string.IsNullOrEmpty(bgPath) && File.Exists(bgPath))
+            theme["background"] = $"{Path.GetExtension(bgPath).TrimStart('.')};{PLUSThemes.Base64_SaveFile(bgPath)}";
+
+        foreach (var t in transparentboxes)
+            theme[$"Transparency_{t}"] = PLUSSavesystem.read_ini("Themes", $"Transparency_{t}", "100");
+
+        File.WriteAllText(path, JsonSerializer.Serialize(theme, new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    private void ThemesFileLoad(string path)
+    {
+        var theme = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(path));
+        if (theme == null) return;
+
+        foreach (var brush in themebrushes)
+            if (theme.TryGetValue(brush, out var val))
+            {
+                PLUSSavesystem.write_ini("Themes", brush, val);
+                Theme_Update(brush, true);
+            }
+
+        var bgPath = Directory.Exists(CustomAssetsFolder)
+            ? Directory.GetFiles(CustomAssetsFolder)
+                .FirstOrDefault(f =>
+                    Path.GetFileNameWithoutExtension(f).Equals("background", StringComparison.OrdinalIgnoreCase)
+                    && themeimageExtensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase))
+            : null;
+        if (!string.IsNullOrEmpty(bgPath) && File.Exists(bgPath))
+            File.Delete(bgPath);
+
+        if (theme.TryGetValue("background", out var bg) && bg.Contains(";"))
+        {
+            var parts = bg.Split(";");
+            if (parts.Length == 2 && PLUSThemes.IsBase64String(parts[1]))
+                PLUSThemes.Base64_LoadFile(parts[1], Path.Combine(CustomAssetsFolder, $"background.{parts[0]}"));
+        }
+
+        foreach (var t in transparentboxes)
+        {
+            var val = theme.TryGetValue($"Transparency_{t}", out var tv) ? tv : "100";
+            PLUSSavesystem.write_ini("Themes", $"Transparency_{t}", val);
+        }
+
+        ApplyTransparentBoxes(true);
+        ApplyBackgroundImage();
     }
 
     #endregion
