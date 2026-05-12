@@ -101,7 +101,9 @@ public partial class MainWindow
         UpdateToggle(POLanguage,
             PLUSSavesystem.read_ini_bool("Files", "POLanguage", true),
             "Do not Apply to Language Files? [IT'S ON]", "Do not Apply to Language Files? [IT'S OFF]");
-        StartupToggle.Content = "Do open on Startup? [IT'S OFF]";
+        StartupToggle.Content = AutostartManager.IsEnabled()
+            ? "Do open on Startup? [IT'S ON]"
+            : "Do open on Startup? [IT'S OFF]";
     }
 
     #endregion
@@ -110,7 +112,9 @@ public partial class MainWindow
 
     private void StartupToggle_Click(object sender, RoutedEventArgs e)
     {
-        Global.logger.WriteLine("Launch on startup is not supported on this platform.", LoggerType.Warning);
+        bool enabled = !AutostartManager.IsEnabled();
+        AutostartManager.SetAutostart(enabled);
+        StartupToggle.Content = enabled ? "Do open on Startup? [IT'S ON]" : "Do open on Startup? [IT'S OFF]";
     }
 
     private void RPCToggle_Click(object sender, RoutedEventArgs e)

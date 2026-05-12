@@ -947,7 +947,7 @@
                                 <Button x:Name="StartupToggle" Content="Do open on Startup? [IT'S OFF]"
                                         HorizontalAlignment="Left" Height="35" Padding="10,0"
                                         Background="{DynamicResource SecondaryBrush}" BorderBrush="{DynamicResource SecondaryBrush}" Foreground="{DynamicResource TextBrush}"
-                                        FontSize="14" Click="StartupToggle_Click" IsEnabled="False" />
+                                        FontSize="14" Click="StartupToggle_Click" />
                                 <TextBlock Text="Discord RPC (Displays on Discord):" Foreground="{DynamicResource TextBrush}" FontSize="14" />
                                 <Button x:Name="RPCtoggle" Content="Enable RPC? [IT'S ON]"
                                         HorizontalAlignment="Left" Height="35" Padding="10,0"
