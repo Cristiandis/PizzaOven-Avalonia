@@ -1,7 +1,5 @@
 using Avalonia.Threading;
-using SharpCompress.Archives.SevenZip;
 using SharpCompress.Common;
-using SharpCompress.Readers;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,6 +9,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using PizzaOven.UI;
+using SharpCompress.Archives;
 
 namespace PizzaOven;
 
@@ -300,24 +299,11 @@ public static class ModUpdater
             if (!File.Exists(src)) return;
             try
             {
-                if (Path.GetExtension(src).Equals(".7z", StringComparison.OrdinalIgnoreCase))
-                {
-                    using var stream = File.OpenRead(src);
-                    using var archive = SevenZipArchive.Open(stream);
-                    using var reader = archive.ExtractAllEntries();
-                    while (reader.MoveToNextEntry())
-                        if (!reader.Entry.IsDirectory)
-                            reader.WriteEntryToDirectory(output,
-                                new ExtractionOptions { ExtractFullPath = true, Overwrite = true });
-                }
-                else
-                {
-                    using var stream = File.OpenRead(src);
-                    using var reader = ReaderFactory.Open(stream);
-                    while (reader.MoveToNextEntry())
-                        if (!reader.Entry.IsDirectory)
-                            reader.WriteEntryToDirectory(output, new ExtractionOptions { ExtractFullPath = true, Overwrite = true });
-                }
+                using var archive = ArchiveFactory.OpenArchive(src);
+                foreach (var entry in archive.Entries)
+                    if (!entry.IsDirectory)
+                        entry.WriteToDirectory(output,
+                            new ExtractionOptions { ExtractFullPath = true, Overwrite = true });
 
                 var metaPath = Path.Combine(output, "mod.json");
                 if (File.Exists(metaPath))

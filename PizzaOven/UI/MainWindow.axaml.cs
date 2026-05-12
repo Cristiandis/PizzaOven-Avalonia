@@ -18,9 +18,8 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
 using PizzaOven.UI;
-using SharpCompress.Archives.SevenZip;
+using SharpCompress.Archives;
 using SharpCompress.Common;
-using SharpCompress.Readers;
 
 namespace PizzaOven;
 
@@ -566,35 +565,18 @@ public partial class MainWindow : Window
                 {
                     try
                     {
-                        if (Path.GetExtension(_ArchiveSource)
-                            .Equals(".7z", StringComparison.InvariantCultureIgnoreCase))
-                            using (var archive = SevenZipArchive.Open(_ArchiveSource))
-                            {
-                                var reader = archive.ExtractAllEntries();
-                                while (reader.MoveToNextEntry())
-                                    if (!reader.Entry.IsDirectory)
-                                        reader.WriteEntryToDirectory(
-                                            $"{temp}{Global.s}{Path.GetFileNameWithoutExtension(file)}",
-                                            new ExtractionOptions
-                                            {
-                                                ExtractFullPath = true,
-                                                Overwrite = true
-                                            });
-                            }
-                        else
-                            using (Stream stream = File.OpenRead(_ArchiveSource))
-                            using (var reader = ReaderFactory.Open(stream))
-                            {
-                                while (reader.MoveToNextEntry())
-                                    if (!reader.Entry.IsDirectory)
-                                        reader.WriteEntryToDirectory(
-                                            $"{temp}{Global.s}{Path.GetFileNameWithoutExtension(file)}",
-                                            new ExtractionOptions
-                                            {
-                                                ExtractFullPath = true,
-                                                Overwrite = true
-                                            });
-                            }
+                        using (var archive = ArchiveFactory.OpenArchive(_ArchiveSource))
+                        {
+                            foreach (var entry in archive.Entries)
+                                if (!entry.IsDirectory)
+                                    entry.WriteToDirectory(
+                                        $"{temp}{Global.s}{Path.GetFileNameWithoutExtension(file)}",
+                                        new ExtractionOptions
+                                        {
+                                            ExtractFullPath = true,
+                                            Overwrite = true
+                                        });
+                        }
                     }
                     catch (Exception e)
                     {

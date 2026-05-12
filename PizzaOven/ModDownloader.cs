@@ -1,7 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Threading;
 using SharpCompress.Common;
-using SharpCompress.Readers;
 using System;
 using System.IO;
 using System.Linq;
@@ -11,6 +10,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using PizzaOven.UI;
+using SharpCompress.Archives;
 
 namespace PizzaOven;
 
@@ -204,25 +204,11 @@ public class ModDownloader
             if (!File.Exists(src)) return;
             try
             {
-                if (Path.GetExtension(src).Equals(".7z", StringComparison.OrdinalIgnoreCase))
-                {
-                    using var stream = File.OpenRead(src);
-                    using var archive = SharpCompress.Archives.SevenZip.SevenZipArchive.Open(stream);
-                    using var reader = archive.ExtractAllEntries();
-                    while (reader.MoveToNextEntry())
-                        if (!reader.Entry.IsDirectory)
-                            reader.WriteEntryToDirectory(dest,
-                                new ExtractionOptions { ExtractFullPath = true, Overwrite = true });
-                }
-                else
-                {
-                    using var stream = File.OpenRead(src);
-                    using var reader = ReaderFactory.Open(stream);
-                    while (reader.MoveToNextEntry())
-                        if (!reader.Entry.IsDirectory)
-                            reader.WriteEntryToDirectory(dest,
-                                new ExtractionOptions { ExtractFullPath = true, Overwrite = true });
-                }
+                using var archive = ArchiveFactory.OpenArchive(src);
+                foreach (var entry in archive.Entries)
+                    if (!entry.IsDirectory)
+                        entry.WriteToDirectory(dest,
+                            new ExtractionOptions { ExtractFullPath = true, Overwrite = true });
 
                 var meta = metaFactory(dest);
                 if (meta != null)
