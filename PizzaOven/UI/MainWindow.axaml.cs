@@ -22,18 +22,6 @@ using SharpCompress.Archives.SevenZip;
 using SharpCompress.Common;
 using SharpCompress.Readers;
 
-// Avalonia namespaces (replace System.Windows.*)
-
-// NOTE: Remove references to:
-//   System.Windows, System.Windows.Controls, System.Windows.Media,
-//   System.Windows.Documents, System.Windows.Input, System.Windows.Data
-//   Microsoft.Win32 (use Avalonia's StorageProvider instead)
-//
-// Third-party replacements:
-//   gong-wpf-dragdrop  → Avalonia.Input.DragDrop (built-in)
-//   FontAwesome.WPF    → Projektanker.Icons.Avalonia (NuGet)
-//   RichTextBox        → SelectableTextBlock / AvaloniaEdit (NuGet)
-
 namespace PizzaOven;
 
 public partial class MainWindow : Window
@@ -156,7 +144,9 @@ public partial class MainWindow : Window
         UpdateButton.IsEnabled = false;
         ModGridSearchButton.IsEnabled = false;
 
-        _ = ModUpdater.CheckForUpdatesAsync($"{Global.assemblyLocation}{Global.s}Mods", this);
+        _ = PLUSSavesystem.read_ini_bool("LowEnd", "ModUpdate", true)
+            ? ModUpdater.CheckForUpdatesAsync($"{Global.assemblyLocation}{Global.s}Mods", this)
+            : Task.CompletedTask;
 
         if (Global.config.ModsFolder == null)
             Opened += async (_, _) =>
