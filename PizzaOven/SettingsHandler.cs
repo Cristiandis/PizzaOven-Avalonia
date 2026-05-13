@@ -210,16 +210,7 @@ public partial class MainWindow
 
     private void RPCToggle_Click(object sender, RoutedEventArgs e)
     {
-        var enabled = PLUSSavesystem.toggle_ini_bool("Discord", "RPC", true);
-        UpdateToggle(RPCtoggle, enabled, "Enable RPC? [IT'S ON]", "Enable RPC? [IT'S OFF]");
-        try
-        {
-            if (enabled) POPRESENCE.Initialize();
-            else POPRESENCE.Shutdown();
-        }
-        catch
-        {
-        }
+        HandlePLUStoggle("Discord", "RPC", true, "RPC");
     }
 
     private void ModUpdaterToggle_Click(object sender, RoutedEventArgs e)
@@ -687,7 +678,6 @@ public partial class MainWindow
 
         try
         {
-            using var http = new HttpClient();
             var bytes = File.ReadAllBytes(bgPath);
             using var ms = new MemoryStream(bytes);
             var bitmap = new Bitmap(ms);

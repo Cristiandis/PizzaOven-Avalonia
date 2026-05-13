@@ -66,12 +66,12 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        
+
         PLUSMUSIC.InitializeEngine();
-        
-        this.Activated += (s, e) => PLUSMUSIC.ApplyCurrentVolume(true);
-        this.Deactivated += (s, e) => PLUSMUSIC.ApplyCurrentVolume(false);
-        
+
+        Activated += (s, e) => PLUSMUSIC.ApplyCurrentVolume(true);
+        Deactivated += (s, e) => PLUSMUSIC.ApplyCurrentVolume(false);
+
         ModGrid.AddHandler(DragDrop.DragOverEvent, Add_Enter);
         var spinTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
         double spinAngle = 0;
@@ -169,6 +169,7 @@ public partial class MainWindow : Window
         if (PLUSSavesystem.read_ini_bool("Discord", "RPC", true))
             POPRESENCE.Initialize();
     }
+
     private void WindowLoaded(object sender, RoutedEventArgs e)
     {
         InitSettingsPanels();
@@ -180,13 +181,15 @@ public partial class MainWindow : Window
             try
             {
                 if (!Directory.Exists(Global.customassetsfolder))
-                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                    await Dispatcher.UIThread.InvokeAsync(() =>
                         RestoreMissingAssets_Click(null, null));
 
                 await PLUSMUSIC.InitializeAsync();
                 PLUSMUSIC.StartMusicWatcher();
             }
-            catch { }
+            catch
+            {
+            }
         });
     }
 
@@ -450,7 +453,6 @@ public partial class MainWindow : Window
         var selectedMods = ModGrid.SelectedItems.OfType<Mod>().ToArray();
         foreach (var row in selectedMods)
         {
-            var dialog = new Window();
             var confirmed =
                 await ShowConfirmDialog($"Are you sure you want to delete {row.name}?\nThis cannot be undone.");
             if (confirmed)
@@ -879,128 +881,73 @@ public partial class MainWindow : Window
         LoadImage(item, imageCounter);
     }
 
-    private void OnBrowserTabSelected(object sender, RoutedEventArgs e)
-    {
-        if (!selected)
-            InitializeBrowser();
-    }
-
     private async void InitializeBrowser()
     {
-        using (var httpClient = new HttpClient())
+        ErrorPanel.IsVisible = false;
+        LoadingBar.IsVisible = true;
+
+        try
         {
-            ErrorPanel.IsVisible = false;
-            if (TypeBox.SelectedIndex < 0) TypeBox.SelectedIndex = 0;
-            if (PerPageBox.SelectedIndex < 0) PerPageBox.SelectedIndex = 1;
-            var gameID = "7692";
-            var types = new[] { "Mod", "Wip", "Sound" };
-            double totalPages = 0;
-            var counter = 0;
-            foreach (var type in types)
+            await Task.Run(async () =>
             {
-                var requestUrl =
-                    $"https://gamebanana.com/apiv4/{type}Category/ByGame?_aGameRowIds[]={gameID}&_sRecordSchema=Custom" +
-                    "&_csvProperties=_idRow,_sName,_sProfileUrl,_sIconUrl,_idParentCategoryRow&_nPerpage=50";
-                var responseString = "";
-                try
-                {
-                    var responseMessage = await httpClient.GetAsync(requestUrl);
-                    responseString = await responseMessage.Content.ReadAsStringAsync();
-                    responseString = Regex.Replace(responseString, @"""(\d+)""", @"$1");
-                    var numRecords = responseMessage.GetHeader("X-GbApi-Metadata_nRecordCount");
-                    if (numRecords != -1)
-                        totalPages = Math.Ceiling(numRecords / 50.0);
-                }
-                catch (HttpRequestException ex)
-                {
-                    LoadingBar.IsVisible = false;
-                    ErrorPanel.IsVisible = true;
-                    BrowserRefreshButton.IsVisible = true;
-                    BrowserMessage.Text = GetHttpErrorMessage(ex.Message);
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    LoadingBar.IsVisible = false;
-                    ErrorPanel.IsVisible = true;
-                    BrowserRefreshButton.IsVisible = true;
-                    BrowserMessage.Text = ex.Message;
-                    return;
-                }
+                using var httpClient = new HttpClient();
+                var gameID = "7692";
+                var types = new[] { "Mod", "Wip", "Sound" };
+                var counter = 0;
 
-                List<GameBananaCategory> response = new();
-                try
+                foreach (var type in types)
                 {
-                    response = JsonSerializer.Deserialize<List<GameBananaCategory>>(responseString);
-                }
-                catch
-                {
-                    LoadingBar.IsVisible = false;
-                    ErrorPanel.IsVisible = true;
-                    BrowserRefreshButton.IsVisible = true;
-                    BrowserMessage.Text = "Uh oh! Something went wrong while deserializing the categories...";
-                    return;
-                }
-
-                cats.Add((TypeFilter)counter, response);
-
-                if (totalPages > 1)
-                    for (double i = 2; i <= totalPages; i++)
+                    try
                     {
-                        var requestUrlPage = $"{requestUrl}&_nPage={i}";
-                        try
-                        {
-                            responseString = await httpClient.GetStringAsync(requestUrlPage);
-                            responseString = Regex.Replace(responseString, @"""(\d+)""", @"$1");
-                        }
-                        catch (HttpRequestException ex)
-                        {
-                            LoadingBar.IsVisible = false;
-                            ErrorPanel.IsVisible = true;
-                            BrowserRefreshButton.IsVisible = true;
-                            BrowserMessage.Text = GetHttpErrorMessage(ex.Message);
-                            return;
-                        }
-                        catch (Exception ex)
-                        {
-                            LoadingBar.IsVisible = false;
-                            ErrorPanel.IsVisible = true;
-                            BrowserRefreshButton.IsVisible = true;
-                            BrowserMessage.Text = ex.Message;
-                            return;
-                        }
+                        var requestUrl =
+                            $"https://gamebanana.com/apiv4/{type}Category/ByGame?_aGameRowIds[]={gameID}&_sRecordSchema=Custom&_csvProperties=_idRow,_sName,_sProfileUrl,_sIconUrl,_idParentCategoryRow&_nPerpage=50";
 
-                        try
-                        {
-                            response = JsonSerializer.Deserialize<List<GameBananaCategory>>(responseString);
-                        }
-                        catch
-                        {
-                            LoadingBar.IsVisible = false;
-                            ErrorPanel.IsVisible = true;
-                            BrowserRefreshButton.IsVisible = true;
-                            BrowserMessage.Text = "Uh oh! Something went wrong while deserializing the categories...";
-                            return;
-                        }
+                        var responseMessage = await httpClient.GetAsync(requestUrl);
+                        var responseString = await responseMessage.Content.ReadAsStringAsync();
 
-                        cats[(TypeFilter)counter] = cats[(TypeFilter)counter].Concat(response).ToList();
+                        responseString = Regex.Replace(responseString, @"""(\d+)""", @"$1");
+                        var response = JsonSerializer.Deserialize<List<GameBananaCategory>>(responseString);
+
+                        if (response != null) cats[(TypeFilter)counter] = response;
+                    }
+                    catch (Exception ex)
+                    {
+                        Global.logger.WriteLine($"Failed to load {type} categories: {ex.Message}", LoggerType.Error);
                     }
 
-                counter++;
-            }
-        }
+                    counter++;
+                }
+            });
 
-        filterSelect = true;
-        FilterBox.ItemsSource = FilterBoxList;
-        CatBox.ItemsSource =
-            All.Concat(cats[(TypeFilter)TypeBox.SelectedIndex].Where(x => x.RootID == 0).OrderBy(y => y.ID));
-        SubCatBox.ItemsSource = None;
-        CatBox.SelectedIndex = 0;
-        SubCatBox.SelectedIndex = 0;
-        FilterBox.SelectedIndex = 1;
-        filterSelect = false;
-        RefreshFilter();
-        selected = true;
+            filterSelect = true;
+            FilterBox.ItemsSource = FilterBoxList;
+
+            if (cats.ContainsKey((TypeFilter)TypeBox.SelectedIndex))
+                CatBox.ItemsSource = All.Concat(cats[(TypeFilter)TypeBox.SelectedIndex]
+                    .Where(x => x.RootID == 0).OrderBy(y => y.ID));
+            else
+                CatBox.ItemsSource = None;
+
+            SubCatBox.ItemsSource = None;
+            CatBox.SelectedIndex = 0;
+            SubCatBox.SelectedIndex = 0;
+            FilterBox.SelectedIndex = 1;
+            filterSelect = false;
+
+            RefreshFilter();
+            selected = true;
+        }
+        catch (Exception ex)
+        {
+            LoadingBar.IsVisible = false;
+            ErrorPanel.IsVisible = true;
+            BrowserRefreshButton.IsVisible = true;
+            BrowserMessage.Text = ex.Message;
+        }
+        finally
+        {
+            LoadingBar.IsVisible = false;
+        }
     }
 
     private static string GetHttpErrorMessage(string message)
@@ -1340,6 +1287,7 @@ public partial class MainWindow : Window
     private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (e.AddedItems.Count > 0 && e.AddedItems[0] == ModBrowser)
-            OnBrowserTabSelected(sender, e);
+            if (!selected)
+                InitializeBrowser();
     }
 }
