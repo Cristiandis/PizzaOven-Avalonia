@@ -13,6 +13,8 @@ public static class Global
     public static string assemblyLocation = GetUserDataPath();
     public static string appLocation = AppDomain.CurrentDomain.BaseDirectory
     .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+    public static string customassetsfolder = Path.Combine(assemblyLocation, "CustomAssets");
+    public static bool ronnietutorial = false;
     public static ObservableCollection<Mod> ModList = new();
 
     private static string GetUserDataPath()

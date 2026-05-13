@@ -12,6 +12,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
@@ -28,6 +29,97 @@ public partial class MainWindow
 
     private static string CustomAssetsFolder =>
         Path.Combine(Global.assemblyLocation, "CustomAssets");
+
+    private void HandlePLUStoggle(string section, string key, bool defaultValue, string toggleName)
+    {
+        var enabled = PLUSSavesystem.toggle_ini_bool(section, key, defaultValue);
+        InitPLUSToggle(toggleName, enabled);
+    }
+
+    public void InitPLUSToggle(string name, bool enabled)
+    {
+        try
+        {
+            Button? button = null;
+            var OnText = "";
+            var OffText = "";
+
+            switch (name)
+            {
+                case "Mute":
+                    PLUSMUSIC.MuteEnabled = enabled;
+                    PLUSMUSIC.ApplyCurrentVolume(true);
+                    button = MuteButton; // Ensure this name matches your AXAML
+                    OnText = "Disable Mute? [IT'S ON]";
+                    OffText = "Enable Mute? [IT'S OFF]";
+                    break;
+                case "UnfocusedMute":
+                    PLUSMUSIC.UnfocusedMuteEnabled = enabled;
+                    PLUSMUSIC.ApplyCurrentVolume(true);
+                    button = UnfocusedMuteButton;
+                    OnText = "Disable Unfocused Mute? [IT'S ON]";
+                    OffText = "Enable Unfocused Mute? [IT'S OFF]";
+                    break;
+                case "RPC":
+                    try
+                    {
+                        if (enabled) POPRESENCE.Initialize();
+                        else POPRESENCE.Shutdown();
+                    }
+                    catch
+                    {
+                    }
+
+                    button = RPCtoggle;
+                    OnText = "Enable RPC? [IT'S ON]";
+                    OffText = "Disable RPC? [IT'S OFF]";
+                    break;
+                case "Debug":
+                    button = DebugToggle;
+                    OnText = "Enable Debug? [IT'S ON]";
+                    OffText = "Disable Debug? [IT'S OFF]";
+                    break;
+                case "ModUpdater":
+                    button = MODUPDATERtoggle;
+                    OnText = "Disable Check for Mod Updates? [IT'S ON]";
+                    OffText = "Enable Check for Mod Updates? [IT'S OFF]";
+                    break;
+                case "POLanguage":
+                    if (!enabled)
+                    {
+                        var ptfolder = $"{Global.config.ModsFolder}";
+                        var langPath = Path.Combine(ptfolder, "lang");
+                        var extensions = new[] { ".po", ".custompo", ".downgradepo" };
+
+                        if (Directory.Exists(langPath))
+                            foreach (var file in Directory.GetFiles(langPath, "*.*", SearchOption.AllDirectories)
+                                         .Where(f => extensions.Contains(Path.GetExtension(f))))
+                                try
+                                {
+                                    File.Delete(file);
+                                }
+                                catch
+                                {
+                                }
+                    }
+
+                    button = POLanguage;
+                    OnText = "Do not Apply to Language Files? [IT'S ON]";
+                    OffText = "Do Apply to Language Files? [IT'S OFF]";
+                    break;
+                case "Startup":
+                    button = StartupToggle;
+                    OnText = "Do not open on Startup? [IT'S ON]";
+                    OffText = "Do open on Startup? [IT'S OFF]";
+                    break;
+            }
+
+            if (button != null) button.Content = enabled ? OnText : OffText;
+        }
+        catch
+        {
+        }
+    }
 
     #region Tutorial
 
@@ -89,18 +181,17 @@ public partial class MainWindow
 
     public void InitToggles()
     {
-        UpdateToggle(RPCtoggle,
-            PLUSSavesystem.read_ini_bool("Discord", "RPC", true),
-            "Enable RPC? [IT'S ON]", "Enable RPC? [IT'S OFF]");
-        UpdateToggle(MODUPDATERtoggle,
-            PLUSSavesystem.read_ini_bool("LowEnd", "ModUpdate", true),
-            "Disable Check for Mod Updates? [IT'S ON]", "Disable Check for Mod Updates? [IT'S OFF]");
-        UpdateToggle(DebugToggle,
-            PLUSSavesystem.read_ini_bool("Launch", "Debug", false),
-            "Enable Debug? [IT'S ON]", "Enable Debug? [IT'S OFF]");
-        UpdateToggle(POLanguage,
-            PLUSSavesystem.read_ini_bool("Files", "POLanguage", true),
-            "Do not Apply to Language Files? [IT'S ON]", "Do not Apply to Language Files? [IT'S OFF]");
+        InitPLUSToggle("RPC", PLUSSavesystem.read_ini_bool("Discord", "RPC", true));
+        InitPLUSToggle("ModUpdater", PLUSSavesystem.read_ini_bool("LowEnd", "ModUpdate", true));
+        InitPLUSToggle("Debug", PLUSSavesystem.read_ini_bool("Launch", "Debug", false));
+        InitPLUSToggle("POLanguage", PLUSSavesystem.read_ini_bool("Files", "POLanguage", true));
+
+        InitPLUSToggle("Mute", PLUSMUSIC.MuteEnabled);
+        InitPLUSToggle("UnfocusedMute", PLUSMUSIC.UnfocusedMuteEnabled);
+
+        if (double.TryParse(PLUSSavesystem.read_ini("Audio", "SoundVolume", "100"), out var vol))
+            SoundVolume.Value = vol;
+
         StartupToggle.Content = AutostartManager.IsEnabled()
             ? "Do open on Startup? [IT'S ON]"
             : "Do open on Startup? [IT'S OFF]";
@@ -112,7 +203,7 @@ public partial class MainWindow
 
     private void StartupToggle_Click(object sender, RoutedEventArgs e)
     {
-        bool enabled = !AutostartManager.IsEnabled();
+        var enabled = !AutostartManager.IsEnabled();
         AutostartManager.SetAutostart(enabled);
         StartupToggle.Content = enabled ? "Do open on Startup? [IT'S ON]" : "Do open on Startup? [IT'S OFF]";
     }
@@ -445,12 +536,13 @@ public partial class MainWindow
 
     #endregion
 
-    #region Themes
+    #region App Customization
 
     private void InitThemes()
     {
-        Directory.CreateDirectory(CustomAssetsFolder);
-        _settingsPanels["NavThemes"] = PanelThemes;
+        RestoreFolderFromResource("CustomAssets", Global.assemblyLocation);
+
+        _settingsPanels["NavCustomizaton"] = PanelCustomization;
 
         foreach (var name in themebrushes)
         {
@@ -466,12 +558,12 @@ public partial class MainWindow
 
     private void LoadThemePresets()
     {
-        var themesPath = Path.Combine(Global.appLocation, "Themes");
+        var themesPath = Path.Combine(Global.assemblyLocation, "Themes");
         if (!Directory.Exists(themesPath)) return;
 
         ThemePresetsCombo.Items.Clear();
         foreach (var file in Directory.GetFiles(themesPath))
-            if (Path.GetFileName(file).ToLower().Contains("potheme"))
+            if (Path.GetExtension(file).Equals(".potheme", StringComparison.OrdinalIgnoreCase))
                 ThemePresetsCombo.Items.Add(Path.GetFileNameWithoutExtension(file));
 
         if (ThemePresetsCombo.Items.Count > 0)
@@ -505,7 +597,7 @@ public partial class MainWindow
 
     private async Task<string?> ShowColorPickerDialog(string current)
     {
-        Color initialColor = Color.TryParse(current, out var c) ? c : Colors.Black;
+        var initialColor = Color.TryParse(current, out var c) ? c : Colors.Black;
 
         var colorView = new ColorView
         {
@@ -528,7 +620,7 @@ public partial class MainWindow
                     new Button
                     {
                         Content = "OK",
-                        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                        HorizontalAlignment = HorizontalAlignment.Center,
                         Margin = new Thickness(8)
                     }
                 }
@@ -679,9 +771,17 @@ public partial class MainWindow
     private void ThemePresetsApply_Click(object sender, RoutedEventArgs e)
     {
         var theme = ThemePresetsCombo.SelectedItem as string;
-        var filepath = Path.Combine(Global.appLocation, "Themes", $"{theme}.potheme");
+        var filepath = Path.Combine(Global.assemblyLocation, "Themes", $"{theme}.potheme");
+
         if (File.Exists(filepath))
+        {
             ThemesFileLoad(filepath);
+            Global.logger.WriteLine($"Applied theme: {theme}", LoggerType.Info);
+        }
+        else
+        {
+            Global.logger.WriteLine($"Theme file missing at: {filepath}", LoggerType.Error);
+        }
     }
 
     private async void ThemesBackgroundUpload_Click(object sender, RoutedEventArgs e)
@@ -778,6 +878,104 @@ public partial class MainWindow
 
         ApplyTransparentBoxes(true);
         ApplyBackgroundImage();
+    }
+
+    private void RestoreMissingAssets_Click(object sender, RoutedEventArgs e)
+    {
+        Global.logger.WriteLine("Restoring assets...", LoggerType.Info);
+        try
+        {
+            RestoreFolderFromResource("CustomAssets", Global.assemblyLocation);
+
+            var srcThemes = Path.Combine(Global.appLocation, "Themes");
+            var dstThemes = Path.Combine(Global.assemblyLocation, "Themes");
+            if (Directory.Exists(srcThemes))
+            {
+                Directory.CreateDirectory(dstThemes);
+                foreach (var f in Directory.GetFiles(srcThemes, "*.potheme"))
+                {
+                    var dst = Path.Combine(dstThemes, Path.GetFileName(f));
+                    if (!File.Exists(dst)) File.Copy(f, dst);
+                }
+            }
+
+            LoadThemePresets();
+            ApplyBackgroundImage();
+            Task.Run(async () => await PLUSMUSIC.InitializeAsync());
+            Global.logger.WriteLine("Restoration complete.", LoggerType.Info);
+        }
+        catch (Exception ex)
+        {
+            Global.logger.WriteLine($"Restoration failed: {ex.Message}", LoggerType.Error);
+        }
+    }
+
+    private void RestoreFolderFromResource(string folderName, string basePath)
+    {
+        string targetPath = Path.Combine(basePath, folderName);
+        Directory.CreateDirectory(targetPath);
+
+        var assembly = Assembly.GetExecutingAssembly();
+        string prefix = $"PizzaOven.{folderName}.";
+
+        foreach (var resource in assembly.GetManifestResourceNames().Where(r => r.StartsWith(prefix)))
+        {
+            string relativePath = resource.Substring(prefix.Length)
+                .Replace('.', Path.DirectorySeparatorChar);
+
+            int lastSep = relativePath.LastIndexOf(Path.DirectorySeparatorChar);
+            if (lastSep != -1)
+                relativePath = relativePath[..lastSep] + "." + relativePath[(lastSep + 1)..];
+
+            string outputPath = Path.Combine(targetPath, relativePath);
+            Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+
+            if (File.Exists(outputPath)) continue;
+
+            using var input = assembly.GetManifestResourceStream(resource)!;
+            using var output = new FileStream(outputPath, FileMode.Create, FileAccess.Write);
+            input.CopyTo(output);
+        }
+    }
+
+    private void RestoreALLAssets_Click(object sender, RoutedEventArgs e)
+    {
+        if (Directory.Exists(Global.customassetsfolder))
+        {
+            foreach (var file in Directory.GetFiles(Global.customassetsfolder, "*", SearchOption.AllDirectories))
+                try { File.Delete(file); } catch { }
+            foreach (var dir in Directory.GetDirectories(Global.customassetsfolder, "*", SearchOption.AllDirectories))
+                try
+                {
+                    if (Directory.GetFiles(dir).Length == 0 && Directory.GetDirectories(dir).Length == 0)
+                        Directory.Delete(dir);
+                }
+                catch { }
+        }
+
+        var dstThemes = Path.Combine(Global.assemblyLocation, "Themes");
+        if (Directory.Exists(dstThemes))
+            foreach (var file in Directory.GetFiles(dstThemes, "*.potheme"))
+                try { File.Delete(file); } catch { }
+
+        RestoreMissingAssets_Click(sender, e);
+    }
+
+    private void SoundVolume_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+    {
+        var volume = (int)e.NewValue;
+        PLUSSavesystem.write_ini("Audio", "SoundVolume", volume.ToString());
+        PLUSMUSIC.ApplyCurrentVolume(true);
+    }
+
+    private void Mute_Click(object sender, RoutedEventArgs e)
+    {
+        HandlePLUStoggle("Audio", "Mute", false, "Mute");
+    }
+
+    private void UnfocusedMute_Click(object sender, RoutedEventArgs e)
+    {
+        HandlePLUStoggle("Audio", "UnfocusedMute", true, "UnfocusedMute");
     }
 
     #endregion

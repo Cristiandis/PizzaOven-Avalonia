@@ -899,7 +899,7 @@
                                     HorizontalAlignment="Stretch" Height="35"
                                     Background="{DynamicResource SecondaryBrush}" BorderBrush="{DynamicResource SecondaryBrush}" Foreground="{DynamicResource TextBrush}"
                                     FontSize="14" Click="SettingsNav_Click" />
-                            <Button x:Name="NavThemes" Content="Themes"
+                            <Button x:Name="NavCustomizaton" Content="App Customization"
                                     HorizontalAlignment="Stretch" Height="35"
                                     Background="{DynamicResource SecondaryBrush}" BorderBrush="{DynamicResource SecondaryBrush}" Foreground="{DynamicResource TextBrush}"
                                     FontSize="14" Click="SettingsNav_Click" />
@@ -1020,8 +1020,8 @@
                                         FontSize="14" Click="KillGMLoader_Click" />
                             </StackPanel>
 
-                            <!-- Themes -->
-                            <StackPanel x:Name="PanelThemes" Margin="20" Spacing="8" IsVisible="False">
+                            <!-- AppCustomization -->
+                            <StackPanel x:Name="PanelCustomization" Margin="20" Spacing="8" IsVisible="False">
                                 <StackPanel.Styles>
                                     <Style Selector="TextBlock.Label">
                                         <Setter Property="FontSize" Value="13" />
@@ -1029,9 +1029,48 @@
                                         <Setter Property="Opacity" Value="0.6" />
                                     </Style>
                                 </StackPanel.Styles>
-                                <TextBlock Text="Colors:" Foreground="{DynamicResource TextBrush}" FontSize="14" />
+                                <TextBlock Text="Themes:" Foreground="{DynamicResource TextBrush}" FontSize="14" />
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Button x:Name="ThemesPrimary" Content="Primary Color"
+                                    <Button Content="Save"
+                                            Height="35" Padding="10,0"
+                                            Background="{DynamicResource SecondaryBrush}" BorderBrush="{DynamicResource SecondaryBrush}" Foreground="{DynamicResource TextBrush}"
+                                            FontSize="14" Click="ThemesSave_Click" />
+                                    <Button Content="Load"
+                                            Height="35" Padding="10,0"
+                                            Background="{DynamicResource SecondaryBrush}" BorderBrush="{DynamicResource SecondaryBrush}" Foreground="{DynamicResource TextBrush}"
+                                            FontSize="14" Click="ThemesLoad_Click" />
+                                    <Button Content="Reset All"
+                                            Height="35" Padding="10,0"
+                                            Background="{DynamicResource SecondaryBrush}" BorderBrush="{DynamicResource SecondaryBrush}" Foreground="{DynamicResource TextBrush}"
+                                            FontSize="14" Click="ThemesResetAll_Click" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Theme Presets:" Foreground="{DynamicResource TextBrush}" FontSize="14" Margin="0,10,0,0" />
+                                    <ComboBox x:Name="ThemePresetsCombo" Height="35" MinWidth="200"
+                                              HorizontalAlignment="Left" />
+                                    <Button Content="Apply"
+                                            Height="35" Padding="10,0"
+                                            Background="{DynamicResource SecondaryBrush}" BorderBrush="{DynamicResource SecondaryBrush}" Foreground="{DynamicResource TextBrush}"
+                                            FontSize="14" Click="ThemePresetsApply_Click" />
+                                </StackPanel>
+                                
+                                <TextBlock Text="Theme colors/background:" Foreground="{DynamicResource TextBrush}" FontSize="14" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="Background: " Foreground="{DynamicResource TextBrush}" FontSize="14"
+                                               Margin="0,10,0,0" Width="100" />
+                                    <Button Content="Upload"
+                                            HorizontalAlignment="Left" Height="35" Padding="10,0"
+                                            Background="{DynamicResource SecondaryBrush}" BorderBrush="{DynamicResource SecondaryBrush}" Foreground="{DynamicResource TextBrush}"
+                                            FontSize="14" Click="ThemesBackgroundUpload_Click" />
+                                    <Button Content="Reset"
+                                            HorizontalAlignment="Left" Height="35" Padding="10,0"
+                                            Background="{DynamicResource SecondaryBrush}" BorderBrush="{DynamicResource SecondaryBrush}" Foreground="{DynamicResource TextBrush}"
+                                            FontSize="14" Click="ThemesBackgroundReset_Click" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="Primary: " Foreground="{DynamicResource TextBrush}" FontSize="14"
+                                               Margin="0,10,0,0" Width="100" />
+                                    <Button x:Name="ThemesPrimary" Content="Select"
                                             HorizontalAlignment="Left" Height="35" Padding="10,0"
                                             Background="{DynamicResource SecondaryBrush}" BorderBrush="{DynamicResource SecondaryBrush}" Foreground="{DynamicResource TextBrush}"
                                             FontSize="14" Click="Theme_Click" />
@@ -1041,7 +1080,9 @@
                                             FontSize="14" Click="ThemeReset_Click" />
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Button x:Name="ThemesSecondary" Content="Secondary Color"
+                                    <TextBlock Text="Secondary: " Foreground="{DynamicResource TextBrush}" FontSize="14"
+                                               Margin="0,10,0,0" Width="100" />
+                                    <Button x:Name="ThemesSecondary" Content="Select"
                                             HorizontalAlignment="Left" Height="35" Padding="10,0"
                                             Background="{DynamicResource SecondaryBrush}" BorderBrush="{DynamicResource SecondaryBrush}" Foreground="{DynamicResource TextBrush}"
                                             FontSize="14" Click="Theme_Click" />
@@ -1051,7 +1092,9 @@
                                             FontSize="14" Click="ThemeReset_Click" />
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Button x:Name="ThemesInner" Content="Inner Color"
+                                    <TextBlock Text="Inner: " Foreground="{DynamicResource TextBrush}" FontSize="14"
+                                               Margin="0,10,0,0" Width="100" />
+                                    <Button x:Name="ThemesInner" Content="Select"
                                             HorizontalAlignment="Left" Height="35" Padding="10,0"
                                             Background="{DynamicResource SecondaryBrush}" BorderBrush="{DynamicResource SecondaryBrush}" Foreground="{DynamicResource TextBrush}"
                                             FontSize="14" Click="Theme_Click" />
@@ -1061,7 +1104,9 @@
                                             FontSize="14" Click="ThemeReset_Click" />
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Button x:Name="ThemesLoading" Content="Loading Color"
+                                    <TextBlock Text="Loading: " Foreground="{DynamicResource TextBrush}" FontSize="14"
+                                               Margin="0,10,0,0" Width="100" />
+                                    <Button x:Name="ThemesLoading" Content="Select"
                                             HorizontalAlignment="Left" Height="35" Padding="10,0"
                                             Background="{DynamicResource SecondaryBrush}" BorderBrush="{DynamicResource SecondaryBrush}" Foreground="{DynamicResource TextBrush}"
                                             FontSize="14" Click="Theme_Click" />
@@ -1071,7 +1116,9 @@
                                             FontSize="14" Click="ThemeReset_Click" />
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Button x:Name="ThemesText" Content="Text Color"
+                                    <TextBlock Text="Text: " Foreground="{DynamicResource TextBrush}" FontSize="14"
+                                               Margin="0,10,0,0" Width="100" />
+                                    <Button x:Name="ThemesText" Content="Select"
                                             HorizontalAlignment="Left" Height="35" Padding="10,0"
                                             Background="{DynamicResource SecondaryBrush}" BorderBrush="{DynamicResource SecondaryBrush}" Foreground="{DynamicResource TextBrush}"
                                             FontSize="14" Click="Theme_Click" />
@@ -1080,56 +1127,48 @@
                                             Background="{DynamicResource SecondaryBrush}" BorderBrush="{DynamicResource SecondaryBrush}" Foreground="{DynamicResource TextBrush}"
                                             FontSize="14" Click="ThemeReset_Click" />
                                 </StackPanel>
+                                
+                                <TextBlock Text="Transparent Settings:" Foreground="{DynamicResource TextBrush}" FontSize="14" Margin="0,10,0,0" />
+                                
+                                <TextBlock Text="Logger:" Margin="0,0,0,5" Foreground="{DynamicResource TextBrush}"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <Slider x:Name="Transparency_Logger" Minimum="0" Maximum="100" Width="120" ValueChanged="Transparent_ValueChanged" Foreground="{DynamicResource TextBrush}"/>
+                                    <TextBlock Text="{Binding ElementName=Transparency_Logger, Path=Value, StringFormat={}{0:0}}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"/>
+                                </StackPanel>
 
-                                <TextBlock Text="Transparency:" Foreground="{DynamicResource TextBrush}" FontSize="14" Margin="0,10,0,0" />
-
-                                <TextBlock Text="Logger" Classes="Label" />
-                                <Slider x:Name="Transparency_Logger" Minimum="0" Maximum="100" Value="100"
-                                        ValueChanged="Transparent_ValueChanged" />
-
-                                <TextBlock Text="Mod Description" Classes="Label" />
-                                <Slider x:Name="Transparency_ModDescription" Minimum="0" Maximum="100" Value="100"
-                                        ValueChanged="Transparent_ValueChanged" />
-
-                                <TextBlock Text="Mod Grid" Classes="Label" />
-                                <Slider x:Name="Transparency_ModGrid" Minimum="0" Maximum="100" Value="100"
-                                        ValueChanged="Transparent_ValueChanged" />
-
-                                <TextBlock Text="Background Image:" Foreground="{DynamicResource TextBrush}" FontSize="14"
-                                           Margin="0,10,0,0" />
-                                <Button Content="Upload Background Image"
-                                        HorizontalAlignment="Left" Height="35" Padding="10,0"
+                                <TextBlock Text="Mod Description:" Margin="0,0,0,5" Foreground="{DynamicResource TextBrush}"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <Slider x:Name="Transparency_ModDescription" Minimum="0" Maximum="100" Width="120" ValueChanged="Transparent_ValueChanged" Foreground="{DynamicResource TextBrush}"/>
+                                    <TextBlock Text="{Binding ElementName=Transparency_ModDescription, Path=Value, StringFormat={}{0:0}}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"/>
+                                </StackPanel>
+                                
+                                <TextBlock Text="Mod Grid:" Margin="0,0,0,5" Foreground="{DynamicResource TextBrush}"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <Slider x:Name="Transparency_ModGrid" Minimum="0" Maximum="100" Width="120" ValueChanged="Transparent_ValueChanged" Foreground="{DynamicResource TextBrush}"/>
+                                    <TextBlock Text="{Binding ElementName=Transparency_ModGrid, Path=Value, StringFormat={}{0:0}}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"/>
+                                </StackPanel>
+                                
+                                <TextBlock Text="Custom Assets:" Foreground="{DynamicResource TextBrush}" FontSize="14" Margin="0,10,0,0" />
+                                
+                                <Button x:Name="AssetsFolder" Content="Open Assets Folder" HorizontalAlignment="Left" Height="35" Padding="10,0"
                                         Background="{DynamicResource SecondaryBrush}" BorderBrush="{DynamicResource SecondaryBrush}" Foreground="{DynamicResource TextBrush}"
-                                        FontSize="14" Click="ThemesBackgroundUpload_Click" />
-                                <Button Content="Reset Background Image"
-                                        HorizontalAlignment="Left" Height="35" Padding="10,0"
+                                        FontSize="14" Click="AssetsFolder_Click"/>
+                                <Button x:Name="RestoreMissingAssets" Content="Restore Missing Assets" HorizontalAlignment="Left" Height="35" Padding="10,0"
                                         Background="{DynamicResource SecondaryBrush}" BorderBrush="{DynamicResource SecondaryBrush}" Foreground="{DynamicResource TextBrush}"
-                                        FontSize="14" Click="ThemesBackgroundReset_Click" />
-                                <Button Content="Open Assets Folder"
-                                        HorizontalAlignment="Left" Height="35" Padding="10,0"
+                                        FontSize="14" Click="RestoreMissingAssets_Click"/>
+                                <Button x:Name="RestoreALLAssets"  Content="Restore All Assets" HorizontalAlignment="Left" Height="35" Padding="10,0"
                                         Background="{DynamicResource SecondaryBrush}" BorderBrush="{DynamicResource SecondaryBrush}" Foreground="{DynamicResource TextBrush}"
-                                        FontSize="14" Click="AssetsFolder_Click" />
-
-                                <TextBlock Text="Presets:" Foreground="{DynamicResource TextBrush}" FontSize="14" Margin="0,10,0,0" />
-                                <ComboBox x:Name="ThemePresetsCombo" Height="35" MinWidth="200"
-                                          HorizontalAlignment="Left" />
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Button Content="Apply Preset"
-                                            Height="35" Padding="10,0"
-                                            Background="{DynamicResource SecondaryBrush}" BorderBrush="{DynamicResource SecondaryBrush}" Foreground="{DynamicResource TextBrush}"
-                                            FontSize="14" Click="ThemePresetsApply_Click" />
-                                    <Button Content="Save Theme"
-                                            Height="35" Padding="10,0"
-                                            Background="{DynamicResource SecondaryBrush}" BorderBrush="{DynamicResource SecondaryBrush}" Foreground="{DynamicResource TextBrush}"
-                                            FontSize="14" Click="ThemesSave_Click" />
-                                    <Button Content="Load Theme"
-                                            Height="35" Padding="10,0"
-                                            Background="{DynamicResource SecondaryBrush}" BorderBrush="{DynamicResource SecondaryBrush}" Foreground="{DynamicResource TextBrush}"
-                                            FontSize="14" Click="ThemesLoad_Click" />
-                                    <Button Content="Reset All"
-                                            Height="35" Padding="10,0"
-                                            Background="{DynamicResource SecondaryBrush}" BorderBrush="{DynamicResource SecondaryBrush}" Foreground="{DynamicResource TextBrush}"
-                                            FontSize="14" Click="ThemesResetAll_Click" />
+                                        FontSize="14" Click="RestoreALLAssets_Click"/>
+                                <Button x:Name="MuteButton"  Content="Enable Mute?" HorizontalAlignment="Left" Height="35" Padding="10,0"
+                                        Background="{DynamicResource SecondaryBrush}" BorderBrush="{DynamicResource SecondaryBrush}" Foreground="{DynamicResource TextBrush}"
+                                        FontSize="14" Click="Mute_Click"/>
+                                <Button x:Name="UnfocusedMuteButton" Content="Enable Unfocused Mute?" HorizontalAlignment="Left" Height="35" Padding="10,0"
+                                        Background="{DynamicResource SecondaryBrush}" BorderBrush="{DynamicResource SecondaryBrush}" Foreground="{DynamicResource TextBrush}"
+                                        FontSize="14" Click="UnfocusedMute_Click"/>
+                                <TextBlock Text="Volume:" FontSize="14" Margin="0,10,0,0" Foreground="{DynamicResource TextBrush}"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <Slider x:Name="SoundVolume" Minimum="0" Maximum="100" Width="120" ValueChanged="SoundVolume_ValueChanged" Foreground="{DynamicResource TextBrush}"/>
+                                    <TextBlock Text="{Binding ElementName=SoundVolume, Path=Value, StringFormat={}{0:0}}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}"/>
                                 </StackPanel>
                             </StackPanel>
 

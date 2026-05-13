@@ -66,6 +66,12 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        
+        PLUSMUSIC.InitializeEngine();
+        
+        this.Activated += (s, e) => PLUSMUSIC.ApplyCurrentVolume(true);
+        this.Deactivated += (s, e) => PLUSMUSIC.ApplyCurrentVolume(false);
+        
         ModGrid.AddHandler(DragDrop.DragOverEvent, Add_Enter);
         var spinTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
         double spinAngle = 0;
@@ -163,12 +169,25 @@ public partial class MainWindow : Window
         if (PLUSSavesystem.read_ini_bool("Discord", "RPC", true))
             POPRESENCE.Initialize();
     }
-
     private void WindowLoaded(object sender, RoutedEventArgs e)
     {
         InitSettingsPanels();
         InitThemes();
         InitToggles();
+
+        Task.Run(async () =>
+        {
+            try
+            {
+                if (!Directory.Exists(Global.customassetsfolder))
+                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                        RestoreMissingAssets_Click(null, null));
+
+                await PLUSMUSIC.InitializeAsync();
+                PLUSMUSIC.StartMusicWatcher();
+            }
+            catch { }
+        });
     }
 
     private void OnModified(object sender, FileSystemEventArgs e)
@@ -360,6 +379,7 @@ public partial class MainWindow : Window
         Global.config.RightGridWidth = MiddleGrid.ColumnDefinitions[2].Width.Value;
         Global.UpdateConfig();
         POPRESENCE.Shutdown();
+        PLUSMUSIC.Shutdown();
     }
 
     private void OnResize(object sender, SizeChangedEventArgs e)

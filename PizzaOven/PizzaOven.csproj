@@ -27,6 +27,7 @@
   <ItemGroup>
     <PackageReference Include="Onova" Version="2.6.2" />
     <PackageReference Include="SharpCompress" Version="0.48.0" />
+    <PackageReference Include="SoundFlow" Version="*" />
   </ItemGroup>
 
   <ItemGroup>
@@ -56,9 +57,15 @@
 </ItemGroup>
 
 <ItemGroup>
-  <None Update="Themes\**\*">
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-  </None>
+  <EmbeddedResource Include="CustomAssets\**\*" />
+  <EmbeddedResource Include="Language\**\*" />
+  <AvaloniaResource Include="OvenRonnie\**\*" />
+</ItemGroup>
+
+<ItemGroup>
+    <None Update="Themes\**\*">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
 </ItemGroup>
 
 </Project>
