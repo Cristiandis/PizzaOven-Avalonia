@@ -174,11 +174,6 @@ public partial class MainWindow
             target.IsVisible = true;
     }
 
-    private void UpdateToggle(Button btn, bool state, string onText, string offText)
-    {
-        btn.Content = state ? onText : offText;
-    }
-
     public void InitToggles()
     {
         InitPLUSToggle("RPC", PLUSSavesystem.read_ini_bool("Discord", "RPC", true));
@@ -215,9 +210,7 @@ public partial class MainWindow
 
     private void ModUpdaterToggle_Click(object sender, RoutedEventArgs e)
     {
-        var enabled = PLUSSavesystem.toggle_ini_bool("LowEnd", "ModUpdate", true);
-        UpdateToggle(MODUPDATERtoggle, enabled,
-            "Disable Check for Mod Updates? [IT'S ON]", "Disable Check for Mod Updates? [IT'S OFF]");
+        HandlePLUStoggle("LowEnd", "ModUpdate", true, "ModUpdater");
     }
 
     #endregion
@@ -267,8 +260,7 @@ public partial class MainWindow
 
     private void DebugToggle_Click(object sender, RoutedEventArgs e)
     {
-        var enabled = PLUSSavesystem.toggle_ini_bool("Launch", "Debug", false);
-        UpdateToggle(DebugToggle, enabled, "Enable Debug? [IT'S ON]", "Enable Debug? [IT'S OFF]");
+        HandlePLUStoggle("Launch", "Debug", false, "Debug");
     }
 
     #endregion
@@ -292,23 +284,7 @@ public partial class MainWindow
 
     private void POLanguage_Click(object sender, RoutedEventArgs e)
     {
-        var enabled = PLUSSavesystem.toggle_ini_bool("Files", "POLanguage", true);
-        UpdateToggle(POLanguage, enabled,
-            "Do not Apply to Language Files? [IT'S ON]", "Do not Apply to Language Files? [IT'S OFF]");
-        if (!enabled && Global.config.ModsFolder != null)
-        {
-            var langPath = Path.Combine(Global.config.ModsFolder, "lang");
-            if (Directory.Exists(langPath))
-                foreach (var f in Directory.GetFiles(langPath, "*.*", SearchOption.AllDirectories)
-                             .Where(f => new[] { ".po", ".custompo", ".downgradepo" }.Contains(Path.GetExtension(f))))
-                    try
-                    {
-                        File.Delete(f);
-                    }
-                    catch
-                    {
-                    }
-        }
+        HandlePLUStoggle("Files", "POLanguage", true, "POLanguage");
     }
 
     private async void MakeDataWinPO_Click(object sender, RoutedEventArgs e)
