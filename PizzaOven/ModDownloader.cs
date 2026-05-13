@@ -205,6 +205,7 @@ public class ModDownloader
             try
             {
                 using var archive = ArchiveFactory.OpenArchive(src);
+                Directory.CreateDirectory(dest);
                 foreach (var entry in archive.Entries)
                     if (!entry.IsDirectory)
                         entry.WriteToDirectory(dest,
