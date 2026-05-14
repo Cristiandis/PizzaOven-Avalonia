@@ -44,6 +44,7 @@ public partial class MainWindow : Window
     private static bool searched;
 
     private static readonly List<string> FilterBoxList = new[] { "Featured", "Recent", "Popular" }.ToList();
+    public static string PizzaTowerVersion = "1.1.280";
 
     private static readonly List<string> FilterBoxListWhenSearched =
         new[] { "Featured", "Recent", "Popular", "- - -" }.ToList();
@@ -487,6 +488,18 @@ public partial class MainWindow : Window
         return await Task.Run(async () =>
         {
             if (!ModLoader.Restart()) return false;
+            var downgradeName = await Dispatcher.UIThread.InvokeAsync(() => DowngradeCombo.SelectedItem as string);
+            if (!string.IsNullOrEmpty(downgradeName) && downgradeName != PizzaTowerVersion)
+            {
+                var patchPath = Path.Combine(Global.appLocation, "Downgrades", downgradeName + ".xdelta");
+                if (!File.Exists(patchPath))
+                {
+                    Global.logger.WriteLine($"Downgrade patch not found: {patchPath}", LoggerType.Error);
+                    return false;
+                }
+                if (!ModLoader.Downgrade(patchPath))
+                    return false;
+            }
             var mods = Global.config.ModList.Where(x => x.enabled).ToList();
             if (mods.Count == 0) return true;
 
@@ -593,6 +606,7 @@ public partial class MainWindow : Window
                     {
                         using (var archive = ArchiveFactory.OpenArchive(_ArchiveSource))
                         {
+                            Directory.CreateDirectory($"{temp}{Global.s}{Path.GetFileNameWithoutExtension(file)}");
                             foreach (var entry in archive.Entries)
                                 if (!entry.IsDirectory)
                                     entry.WriteToDirectory(
@@ -1282,6 +1296,7 @@ public partial class MainWindow : Window
     {
         base.OnOpened(e);
         _isLoaded = true;
+        PLUSrefresh();
     }
 
     private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -1289,5 +1304,49 @@ public partial class MainWindow : Window
         if (e.AddedItems.Count > 0 && e.AddedItems[0] == ModBrowser)
             if (!selected)
                 InitializeBrowser();
+    }
+
+    private void PLUSrefresh()
+    {
+        var downgradePath = Path.Combine(Global.appLocation, "Downgrades");
+        if (Directory.Exists(downgradePath))
+        {
+            var saved = DowngradeCombo.SelectedItem as string;
+            var items = Directory.GetFiles(downgradePath)
+                .Where(f => Path.GetFileName(f).ToLower().Contains("xdelta"))
+                .Select(f => Path.GetFileNameWithoutExtension(f))
+                .ToList();
+            items.Add(PizzaTowerVersion);
+            DowngradeCombo.ItemsSource = items;
+            DowngradeCombo.SelectedItem = items.FirstOrDefault(i =>
+                string.Equals(i, saved, StringComparison.OrdinalIgnoreCase)) ?? PizzaTowerVersion;
+        }
+
+        var jsonPath = Path.Combine(Global.appLocation, "Dependencies", "ptversions.json");
+        if (File.Exists(jsonPath))
+        {
+            try
+            {
+                var versions = JsonSerializer.Deserialize<List<PTversion>>(File.ReadAllText(jsonPath));
+                if (versions != null)
+                {
+                    DowngradeDownloadCombo.ItemsSource = versions.Select(v => v.version).ToList();
+                    if (DowngradeDownloadCombo.SelectedIndex < 0)
+                        DowngradeDownloadCombo.SelectedIndex = 0;
+                }
+            }
+            catch { }
+        }
+
+        LoadThemePresets();
+        ApplyBackgroundImage();
+        ApplyTransparentBoxes();
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            ModGrid.ItemsSource = Global.ModList;
+            if (ModGrid.Items.Count > 0)
+                ModGrid.ScrollIntoView(ModGrid.Items[0]);
+        });
     }
 }

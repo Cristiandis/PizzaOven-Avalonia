@@ -1091,4 +1091,26 @@ public static class ModLoader
 
         return true;
     }
+    public static bool Downgrade(string path)
+    {
+        var xdelta = OperatingSystem.IsWindows()
+            ? $"{Global.assemblyLocation}{Global.s}Dependencies{Global.s}xdelta.exe"
+            : "xdelta3";
+        var source = $"{Global.config.ModsFolder}{Global.s}data.win";
+        try
+        {
+            Global.logger.WriteLine($"Attempting to downgrade with {Path.GetFileName(path)}...", LoggerType.Info);
+            File.Copy(source, $"{source}.downgradepo", true);
+            if (!File.Exists($"{source}.po"))
+                File.Copy(source, $"{source}.po", true);
+            Patch(source, path, $"{source}.temp", xdelta);
+            File.Move($"{source}.temp", source, true);
+            return true;
+        }
+        catch (Exception e)
+        {
+            Global.logger.WriteLine($"Failed to downgrade: {e.Message}", LoggerType.Error);
+            return false;
+        }
+    }
 }

@@ -31,7 +31,8 @@ public static class PLUSThemes
     {
         if (!validhex(color)) return;
         var c = hex_to_color(color);
-        if (Application.Current?.Resources.ContainsKey(brushname) == true)
+        var contains = Application.Current?.Resources.ContainsKey(brushname) == true;
+        if (contains)
             Application.Current.Resources[brushname] = new SolidColorBrush(c);
     }
 

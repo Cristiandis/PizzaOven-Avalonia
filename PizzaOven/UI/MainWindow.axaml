@@ -964,16 +964,16 @@
                             <!-- Launch Settings -->
                             <StackPanel x:Name="PanelLaunchSettings" Margin="20" Spacing="8" IsVisible="False">
                                 <TextBlock Text="Patch Version:" Foreground="{DynamicResource TextBrush}" FontSize="14" />
-                                <ComboBox x:Name="PatchVersionBox" Height="35" MinWidth="150"
-                                          HorizontalAlignment="Left" IsEnabled="False" FontSize="14" />
+                                <ComboBox x:Name="DowngradeCombo" Height="35" MinWidth="150"
+                                          HorizontalAlignment="Left" FontSize="14" />
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <TextBlock Text="Downgrade Download:" Foreground="{DynamicResource TextBrush}" FontSize="14"
                                                VerticalAlignment="Center" />
-                                    <ComboBox x:Name="DowngradeVersionBox" Height="35" MinWidth="150"
-                                              HorizontalAlignment="Left" IsEnabled="False" FontSize="14" />
-                                    <Button Content="Download" Height="35" Padding="10,0"
+                                    <ComboBox x:Name="DowngradeDownloadCombo" Height="35" MinWidth="150"
+                                              HorizontalAlignment="Left" FontSize="14" />
+                                    <Button Name="DowngradeDownloadButton" Content="Download" Height="35" Padding="10,0"
                                             Background="{DynamicResource SecondaryBrush}" BorderBrush="{DynamicResource SecondaryBrush}" Foreground="{DynamicResource TextBrush}"
-                                            FontSize="14" IsEnabled="False" Click="DowngradeDownload_Click" />
+                                            FontSize="14" Click="DowngradeDownload_Click" />
                                 </StackPanel>
                                 <Button Content="Open Pizza Tower Folder"
                                         HorizontalAlignment="Left" Height="35" Padding="10,0"

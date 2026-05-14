@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Reflection;
 using System.Text.Json;
 using System.Threading;
@@ -49,7 +48,7 @@ public partial class MainWindow
                 case "Mute":
                     PLUSMUSIC.MuteEnabled = enabled;
                     PLUSMUSIC.ApplyCurrentVolume(true);
-                    button = MuteButton; // Ensure this name matches your AXAML
+                    button = MuteButton;
                     OnText = "Disable Mute? [IT'S ON]";
                     OffText = "Enable Mute? [IT'S OFF]";
                     break;
@@ -66,10 +65,7 @@ public partial class MainWindow
                         if (enabled) POPRESENCE.Initialize();
                         else POPRESENCE.Shutdown();
                     }
-                    catch
-                    {
-                    }
-
+                    catch { }
                     button = RPCtoggle;
                     OnText = "Enable RPC? [IT'S ON]";
                     OffText = "Disable RPC? [IT'S OFF]";
@@ -85,24 +81,15 @@ public partial class MainWindow
                     OffText = "Enable Check for Mod Updates? [IT'S OFF]";
                     break;
                 case "POLanguage":
-                    if (!enabled)
+                    if (!enabled && Global.config.ModsFolder != null)
                     {
-                        var ptfolder = $"{Global.config.ModsFolder}";
-                        var langPath = Path.Combine(ptfolder, "lang");
+                        var langPath = Path.Combine(Global.config.ModsFolder, "lang");
                         var extensions = new[] { ".po", ".custompo", ".downgradepo" };
-
                         if (Directory.Exists(langPath))
                             foreach (var file in Directory.GetFiles(langPath, "*.*", SearchOption.AllDirectories)
-                                         .Where(f => extensions.Contains(Path.GetExtension(f))))
-                                try
-                                {
-                                    File.Delete(file);
-                                }
-                                catch
-                                {
-                                }
+                                .Where(f => extensions.Contains(Path.GetExtension(f))))
+                                try { File.Delete(file); } catch { }
                     }
-
                     button = POLanguage;
                     OnText = "Do not Apply to Language Files? [IT'S ON]";
                     OffText = "Do Apply to Language Files? [IT'S OFF]";
@@ -116,9 +103,7 @@ public partial class MainWindow
 
             if (button != null) button.Content = enabled ? OnText : OffText;
         }
-        catch
-        {
-        }
+        catch { }
     }
 
     #region Tutorial
@@ -137,8 +122,7 @@ public partial class MainWindow
         if (sender is not Button btn) return;
         var url = btn.Name switch
         {
-            "OpenSuggestForm" =>
-                "https://docs.google.com/forms/d/e/1FAIpQLScI-8L6-ATpE6_ip3gzESXAWi4B_0pwHiHI5g83fb3SlLTM_A/viewform",
+            "OpenSuggestForm" => "https://docs.google.com/forms/d/e/1FAIpQLScI-8L6-ATpE6_ip3gzESXAWi4B_0pwHiHI5g83fb3SlLTM_A/viewform",
             "OpenEmail" => "https://mail.google.com/mail/u/0/#inbox",
             "OpenTwitterX" => "https://x.com/SurfyCrescent97",
             "OpenDiscord" => "https://discord.gg/snv7CrRQzx",
@@ -162,6 +146,7 @@ public partial class MainWindow
         _settingsPanels["NavLaunchSettings"] = PanelLaunchSettings;
         _settingsPanels["NavModSettings"] = PanelModSettings;
         _settingsPanels["NavGMLoader"] = PanelGMLoader;
+        _settingsPanels["NavCustomizaton"] = PanelCustomization;
         _settingsPanels["NavCredits"] = PanelCredits;
     }
 
@@ -180,16 +165,16 @@ public partial class MainWindow
         InitPLUSToggle("ModUpdater", PLUSSavesystem.read_ini_bool("LowEnd", "ModUpdate", true));
         InitPLUSToggle("Debug", PLUSSavesystem.read_ini_bool("Launch", "Debug", false));
         InitPLUSToggle("POLanguage", PLUSSavesystem.read_ini_bool("Files", "POLanguage", true));
-
         InitPLUSToggle("Mute", PLUSMUSIC.MuteEnabled);
         InitPLUSToggle("UnfocusedMute", PLUSMUSIC.UnfocusedMuteEnabled);
 
         if (double.TryParse(PLUSSavesystem.read_ini("Audio", "SoundVolume", "100"), out var vol))
-            SoundVolume.Value = vol;
+            if (SoundVolume != null) SoundVolume.Value = vol;
 
-        StartupToggle.Content = AutostartManager.IsEnabled()
-            ? "Do open on Startup? [IT'S ON]"
-            : "Do open on Startup? [IT'S OFF]";
+        if (StartupToggle != null)
+            StartupToggle.Content = AutostartManager.IsEnabled()
+                ? "Do not open on Startup? [IT'S ON]"
+                : "Do open on Startup? [IT'S OFF]";
     }
 
     #endregion
@@ -200,27 +185,17 @@ public partial class MainWindow
     {
         var enabled = !AutostartManager.IsEnabled();
         AutostartManager.SetAutostart(enabled);
-        StartupToggle.Content = enabled ? "Do open on Startup? [IT'S ON]" : "Do open on Startup? [IT'S OFF]";
+        StartupToggle.Content = enabled ? "Do not open on Startup? [IT'S ON]" : "Do open on Startup? [IT'S OFF]";
     }
 
-    private void RPCToggle_Click(object sender, RoutedEventArgs e)
-    {
-        HandlePLUStoggle("Discord", "RPC", true, "RPC");
-    }
-
-    private void ModUpdaterToggle_Click(object sender, RoutedEventArgs e)
-    {
-        HandlePLUStoggle("LowEnd", "ModUpdate", true, "ModUpdater");
-    }
+    private void RPCToggle_Click(object sender, RoutedEventArgs e) => HandlePLUStoggle("Discord", "RPC", true, "RPC");
+    private void ModUpdaterToggle_Click(object sender, RoutedEventArgs e) => HandlePLUStoggle("LowEnd", "ModUpdate", true, "ModUpdater");
 
     #endregion
 
     #region Launch Settings
 
-    private void DowngradeDownload_Click(object sender, RoutedEventArgs e)
-    {
-        Global.logger.WriteLine("Downgrade downloader not yet implemented.", LoggerType.Warning);
-    }
+    private void DowngradeDownload_Click(object sender, RoutedEventArgs e) => PLUSDepotDownloader.DowngradeDownload(this);
 
     private void OpenPTFolder_Click(object sender, RoutedEventArgs e)
     {
@@ -238,10 +213,7 @@ public partial class MainWindow
             AllowMultiple = false,
             FileTypeFilter = new[]
             {
-                new FilePickerFileType("PizzaTower.exe")
-                {
-                    Patterns = new[] { "PizzaTower.exe" }
-                }
+                new FilePickerFileType("PizzaTower.exe") { Patterns = new[] { "PizzaTower.exe" } }
             }
         });
         if (files.Count == 0) return;
@@ -251,17 +223,13 @@ public partial class MainWindow
             Global.logger.WriteLine("PizzaTower.exe not found at selected path.", LoggerType.Error);
             return;
         }
-
         Global.config.ModsFolder = Path.GetDirectoryName(path);
         Global.config.Launcher = path;
         Global.UpdateConfig();
         Global.logger.WriteLine($"Pizza Tower folder set to: {Global.config.ModsFolder}", LoggerType.Info);
     }
 
-    private void DebugToggle_Click(object sender, RoutedEventArgs e)
-    {
-        HandlePLUStoggle("Launch", "Debug", false, "Debug");
-    }
+    private void DebugToggle_Click(object sender, RoutedEventArgs e) => HandlePLUStoggle("Launch", "Debug", false, "Debug");
 
     #endregion
 
@@ -271,21 +239,11 @@ public partial class MainWindow
     {
         if (Global.config.ModsFolder == null) return;
         foreach (var file in Directory.GetFiles(Global.config.ModsFolder, "*.po", SearchOption.AllDirectories))
-            try
-            {
-                File.Delete(file);
-            }
-            catch
-            {
-            }
-
+            try { File.Delete(file); } catch { }
         Global.logger.WriteLine("Cleaned all .po files from game folder.", LoggerType.Info);
     }
 
-    private void POLanguage_Click(object sender, RoutedEventArgs e)
-    {
-        HandlePLUStoggle("Files", "POLanguage", true, "POLanguage");
-    }
+    private void POLanguage_Click(object sender, RoutedEventArgs e) => HandlePLUStoggle("Files", "POLanguage", true, "POLanguage");
 
     private async void MakeDataWinPO_Click(object sender, RoutedEventArgs e)
     {
@@ -297,13 +255,11 @@ public partial class MainWindow
             Global.logger.WriteLine("data.win not found in game folder.", LoggerType.Warning);
             return;
         }
-
         if (File.Exists(dataWinPO))
         {
             var overwrite = await ShowConfirmDialog("data.win.po already exists. Overwrite it?");
             if (!overwrite) return;
         }
-
         File.Copy(dataWin, dataWinPO, true);
         Global.logger.WriteLine("Created/overwritten data.win.po from current data.win.", LoggerType.Info);
     }
@@ -314,10 +270,8 @@ public partial class MainWindow
 
     private async void ConvertToGMLoader_Click(object sender, RoutedEventArgs e)
     {
-        var gmLoaderFolder = Path.Combine(Global.appLocation,
-            OperatingSystem.IsWindows() ? "GMLOADER-windows" : "GMLOADER-linux");
-        var gmLoaderExe = Path.Combine(gmLoaderFolder,
-            OperatingSystem.IsWindows() ? "GMLoader.exe" : "GMLoader.bin");
+        var gmLoaderFolder = Path.Combine(Global.appLocation, "GMLOADER-windows");
+        var gmLoaderExe = Path.Combine(gmLoaderFolder, "GMLoader.exe");
 
         if (!File.Exists(gmLoaderExe))
         {
@@ -326,14 +280,7 @@ public partial class MainWindow
         }
 
         foreach (var proc in Process.GetProcessesByName("GMLoader"))
-            try
-            {
-                proc.Kill();
-                proc.WaitForExit();
-            }
-            catch
-            {
-            }
+            try { proc.Kill(); proc.WaitForExit(); } catch { }
 
         string[] toDelete =
         {
@@ -351,8 +298,7 @@ public partial class MainWindow
             if (File.Exists(path)) File.Delete(path);
         }
 
-        Global.logger.WriteLine("Please select the base data.win, then the modded file (.xdelta or .win).",
-            LoggerType.Info);
+        Global.logger.WriteLine("Please select the base data.win, then the modded file (.xdelta or .win).", LoggerType.Info);
 
         var sourceFiles = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
@@ -360,12 +306,7 @@ public partial class MainWindow
             AllowMultiple = false,
             FileTypeFilter = new[] { new FilePickerFileType("data.win") { Patterns = new[] { "*.win" } } }
         });
-        if (sourceFiles.Count == 0)
-        {
-            Global.logger.WriteLine("No source file selected.", LoggerType.Error);
-            return;
-        }
-
+        if (sourceFiles.Count == 0) { Global.logger.WriteLine("No source file selected.", LoggerType.Error); return; }
         var source = sourceFiles[0].Path.LocalPath;
 
         var moddedFiles = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
@@ -374,12 +315,7 @@ public partial class MainWindow
             AllowMultiple = false,
             FileTypeFilter = new[] { new FilePickerFileType("Modded") { Patterns = new[] { "*.xdelta", "*.win" } } }
         });
-        if (moddedFiles.Count == 0)
-        {
-            Global.logger.WriteLine("No modded file selected.", LoggerType.Error);
-            return;
-        }
-
+        if (moddedFiles.Count == 0) { Global.logger.WriteLine("No modded file selected.", LoggerType.Error); return; }
         var modded = moddedFiles[0].Path.LocalPath;
 
         var vanillaWin = Path.Combine(gmLoaderFolder, "vanilla.win");
@@ -390,7 +326,7 @@ public partial class MainWindow
         if (Path.GetExtension(modded).Equals(".xdelta", StringComparison.OrdinalIgnoreCase))
         {
             var xdelta = OperatingSystem.IsWindows()
-                ? Path.Combine(Global.assemblyLocation, "Dependencies", "xdelta.exe")
+                ? Path.Combine(Global.appLocation, "Dependencies", "xdelta.exe")
                 : "xdelta3";
             var moddedWin = Path.Combine(gmLoaderFolder, "modded.win");
             try
@@ -408,7 +344,7 @@ public partial class MainWindow
                 return;
             }
         }
-
+        
         Global.logger.WriteLine("Running GMLoader -convert... this may take a while.", LoggerType.Info);
 
         var convertedOutput = Path.Combine(gmLoaderFolder, "converted_output");
@@ -436,21 +372,12 @@ public partial class MainWindow
                     if (hasFolders && nonEmpty)
                     {
                         Thread.Sleep(1000);
-                        try
-                        {
-                            process.Kill();
-                        }
-                        catch
-                        {
-                        }
-
+                        try { process.Kill(); } catch { }
                         return true;
                     }
                 }
-
                 Thread.Sleep(1000);
             }
-
             return false;
         });
 
@@ -474,7 +401,6 @@ public partial class MainWindow
             ModsWatcher.EnableRaisingEvents = true;
             Refresh();
         });
-
 
         foreach (var path in toDelete)
         {
@@ -508,16 +434,12 @@ public partial class MainWindow
     private void InitThemes()
     {
         RestoreFolderFromResource("CustomAssets", Global.assemblyLocation);
-
-        _settingsPanels["NavCustomizaton"] = PanelCustomization;
-
         foreach (var name in themebrushes)
         {
             if (!defaultBrushHexes.ContainsKey(name))
                 defaultBrushHexes[name] = PLUSThemes.Get_BrushColorAsHex($"{name}Brush");
             Theme_Update(name, true);
         }
-
         ApplyTransparentBoxes(true);
         LoadThemePresets();
         ApplyBackgroundImage();
@@ -542,11 +464,10 @@ public partial class MainWindow
         if (skippicker)
         {
             var saved = PLUSSavesystem.read_ini("Themes", brushname);
-            if (saved != "" && PLUSThemes.validhex(saved))
+            if (!string.IsNullOrEmpty(saved) && PLUSThemes.validhex(saved))
                 PLUSThemes.Set_BrushColor($"{brushname}Brush", saved);
             return;
         }
-
         Themes_GrabColor(brushname);
     }
 
@@ -559,20 +480,20 @@ public partial class MainWindow
         {
             PLUSSavesystem.write_ini("Themes", brushname, hex);
             PLUSThemes.Set_BrushColor($"{brushname}Brush", hex);
+            PLUSrefresh();
         }
     }
 
     private async Task<string?> ShowColorPickerDialog(string current)
     {
+        if (!PLUSThemes.validhex(current)) current = "#000000";
         var initialColor = Color.TryParse(current, out var c) ? c : Colors.Black;
-
         var colorView = new ColorView
         {
             Color = initialColor,
             IsAlphaEnabled = false,
             IsAlphaVisible = false
         };
-
         var dialog = new Window
         {
             Title = "Pick a Color",
@@ -593,15 +514,14 @@ public partial class MainWindow
                 }
             }
         };
-
         string? result = null;
         var okButton = ((StackPanel)dialog.Content).Children.OfType<Button>().First();
         okButton.Click += (_, _) =>
         {
-            result = "#" + colorView.Color.ToString().Substring(3);
+            var col = colorView.Color;
+            result = PLUSThemes.rgb_to_hex(col.R, col.G, col.B);
             dialog.Close();
         };
-
         await dialog.ShowDialog(this);
         return result;
     }
@@ -619,21 +539,13 @@ public partial class MainWindow
             var value = PLUSSavesystem.read_ini("Themes", $"Transparency_{key}", "100");
             var slider = this.FindControl<Slider>($"Transparency_{key}");
             if (slider == null) continue;
-
             var parsed = double.TryParse(value, out var p) ? p : 100;
-
             if (init) slider.Value = parsed;
         }
-
         if (init) return;
-
-        var loggerOpacity = GetTransparency("Logger");
-        var descOpacity = GetTransparency("ModDescription");
-        var gridOpacity = GetTransparency("ModGrid");
-
-        ConsoleWindow.Opacity = loggerOpacity;
-        DescriptionWindow.Opacity = descOpacity;
-        ModGridBorder.Opacity = gridOpacity;
+        if (ConsoleWindow != null) ConsoleWindow.Opacity = GetTransparency("Logger");
+        if (DescriptionWindow != null) DescriptionWindow.Opacity = GetTransparency("ModDescription");
+        if (ModGridBorder != null) ModGridBorder.Opacity = GetTransparency("ModGrid");
     }
 
     private double GetTransparency(string key)
@@ -650,19 +562,21 @@ public partial class MainWindow
                 Path.GetFileNameWithoutExtension(f).Equals("background", StringComparison.OrdinalIgnoreCase)
                 && themeimageExtensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase));
 
-        if (string.IsNullOrEmpty(bgPath) || !File.Exists(bgPath)) return;
+        if (string.IsNullOrEmpty(bgPath) || !File.Exists(bgPath))
+        {
+            if (this.TryFindResource("PrimaryBrush", out var res) && res is IBrush fallback)
+                MainGrid.Background = fallback;
+            return;
+        }
 
         try
         {
             var bytes = File.ReadAllBytes(bgPath);
             using var ms = new MemoryStream(bytes);
             var bitmap = new Bitmap(ms);
-            var brush = new ImageBrush(bitmap) { Stretch = Stretch.UniformToFill };
-            MainGrid.Background = brush;
+            MainGrid.Background = new ImageBrush(bitmap) { Stretch = Stretch.UniformToFill };
         }
-        catch
-        {
-        }
+        catch { }
     }
 
     private void Theme_Click(object sender, RoutedEventArgs e)
@@ -677,6 +591,7 @@ public partial class MainWindow
         if (sender is not Button btn) return;
         var key = btn.Name?.Replace("Themes", "").Replace("Reset", "") ?? "";
         Themes_Reset(key);
+        PLUSrefresh();
     }
 
     private void Transparent_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
@@ -727,18 +642,20 @@ public partial class MainWindow
                 File.Delete(bgPath);
         }
 
-        MainGrid.Background = null;
+        if (this.TryFindResource("PrimaryBrush", out var res) && res is IBrush fallback)
+            MainGrid.Background = fallback;
 
         foreach (var t in transparentboxes)
             PLUSSavesystem.write_ini("Themes", $"Transparency_{t}", "100");
         ApplyTransparentBoxes(true);
+        PLUSrefresh();
     }
 
     private void ThemePresetsApply_Click(object sender, RoutedEventArgs e)
     {
         var theme = ThemePresetsCombo.SelectedItem as string;
+        if (string.IsNullOrEmpty(theme)) return;
         var filepath = Path.Combine(Global.assemblyLocation, "Themes", $"{theme}.potheme");
-
         if (File.Exists(filepath))
         {
             ThemesFileLoad(filepath);
@@ -763,18 +680,25 @@ public partial class MainWindow
         var src = files[0].Path.LocalPath;
         Directory.CreateDirectory(CustomAssetsFolder);
         File.Copy(src, Path.Combine(CustomAssetsFolder, $"background{Path.GetExtension(src)}"), true);
+        PLUSrefresh();
         ApplyBackgroundImage();
     }
 
     private void ThemesBackgroundReset_Click(object sender, RoutedEventArgs e)
     {
-        var bgPath = Directory.GetFiles(CustomAssetsFolder)
-            .FirstOrDefault(f =>
-                Path.GetFileNameWithoutExtension(f).Equals("background", StringComparison.OrdinalIgnoreCase)
-                && themeimageExtensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase));
-        if (!string.IsNullOrEmpty(bgPath) && File.Exists(bgPath))
-            File.Delete(bgPath);
-        MainGrid.Background = null;
+        if (Directory.Exists(CustomAssetsFolder))
+        {
+            var bgPath = Directory.GetFiles(CustomAssetsFolder)
+                .FirstOrDefault(f =>
+                    Path.GetFileNameWithoutExtension(f).Equals("background", StringComparison.OrdinalIgnoreCase)
+                    && themeimageExtensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase));
+            if (!string.IsNullOrEmpty(bgPath) && File.Exists(bgPath))
+                File.Delete(bgPath);
+        }
+
+        if (this.TryFindResource("PrimaryBrush", out var res) && res is IBrush fallback)
+            MainGrid.Background = fallback;
+        PLUSrefresh();
     }
 
     private void AssetsFolder_Click(object sender, RoutedEventArgs e)
@@ -806,45 +730,58 @@ public partial class MainWindow
             theme[$"Transparency_{t}"] = PLUSSavesystem.read_ini("Themes", $"Transparency_{t}", "100");
 
         File.WriteAllText(path, JsonSerializer.Serialize(theme, new JsonSerializerOptions { WriteIndented = true }));
+        LoadThemePresets();
     }
 
     private void ThemesFileLoad(string path)
     {
-        var theme = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(path));
-        if (theme == null) return;
+        try
+        {
+            var theme = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(path));
+            if (theme == null) return;
 
-        foreach (var brush in themebrushes)
-            if (theme.TryGetValue(brush, out var val))
+            foreach (var brush in themebrushes)
+                if (theme.TryGetValue(brush, out var val))
+                {
+                    PLUSSavesystem.write_ini("Themes", brush, val);
+                    Theme_Update(brush, true);
+                }
+
+            var bgPath = Directory.Exists(CustomAssetsFolder)
+                ? Directory.GetFiles(CustomAssetsFolder)
+                    .FirstOrDefault(f =>
+                        Path.GetFileNameWithoutExtension(f).Equals("background", StringComparison.OrdinalIgnoreCase)
+                        && themeimageExtensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase))
+                : null;
+            if (!string.IsNullOrEmpty(bgPath) && File.Exists(bgPath))
+                File.Delete(bgPath);
+
+            if (theme.TryGetValue("background", out var bg) && bg.Contains(";"))
             {
-                PLUSSavesystem.write_ini("Themes", brush, val);
-                Theme_Update(brush, true);
+                var parts = bg.Split(";");
+                if (parts.Length == 2 && PLUSThemes.IsBase64String(parts[1]))
+                    PLUSThemes.Base64_LoadFile(parts[1], Path.Combine(CustomAssetsFolder, $"background.{parts[0]}"));
             }
 
-        var bgPath = Directory.Exists(CustomAssetsFolder)
-            ? Directory.GetFiles(CustomAssetsFolder)
-                .FirstOrDefault(f =>
-                    Path.GetFileNameWithoutExtension(f).Equals("background", StringComparison.OrdinalIgnoreCase)
-                    && themeimageExtensions.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase))
-            : null;
-        if (!string.IsNullOrEmpty(bgPath) && File.Exists(bgPath))
-            File.Delete(bgPath);
+            foreach (var t in transparentboxes)
+            {
+                var val = theme.TryGetValue($"Transparency_{t}", out var tv) ? tv : "100";
+                PLUSSavesystem.write_ini("Themes", $"Transparency_{t}", val);
+            }
 
-        if (theme.TryGetValue("background", out var bg) && bg.Contains(";"))
-        {
-            var parts = bg.Split(";");
-            if (parts.Length == 2 && PLUSThemes.IsBase64String(parts[1]))
-                PLUSThemes.Base64_LoadFile(parts[1], Path.Combine(CustomAssetsFolder, $"background.{parts[0]}"));
+            ApplyTransparentBoxes(true);
+            ApplyBackgroundImage();
+            PLUSrefresh();
         }
-
-        foreach (var t in transparentboxes)
+        catch (Exception ex)
         {
-            var val = theme.TryGetValue($"Transparency_{t}", out var tv) ? tv : "100";
-            PLUSSavesystem.write_ini("Themes", $"Transparency_{t}", val);
+            Global.logger.WriteLine($"Failed to load theme: {ex.Message}", LoggerType.Error);
         }
-
-        ApplyTransparentBoxes(true);
-        ApplyBackgroundImage();
     }
+
+    #endregion
+
+    #region Assets & Audio
 
     private void RestoreMissingAssets_Click(object sender, RoutedEventArgs e)
     {
@@ -929,20 +866,12 @@ public partial class MainWindow
 
     private void SoundVolume_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
     {
-        var volume = (int)e.NewValue;
-        PLUSSavesystem.write_ini("Audio", "SoundVolume", volume.ToString());
+        PLUSSavesystem.write_ini("Audio", "SoundVolume", ((int)e.NewValue).ToString());
         PLUSMUSIC.ApplyCurrentVolume(true);
     }
 
-    private void Mute_Click(object sender, RoutedEventArgs e)
-    {
-        HandlePLUStoggle("Audio", "Mute", false, "Mute");
-    }
-
-    private void UnfocusedMute_Click(object sender, RoutedEventArgs e)
-    {
-        HandlePLUStoggle("Audio", "UnfocusedMute", true, "UnfocusedMute");
-    }
+    private void Mute_Click(object sender, RoutedEventArgs e) => HandlePLUStoggle("Audio", "Mute", false, "Mute");
+    private void UnfocusedMute_Click(object sender, RoutedEventArgs e) => HandlePLUStoggle("Audio", "UnfocusedMute", true, "UnfocusedMute");
 
     #endregion
 }
