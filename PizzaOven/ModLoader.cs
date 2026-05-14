@@ -372,6 +372,7 @@ public static class ModLoader
 
     public static bool Build(string mod)
     {
+        var langapply = PLUSSavesystem.read_ini_bool("Files", "POLanguage", true);
         var errors = 0;
         var successes = 0;
         var FilesToPatch = Directory.GetFiles($"{Global.config.ModsFolder}{Global.s}sound{Global.s}Desktop").ToList();
@@ -429,21 +430,39 @@ public static class ModLoader
                                 File.Move($"{Global.config.ModsFolder}{Global.s}Steamworks_x64.dll",
                                     $"{Global.config.ModsFolder}{Global.s}Steamworks_x64.dll.po", true);
                         }
-                        catch (Exception e)
+                        catch
                         {
-                            if (e is UnauthorizedAccessException)
+                            try
                             {
+                                PathFixPatch(file, modFile, $"{Path.GetDirectoryName(file)}{Global.s}temp", xdelta);
+                                if (!File.Exists($"{file}.po"))
+                                    File.Copy(file, $"{file}.po", true);
+                                File.Move($"{Path.GetDirectoryName(file)}{Global.s}temp", file, true);
                                 Global.logger.WriteLine(
-                                    $"Access denied when trying to patch {Path.GetFileName(file)} with {Path.GetFileName(modFile)}",
-                                    LoggerType.Warning);
-                                gotAccessDeniedError = true;
-                                break;
+                                    $"Applied {Path.GetFileName(modFile)} to {Path.GetFileName(file)}.",
+                                    LoggerType.Info);
+                                successes++;
+                                if (Path.GetFileName(modFile).ToLowerInvariant().Contains("yyc") &&
+                                    File.Exists($"{Global.config.ModsFolder}{Global.s}Steamworks_x64.dll"))
+                                    File.Move($"{Global.config.ModsFolder}{Global.s}Steamworks_x64.dll",
+                                        $"{Global.config.ModsFolder}{Global.s}Steamworks_x64.dll.po", true);
                             }
+                            catch (Exception e)
+                            {
+                                if (e is UnauthorizedAccessException)
+                                {
+                                    Global.logger.WriteLine(
+                                        $"Access denied when trying to patch {Path.GetFileName(file)} with {Path.GetFileName(modFile)}",
+                                        LoggerType.Warning);
+                                    gotAccessDeniedError = true;
+                                    break;
+                                }
 
-                            Global.logger.WriteLine(
-                                $"Unable to patch {Path.GetFileName(file)} with {Path.GetFileName(modFile)}",
-                                LoggerType.Warning);
-                            continue;
+                                Global.logger.WriteLine(
+                                    $"Unable to patch {Path.GetFileName(file)} with {Path.GetFileName(modFile)}",
+                                    LoggerType.Warning);
+                                continue;
+                            }
                         }
 
                         success = true;
@@ -466,24 +485,29 @@ public static class ModLoader
                 }
                 else if (extension.Equals(".txt", StringComparison.InvariantCultureIgnoreCase))
                 {
+                    var basename = Path.GetFileNameWithoutExtension(modFile);
                     if (File.ReadAllText(modFile).Contains("lang = ", StringComparison.InvariantCultureIgnoreCase))
                     {
-                        File.Copy(modFile,
-                            $"{Global.config.ModsFolder}{Global.s}lang{Global.s}{Path.GetFileName(modFile)}", true);
+                        var file = $"{Global.config.ModsFolder}{Global.s}lang{Global.s}{Path.GetFileName(modFile)}";
+                        if (langapply)
+                        {
+                            if (File.Exists(file)) File.Copy(file, $"{file}.po", true);
+                            else File.WriteAllText($"{file}.custompo", string.Empty);
+                        }
+
+                        File.Copy(modFile, file, true);
                         Global.logger.WriteLine($"Copied over {Path.GetFileName(modFile)} to language folder",
                             LoggerType.Info);
                         successes++;
                     }
-                }
-                else if (extension.Equals(".png", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    if (modFile.Contains("fonts", StringComparison.InvariantCultureIgnoreCase))
+                    else if (basename.Contains("credits", StringComparison.InvariantCultureIgnoreCase))
                     {
-                        Directory.CreateDirectory($"{Global.config.ModsFolder}{Global.s}lang{Global.s}fonts");
-                        File.Copy(modFile,
-                            $"{Global.config.ModsFolder}{Global.s}lang{Global.s}fonts{Global.s}{Path.GetFileName(modFile)}",
-                            true);
-                        Global.logger.WriteLine($"Copied over {Path.GetFileName(modFile)} to fonts folder",
+                        var file = $"{Global.config.ModsFolder}{Global.s}{Path.GetFileName(modFile)}";
+                        if (File.Exists(file)) File.Copy(file, $"{file}.po", true);
+                        else File.WriteAllText($"{file}.custompo", string.Empty);
+                        File.Copy(modFile, file, true);
+                        Global.logger.WriteLine(
+                            $"Copied over {Path.GetFileName(modFile)} to game folder since it seems to be a credits file",
                             LoggerType.Info);
                         successes++;
                     }
@@ -514,10 +538,12 @@ public static class ModLoader
                     {
                         var FileToAdd =
                             $"{Global.config.ModsFolder}{Global.s}sound{Global.s}Desktop{Global.s}{Path.GetFileName(modFile)}";
-                        if (!Path.GetFileName(Path.GetDirectoryName(modFile)).Equals(Path.GetFileName(mod),
+                        if (!string.Equals(Path.GetFileName(Path.GetDirectoryName(modFile)), "Desktop",
                                 StringComparison.InvariantCultureIgnoreCase))
-                            FileToAdd =
-                                $"{Global.config.ModsFolder}{Global.s}sound{Global.s}Desktop{Global.s}{Path.GetFileName(Path.GetDirectoryName(modFile))}{Global.s}{Path.GetFileName(modFile)}";
+                            if (!Path.GetFileName(Path.GetDirectoryName(modFile)).Equals(Path.GetFileName(mod),
+                                    StringComparison.InvariantCultureIgnoreCase))
+                                FileToAdd =
+                                    $"{Global.config.ModsFolder}{Global.s}sound{Global.s}Desktop{Global.s}{Path.GetFileName(Path.GetDirectoryName(modFile))}{Global.s}{Path.GetFileName(modFile)}";
                         Directory.CreateDirectory(Path.GetDirectoryName(FileToAdd)!);
                         File.Copy(modFile, FileToAdd, true);
                     }
@@ -548,8 +574,176 @@ public static class ModLoader
             }
         }
 
+        var langfolder = $"{Global.config.ModsFolder}{Global.s}lang{Global.s}";
+        var langFiles = Directory.GetFiles(langfolder, "*.txt", SearchOption.TopDirectoryOnly).OrderBy(f => f).ToList();
+        var langlist = new List<string>();
+        var langlistfile = new List<string>();
+        foreach (var file in langFiles)
+        {
+            var match = Regex.Match(File.ReadAllText(file), @"lang\s*=\s*""([^""]+)""", RegexOptions.IgnoreCase);
+            if (match.Success)
+            {
+                langlist.Add(match.Groups[1].Value);
+                langlistfile.Add(Path.GetFileNameWithoutExtension(file));
+            }
+        }
+
+        foreach (var modFile in Directory.GetFiles(mod, "*", SearchOption.AllDirectories))
+        {
+            var extension = Path.GetExtension(modFile);
+            var basename = Path.GetFileNameWithoutExtension(modFile);
+            try
+            {
+                if (extension.Equals(".ttf", StringComparison.InvariantCultureIgnoreCase) ||
+                    extension.Equals(".otf", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    var file =
+                        $"{Global.config.ModsFolder}{Global.s}lang{Global.s}fonts{Global.s}{Path.GetFileName(modFile)}";
+                    if (langapply)
+                    {
+                        if (File.Exists(file)) File.Copy(file, $"{file}.po", true);
+                        else File.WriteAllText($"{file}.custompo", string.Empty);
+                    }
+
+                    Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+                    File.Copy(modFile, file, true);
+                    Global.logger.WriteLine($"Copied over {Path.GetFileName(modFile)} to fonts folder",
+                        LoggerType.Info);
+                    successes++;
+                }
+                else if (extension.Equals(".def", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    var file = $"{Global.config.ModsFolder}{Global.s}lang{Global.s}{Path.GetFileName(modFile)}";
+                    if (langapply)
+                    {
+                        if (File.Exists(file)) File.Copy(file, $"{file}.po", true);
+                        else File.WriteAllText($"{file}.custompo", string.Empty);
+                    }
+
+                    File.Copy(modFile, file, true);
+                    Global.logger.WriteLine($"Copied over {Path.GetFileName(modFile)} to language folder",
+                        LoggerType.Info);
+                    successes++;
+                }
+                else if (extension.Equals(".png", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    basename = Regex.Replace(basename, @"^\d+", "");
+
+                    var matchedLang =
+                        langlist.FirstOrDefault(x => basename.StartsWith(x, StringComparison.OrdinalIgnoreCase))
+                        ?? langlistfile.FirstOrDefault(x => basename.StartsWith(x, StringComparison.OrdinalIgnoreCase));
+
+                    if (matchedLang != null)
+                        basename = matchedLang;
+                    else
+                        basename = Regex.Replace(basename, @"\d+$", "");
+
+                    var pngcopied = false;
+                    var fontList = new List<string> { "bigfont", "captionfont", "credits", "tutorial" };
+
+                    if ((langlist.Contains(basename) || langlistfile.Contains(basename) ||
+                         langlist.Any(x => x.StartsWith(basename, StringComparison.OrdinalIgnoreCase))) &&
+                        !fontList.Any(x => x.StartsWith(basename, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        var file =
+                            $"{Global.config.ModsFolder}{Global.s}lang{Global.s}graphics{Global.s}{Path.GetFileName(modFile)}";
+                        if (langapply)
+                        {
+                            if (File.Exists(file)) File.Copy(file, $"{file}.po", true);
+                            else File.WriteAllText($"{file}.custompo", string.Empty);
+                        }
+
+                        Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+                        File.Copy(modFile, file, true);
+                        Global.logger.WriteLine($"Copied over {Path.GetFileName(modFile)} to graphics folder",
+                            LoggerType.Info);
+                        pngcopied = true;
+                        successes++;
+                    }
+                    else
+                    {
+                        for (var i = 0; i < langlist.Count; i++)
+                            if (!pngcopied && (fontList.Contains(basename) ||
+                                               basename.EndsWith($"_{langlist[i]}") ||
+                                               basename.EndsWith($"_{langlistfile[i]}")))
+                            {
+                                var file =
+                                    $"{Global.config.ModsFolder}{Global.s}lang{Global.s}fonts{Global.s}{Path.GetFileName(modFile)}";
+                                if (langapply)
+                                {
+                                    if (File.Exists(file)) File.Copy(file, $"{file}.po", true);
+                                    else File.WriteAllText($"{file}.custompo", string.Empty);
+                                }
+
+                                Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+                                File.Copy(modFile, file, true);
+                                Global.logger.WriteLine($"Copied over {Path.GetFileName(modFile)} to fonts folder",
+                                    LoggerType.Info);
+                                successes++;
+                                pngcopied = true;
+                                break;
+                            }
+                    }
+
+                    if (!pngcopied)
+                        Global.logger.WriteLine(
+                            $"Found {Path.GetFileName(modFile)} but doesn't seem to have an attached language file so skipping",
+                            LoggerType.Warning);
+                }
+                else if (extension.Equals(".json", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    if (langlist.Contains(basename) || langlistfile.Contains(basename))
+                    {
+                        var file =
+                            $"{Global.config.ModsFolder}{Global.s}lang{Global.s}graphics{Global.s}{Path.GetFileName(modFile)}";
+                        if (langapply)
+                        {
+                            if (File.Exists(file)) File.Copy(file, $"{file}.po", true);
+                            else File.WriteAllText($"{file}.custompo", string.Empty);
+                        }
+
+                        Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+                        File.Copy(modFile, file, true);
+                        Global.logger.WriteLine($"Copied over {Path.GetFileName(modFile)} to graphics folder",
+                            LoggerType.Info);
+                        successes++;
+                    }
+                    else
+                    {
+                        Global.logger.WriteLine(
+                            $"Found {Path.GetFileName(modFile)} but doesn't seem to have an attached language file so skipping",
+                            LoggerType.Warning);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                if (e is UnauthorizedAccessException)
+                    Global.logger.WriteLine(
+                        $"Access denied when trying to apply {Path.GetFileName(modFile)}. Try reinstalling Pizza Tower to a folder you have access to or running Pizza Oven in administrator mode",
+                        LoggerType.Error);
+                else
+                    throw;
+            }
+        }
+
         if (successes == 0)
             Global.logger.WriteLine("No file was used from the current mod", LoggerType.Error);
+
+        if (File.Exists($"{Global.config.ModsFolder}{Global.s}data.win.downgradepo"))
+        {
+            if (errors != 0 || successes <= 0)
+            {
+                File.Move($"{Global.config.ModsFolder}{Global.s}data.win.downgradepo",
+                    $"{Global.config.ModsFolder}{Global.s}data.win", true);
+                Global.logger.WriteLine("Undowngrading the patch", LoggerType.Warning);
+            }
+            else
+            {
+                File.Delete($"{Global.config.ModsFolder}{Global.s}data.win.downgradepo");
+            }
+        }
+
         return errors == 0 && successes > 0;
     }
 
@@ -568,11 +762,12 @@ public static class ModLoader
         process.Start();
         process.WaitForExit();
     }
+
     public static void PathFixPatch(string file, string patch, string outputFileName, string xdelta)
     {
-        string baseDir = Path.Combine(Path.GetDirectoryName(outputFileName)!, "PizzaOvenPatching");
-        string workingDir = baseDir;
-        int count = 1;
+        var baseDir = Path.Combine(Path.GetDirectoryName(outputFileName)!, "PizzaOvenPatching");
+        var workingDir = baseDir;
+        var count = 1;
 
         while (Directory.Exists(workingDir))
         {
@@ -584,17 +779,17 @@ public static class ModLoader
 
         try
         {
-            string xdeltaName = Path.GetFileName(xdelta);
-            string tempXdeltaPath = Path.Combine(workingDir, xdeltaName);
+            var xdeltaName = Path.GetFileName(xdelta);
+            var tempXdeltaPath = Path.Combine(workingDir, xdeltaName);
             if (OperatingSystem.IsWindows())
                 File.Copy(xdelta, tempXdeltaPath, true);
 
-            string tempFile = Path.Combine(workingDir, Path.GetFileName(file));
-            string tempPatch = Path.Combine(workingDir, Path.GetFileName(patch));
+            var tempFile = Path.Combine(workingDir, Path.GetFileName(file));
+            var tempPatch = Path.Combine(workingDir, Path.GetFileName(patch));
             File.Copy(file, tempFile, true);
             File.Copy(patch, tempPatch, true);
 
-            string tempOutput = Path.Combine(workingDir, Path.GetFileName(outputFileName));
+            var tempOutput = Path.Combine(workingDir, Path.GetFileName(outputFileName));
 
             var startInfo = new ProcessStartInfo
             {
@@ -618,6 +813,7 @@ public static class ModLoader
                 Directory.Delete(workingDir, true);
         }
     }
+
     private static void RestoreDirectory(string path)
     {
         if (Directory.Exists(path))
@@ -739,6 +935,7 @@ public static class ModLoader
             return false;
         }
     }
+
     public static string GetModType(string modPath)
     {
         string[] gmLoaderFolders = { "audio", "code", "lib", "config", "csx", "room", "shader", "texture", "xdelta" };
@@ -746,7 +943,6 @@ public static class ModLoader
 
         var jsonPath = Path.Combine(modPath, "mod.json");
         if (File.Exists(jsonPath))
-        {
             try
             {
                 using var doc = JsonDocument.Parse(File.ReadAllText(jsonPath));
@@ -765,16 +961,17 @@ public static class ModLoader
                         return "GMLOADER";
                 }
             }
-            catch { }
-        }
+            catch
+            {
+            }
 
-        bool potentialGMLoader = Directory.EnumerateDirectories(modPath, "*", SearchOption.AllDirectories)
+        var potentialGMLoader = Directory.EnumerateDirectories(modPath, "*", SearchOption.AllDirectories)
             .Any(d => gmLoaderFolders.Contains(Path.GetFileName(d), StringComparer.OrdinalIgnoreCase));
 
-        bool hasLevelsDir = Directory.EnumerateDirectories(modPath, "*", SearchOption.AllDirectories)
+        var hasLevelsDir = Directory.EnumerateDirectories(modPath, "*", SearchOption.AllDirectories)
             .Any(d => string.Equals(Path.GetFileName(d), "levels", StringComparison.OrdinalIgnoreCase));
 
-        bool hasXdelta = Directory.EnumerateFiles(modPath, "*.xdelta", SearchOption.AllDirectories).Any();
+        var hasXdelta = Directory.EnumerateFiles(modPath, "*.xdelta", SearchOption.AllDirectories).Any();
 
         if (hasLevelsDir && !hasXdelta) return "AFOM";
         if (hasXdelta) return "Normal";
