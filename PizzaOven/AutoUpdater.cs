@@ -145,7 +145,7 @@ public class AutoUpdater
         });
     }
 
-    private static bool UpdateAvailable(string? online, string? local)
+    public static bool UpdateAvailable(string? online, string? local)
     {
         if (online == null || local == null) return false;
         var o = online.Split('.');

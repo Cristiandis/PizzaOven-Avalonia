@@ -10,9 +10,12 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -1306,6 +1309,10 @@ public partial class MainWindow : Window
         if (e.AddedItems.Count > 0 && e.AddedItems[0] == ModBrowser)
             if (!selected)
                 InitializeBrowser();
+        if (e.AddedItems.Count > 0 && e.AddedItems[0] == PatchNotes)
+            if (!selected)
+            OnPatchNotesSelected();
+        
     }
 
     private void PLUSrefresh()
@@ -1351,4 +1358,222 @@ public partial class MainWindow : Window
                 ModGrid.ScrollIntoView(ModGrid.Items[0]);
         });
     }
+    #region PatchNotes
+        private void OnPatchNotesSelected()
+        {
+            CreatePatchNotes();
+        }
+        public async void CheckLauncherUpdates_Click(object sender, RoutedEventArgs e)
+        {
+            var cts = new CancellationTokenSource();
+            await AutoUpdater.CheckForPizzaOvenUpdate(cts);
+        }
+        public void AddPatchNotes(string version, string[] topNotes, string[] notes, string[] catnotes, bool warnupdate, string timeago)
+        {
+            var localVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+
+            var versionText = new TextBlock
+            {
+                Text = version,
+                FontSize = 24,
+                FontWeight = FontWeight.Bold,
+                Margin = new Thickness(0, 10, 0, 5),
+            };
+            versionText.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("TextBrush"));
+
+            var titlerowPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(0, 2, 0, 2)
+            };
+
+            var timeagolabel = new Label
+            {
+                FontSize = 15,
+                Background = new SolidColorBrush(Color.FromRgb(60, 64, 68)),
+                Padding = new Thickness(5, 2, 5, 2),
+                Margin = new Thickness(5, 2, 5, 2),
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Foreground = Brushes.White
+            };
+            var timeagolabelcontentBinding = new Binding
+            {
+                Source = timeago,
+                Mode = BindingMode.OneWay
+            };
+            timeagolabel.Bind(ContentControl.ContentProperty, timeagolabelcontentBinding);
+
+            titlerowPanel.Children.Add(versionText);
+            titlerowPanel.Children.Add(timeagolabel);
+
+            if (warnupdate)
+            {
+                var warnlabel = new Label
+                {
+                    FontSize = 15,
+                    Background = new SolidColorBrush(Color.FromRgb(60, 64, 68)),
+                    Padding = new Thickness(5, 2, 5, 2),
+                    Margin = new Thickness(5, 2, 5, 2),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    Foreground = Brushes.Red
+                };
+                var warncontentBinding = new Binding
+                {
+                    Source = $"v{localVersion.Substring(0, localVersion.LastIndexOf('.'))} is OUTDATED",
+                    Mode = BindingMode.OneWay
+                };
+                warnlabel.Bind(ContentControl.ContentProperty, warncontentBinding);
+                titlerowPanel.Children.Add(warnlabel);
+            }
+
+            PatchNotesPanel.Children.Add(titlerowPanel);
+
+            if (topNotes != null)
+            {
+                foreach (var topNote in topNotes)
+                {
+                    if (string.IsNullOrWhiteSpace(topNote))
+                        continue;
+
+                    var topNoteText = new TextBlock
+                    {
+                        Text = topNote,
+                        FontSize = 15,
+                        FontStyle = FontStyle.Italic,
+                        Margin = new Thickness(5, 0, 0, 6),
+                    };
+                    topNoteText.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("TextBrush"));
+
+
+                    PatchNotesPanel.Children.Add(topNoteText);
+                }
+            }
+            if (notes != null)
+            {
+                for (int i = 0; i < notes.Length; i++)
+                {
+                    var noteText = new TextBlock
+                    {
+                        Text = "• " + notes[i],
+                        FontSize = 14,
+                        Margin = new Thickness(10, 2, 0, 2),
+                    };
+                    noteText.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("TextBrush"));
+
+                    var catLabel = new Label
+                    {
+                        FontSize = 15,
+                        Background = new SolidColorBrush(Color.FromRgb(60, 64, 68)),
+                        Padding = new Thickness(5, 2, 5, 2),
+                        Margin = new Thickness(5, 2, 5, 2),
+                        VerticalAlignment = VerticalAlignment.Center,
+                        HorizontalAlignment = HorizontalAlignment.Left
+                    };
+
+                    var contentBinding = new Binding
+                    {
+                        Source = catnotes[i],
+                        Mode = BindingMode.OneWay
+                    };
+                    catLabel.Bind(ContentControl.ContentProperty, contentBinding);
+
+                    try
+                    {
+                        var converter = new CategoryColorConverter();
+
+                        string category = catnotes[i];
+                        var brush = (SolidColorBrush)converter.Convert(category, typeof(SolidColorBrush), null, System.Globalization.CultureInfo.InvariantCulture);
+
+                        catLabel.Foreground = brush;
+                    }
+                    catch
+                    {
+                        catLabel.Foreground = Brushes.White;
+                    }
+
+                    var rowPanel = new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        Margin = new Thickness(0, 2, 0, 2)
+                    };
+
+                    rowPanel.Children.Add(noteText);
+                    rowPanel.Children.Add(catLabel);
+
+                    PatchNotesPanel.Children.Add(rowPanel);
+                }
+            }
+        }
+        public async void CreatePatchNotes()
+        {
+            try
+            {
+                PatchNotesPanel.Children.Clear();
+                string url = "https://api.gamebanana.com/Core/Item/Data?itemtype=Tool&itemid=21866&fields=Updates().bSubmissionHasUpdates(),Updates().aGetLatestUpdates()&return_keys=1";
+
+                using var client = new HttpClient();
+                string jsonResponse = await client.GetStringAsync(url);
+
+                using var doc = JsonDocument.Parse(jsonResponse);
+                var root = doc.RootElement;
+
+                if (!root.TryGetProperty("Updates().aGetLatestUpdates()", out var updatesArray))
+                    return;
+
+                var latest = updatesArray[0];
+
+                string versionTitle = latest.GetProperty("_sTitle").GetString() ?? "";
+
+
+                long ts = latest.GetProperty("_tsDateAdded").GetInt64();
+
+                DateTimeOffset target = DateTimeOffset.FromUnixTimeSeconds(ts);
+                TimeSpan diff = DateTimeOffset.UtcNow - target;
+
+
+                var timeago = StringConverters.FormatTimeAgo(diff);
+
+                var changelog = latest.GetProperty("_aChangeLog");
+                string[] notes = new string[changelog.GetArrayLength()];
+                string[] catnotes = new string[changelog.GetArrayLength()];
+                int i = 0;
+                foreach (var entry in changelog.EnumerateArray())
+                {
+                    string text = entry.GetProperty("text").GetString() ?? "";
+                    string cat = entry.GetProperty("cat").GetString() ?? "";
+                    catnotes[i] = cat;
+                    notes[i++] = text;
+                }
+
+                string versionNumber = latest.GetProperty("_sVersion").GetString() ?? "";
+                bool warnupdate = false;
+                var localVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+                Match onlineVersionMatch = Regex.Match(versionTitle, @"(?<version>([0-9]+\.?)+)[^a-zA-Z]");
+                string onlineVersion = null;
+
+                if (onlineVersionMatch.Success)
+                {
+                    onlineVersion = onlineVersionMatch.Value;
+                    warnupdate = AutoUpdater.UpdateAvailable(onlineVersion, localVersion);
+                }
+
+
+                string[] topNotes = versionNumber switch
+                {
+                    "1.0.4" => new string[] { "Autoupdater should work from 1.0.3" },
+                    "1.0.5" => new string[] { "Patch Notes Tab Introduction" },
+                    "1.0.6" => new string[] { "Bug Fixes" },
+                    _ => new string[] { "" }
+                };
+
+                AddPatchNotes(versionTitle, topNotes, notes, catnotes, warnupdate, timeago);
+            }
+            catch
+            {
+                AddPatchNotes("Failed to load", new string[] { "" }, new string[] { "Maybe Check your internet", "Maybe Gamebanana Servers are down" }, new string[] { "Addition", "Addition" }, false, "Failed to load");
+            }
+        }
+        #endregion
 }

@@ -1393,6 +1393,17 @@
                     </ScrollViewer>
                 </Grid>
             </TabItem>
+            <TabItem x:Name="PatchNotes" FontSize="18" HorizontalAlignment="Center" Header="Latest Patch Notes">
+                <Grid Name="PatchNotesGrid">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="10">
+                            <Button Content="Checking for Launcher Updates" Height="30" HorizontalAlignment="Left" Click="CheckLauncherUpdates_Click"/>
+                            <TextBlock Text="These are taken from the Gamebanana itself and may have other additional notes (once the update is downloaded it will display)" Margin="0,5,0,10" TextWrapping="Wrap" Foreground="{DynamicResource TextBrush}"/>
+                            <StackPanel x:Name="PatchNotesPanel" Width="1200"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
         </TabControl>
     </Grid>
 </Window>
