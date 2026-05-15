@@ -65,7 +65,10 @@ public partial class MainWindow
                         if (enabled) POPRESENCE.Initialize();
                         else POPRESENCE.Shutdown();
                     }
-                    catch { }
+                    catch
+                    {
+                    }
+
                     button = RPCtoggle;
                     OnText = "Enable RPC? [IT'S ON]";
                     OffText = "Disable RPC? [IT'S OFF]";
@@ -87,9 +90,16 @@ public partial class MainWindow
                         var extensions = new[] { ".po", ".custompo", ".downgradepo" };
                         if (Directory.Exists(langPath))
                             foreach (var file in Directory.GetFiles(langPath, "*.*", SearchOption.AllDirectories)
-                                .Where(f => extensions.Contains(Path.GetExtension(f))))
-                                try { File.Delete(file); } catch { }
+                                         .Where(f => extensions.Contains(Path.GetExtension(f))))
+                                try
+                                {
+                                    File.Delete(file);
+                                }
+                                catch
+                                {
+                                }
                     }
+
                     button = POLanguage;
                     OnText = "Do not Apply to Language Files? [IT'S ON]";
                     OffText = "Do Apply to Language Files? [IT'S OFF]";
@@ -101,9 +111,21 @@ public partial class MainWindow
                     break;
             }
 
-            if (button != null) button.Content = enabled ? OnText : OffText;
+            if (button != null)
+            {
+                var text = enabled ? OnText : OffText;
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (button == RPCtoggle)
+                        RpcToggleText.Text = text;
+                    else
+                        button.Content = text;
+                }, DispatcherPriority.Loaded);
+            }
         }
-        catch { }
+        catch
+        {
+        }
     }
 
     #region Tutorial
@@ -122,7 +144,8 @@ public partial class MainWindow
         if (sender is not Button btn) return;
         var url = btn.Name switch
         {
-            "OpenSuggestForm" => "https://docs.google.com/forms/d/e/1FAIpQLScI-8L6-ATpE6_ip3gzESXAWi4B_0pwHiHI5g83fb3SlLTM_A/viewform",
+            "OpenSuggestForm" =>
+                "https://docs.google.com/forms/d/e/1FAIpQLScI-8L6-ATpE6_ip3gzESXAWi4B_0pwHiHI5g83fb3SlLTM_A/viewform",
             "OpenEmail" => "https://mail.google.com/mail/u/0/#inbox",
             "OpenTwitterX" => "https://x.com/SurfyCrescent97",
             "OpenDiscord" => "https://discord.gg/snv7CrRQzx",
@@ -169,7 +192,8 @@ public partial class MainWindow
         InitPLUSToggle("UnfocusedMute", PLUSMUSIC.UnfocusedMuteEnabled);
 
         if (double.TryParse(PLUSSavesystem.read_ini("Audio", "SoundVolume", "100"), out var vol))
-            if (SoundVolume != null) SoundVolume.Value = vol;
+            if (SoundVolume != null)
+                SoundVolume.Value = vol;
 
         if (StartupToggle != null)
             StartupToggle.Content = AutostartManager.IsEnabled()
@@ -188,14 +212,24 @@ public partial class MainWindow
         StartupToggle.Content = enabled ? "Do not open on Startup? [IT'S ON]" : "Do open on Startup? [IT'S OFF]";
     }
 
-    private void RPCToggle_Click(object sender, RoutedEventArgs e) => HandlePLUStoggle("Discord", "RPC", true, "RPC");
-    private void ModUpdaterToggle_Click(object sender, RoutedEventArgs e) => HandlePLUStoggle("LowEnd", "ModUpdate", true, "ModUpdater");
+    private void RPCToggle_Click(object sender, RoutedEventArgs e)
+    {
+        HandlePLUStoggle("Discord", "RPC", true, "RPC");
+    }
+
+    private void ModUpdaterToggle_Click(object sender, RoutedEventArgs e)
+    {
+        HandlePLUStoggle("LowEnd", "ModUpdate", true, "ModUpdater");
+    }
 
     #endregion
 
     #region Launch Settings
 
-    private void DowngradeDownload_Click(object sender, RoutedEventArgs e) => PLUSDepotDownloader.DowngradeDownload(this);
+    private void DowngradeDownload_Click(object sender, RoutedEventArgs e)
+    {
+        PLUSDepotDownloader.DowngradeDownload(this);
+    }
 
     private void OpenPTFolder_Click(object sender, RoutedEventArgs e)
     {
@@ -223,13 +257,17 @@ public partial class MainWindow
             Global.logger.WriteLine("PizzaTower.exe not found at selected path.", LoggerType.Error);
             return;
         }
+
         Global.config.ModsFolder = Path.GetDirectoryName(path);
         Global.config.Launcher = path;
         Global.UpdateConfig();
         Global.logger.WriteLine($"Pizza Tower folder set to: {Global.config.ModsFolder}", LoggerType.Info);
     }
 
-    private void DebugToggle_Click(object sender, RoutedEventArgs e) => HandlePLUStoggle("Launch", "Debug", false, "Debug");
+    private void DebugToggle_Click(object sender, RoutedEventArgs e)
+    {
+        HandlePLUStoggle("Launch", "Debug", false, "Debug");
+    }
 
     #endregion
 
@@ -239,11 +277,21 @@ public partial class MainWindow
     {
         if (Global.config.ModsFolder == null) return;
         foreach (var file in Directory.GetFiles(Global.config.ModsFolder, "*.po", SearchOption.AllDirectories))
-            try { File.Delete(file); } catch { }
+            try
+            {
+                File.Delete(file);
+            }
+            catch
+            {
+            }
+
         Global.logger.WriteLine("Cleaned all .po files from game folder.", LoggerType.Info);
     }
 
-    private void POLanguage_Click(object sender, RoutedEventArgs e) => HandlePLUStoggle("Files", "POLanguage", true, "POLanguage");
+    private void POLanguage_Click(object sender, RoutedEventArgs e)
+    {
+        HandlePLUStoggle("Files", "POLanguage", true, "POLanguage");
+    }
 
     private async void MakeDataWinPO_Click(object sender, RoutedEventArgs e)
     {
@@ -255,11 +303,13 @@ public partial class MainWindow
             Global.logger.WriteLine("data.win not found in game folder.", LoggerType.Warning);
             return;
         }
+
         if (File.Exists(dataWinPO))
         {
             var overwrite = await ShowConfirmDialog("data.win.po already exists. Overwrite it?");
             if (!overwrite) return;
         }
+
         File.Copy(dataWin, dataWinPO, true);
         Global.logger.WriteLine("Created/overwritten data.win.po from current data.win.", LoggerType.Info);
     }
@@ -280,7 +330,14 @@ public partial class MainWindow
         }
 
         foreach (var proc in Process.GetProcessesByName("GMLoader"))
-            try { proc.Kill(); proc.WaitForExit(); } catch { }
+            try
+            {
+                proc.Kill();
+                proc.WaitForExit();
+            }
+            catch
+            {
+            }
 
         string[] toDelete =
         {
@@ -298,7 +355,8 @@ public partial class MainWindow
             if (File.Exists(path)) File.Delete(path);
         }
 
-        Global.logger.WriteLine("Please select the base data.win, then the modded file (.xdelta or .win).", LoggerType.Info);
+        Global.logger.WriteLine("Please select the base data.win, then the modded file (.xdelta or .win).",
+            LoggerType.Info);
 
         var sourceFiles = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
@@ -306,7 +364,12 @@ public partial class MainWindow
             AllowMultiple = false,
             FileTypeFilter = new[] { new FilePickerFileType("data.win") { Patterns = new[] { "*.win" } } }
         });
-        if (sourceFiles.Count == 0) { Global.logger.WriteLine("No source file selected.", LoggerType.Error); return; }
+        if (sourceFiles.Count == 0)
+        {
+            Global.logger.WriteLine("No source file selected.", LoggerType.Error);
+            return;
+        }
+
         var source = sourceFiles[0].Path.LocalPath;
 
         var moddedFiles = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
@@ -315,7 +378,12 @@ public partial class MainWindow
             AllowMultiple = false,
             FileTypeFilter = new[] { new FilePickerFileType("Modded") { Patterns = new[] { "*.xdelta", "*.win" } } }
         });
-        if (moddedFiles.Count == 0) { Global.logger.WriteLine("No modded file selected.", LoggerType.Error); return; }
+        if (moddedFiles.Count == 0)
+        {
+            Global.logger.WriteLine("No modded file selected.", LoggerType.Error);
+            return;
+        }
+
         var modded = moddedFiles[0].Path.LocalPath;
 
         var vanillaWin = Path.Combine(gmLoaderFolder, "vanilla.win");
@@ -344,7 +412,7 @@ public partial class MainWindow
                 return;
             }
         }
-        
+
         Global.logger.WriteLine("Running GMLoader -convert... this may take a while.", LoggerType.Info);
 
         var convertedOutput = Path.Combine(gmLoaderFolder, "converted_output");
@@ -372,12 +440,21 @@ public partial class MainWindow
                     if (hasFolders && nonEmpty)
                     {
                         Thread.Sleep(1000);
-                        try { process.Kill(); } catch { }
+                        try
+                        {
+                            process.Kill();
+                        }
+                        catch
+                        {
+                        }
+
                         return true;
                     }
                 }
+
                 Thread.Sleep(1000);
             }
+
             return false;
         });
 
@@ -440,6 +517,7 @@ public partial class MainWindow
                 defaultBrushHexes[name] = PLUSThemes.Get_BrushColorAsHex($"{name}Brush");
             Theme_Update(name, true);
         }
+
         ApplyTransparentBoxes(true);
         LoadThemePresets();
         ApplyBackgroundImage();
@@ -468,6 +546,7 @@ public partial class MainWindow
                 PLUSThemes.Set_BrushColor($"{brushname}Brush", saved);
             return;
         }
+
         Themes_GrabColor(brushname);
     }
 
@@ -542,6 +621,7 @@ public partial class MainWindow
             var parsed = double.TryParse(value, out var p) ? p : 100;
             if (init) slider.Value = parsed;
         }
+
         if (init) return;
         if (ConsoleWindow != null) ConsoleWindow.Opacity = GetTransparency("Logger");
         if (DescriptionWindow != null) DescriptionWindow.Opacity = GetTransparency("ModDescription");
@@ -576,7 +656,9 @@ public partial class MainWindow
             var bitmap = new Bitmap(ms);
             MainGrid.Background = new ImageBrush(bitmap) { Stretch = Stretch.UniformToFill };
         }
-        catch { }
+        catch
+        {
+        }
     }
 
     private void Theme_Click(object sender, RoutedEventArgs e)
@@ -815,22 +897,22 @@ public partial class MainWindow
 
     private void RestoreFolderFromResource(string folderName, string basePath)
     {
-        string targetPath = Path.Combine(basePath, folderName);
+        var targetPath = Path.Combine(basePath, folderName);
         Directory.CreateDirectory(targetPath);
 
         var assembly = Assembly.GetExecutingAssembly();
-        string prefix = $"PizzaOven.{folderName}.";
+        var prefix = $"PizzaOven.{folderName}.";
 
         foreach (var resource in assembly.GetManifestResourceNames().Where(r => r.StartsWith(prefix)))
         {
-            string relativePath = resource.Substring(prefix.Length)
+            var relativePath = resource.Substring(prefix.Length)
                 .Replace('.', Path.DirectorySeparatorChar);
 
-            int lastSep = relativePath.LastIndexOf(Path.DirectorySeparatorChar);
+            var lastSep = relativePath.LastIndexOf(Path.DirectorySeparatorChar);
             if (lastSep != -1)
                 relativePath = relativePath[..lastSep] + "." + relativePath[(lastSep + 1)..];
 
-            string outputPath = Path.Combine(targetPath, relativePath);
+            var outputPath = Path.Combine(targetPath, relativePath);
             Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
 
             if (File.Exists(outputPath)) continue;
@@ -846,20 +928,35 @@ public partial class MainWindow
         if (Directory.Exists(Global.customassetsfolder))
         {
             foreach (var file in Directory.GetFiles(Global.customassetsfolder, "*", SearchOption.AllDirectories))
-                try { File.Delete(file); } catch { }
+                try
+                {
+                    File.Delete(file);
+                }
+                catch
+                {
+                }
+
             foreach (var dir in Directory.GetDirectories(Global.customassetsfolder, "*", SearchOption.AllDirectories))
                 try
                 {
                     if (Directory.GetFiles(dir).Length == 0 && Directory.GetDirectories(dir).Length == 0)
                         Directory.Delete(dir);
                 }
-                catch { }
+                catch
+                {
+                }
         }
 
         var dstThemes = Path.Combine(Global.assemblyLocation, "Themes");
         if (Directory.Exists(dstThemes))
             foreach (var file in Directory.GetFiles(dstThemes, "*.potheme"))
-                try { File.Delete(file); } catch { }
+                try
+                {
+                    File.Delete(file);
+                }
+                catch
+                {
+                }
 
         RestoreMissingAssets_Click(sender, e);
     }
@@ -870,8 +967,15 @@ public partial class MainWindow
         PLUSMUSIC.ApplyCurrentVolume(true);
     }
 
-    private void Mute_Click(object sender, RoutedEventArgs e) => HandlePLUStoggle("Audio", "Mute", false, "Mute");
-    private void UnfocusedMute_Click(object sender, RoutedEventArgs e) => HandlePLUStoggle("Audio", "UnfocusedMute", true, "UnfocusedMute");
+    private void Mute_Click(object sender, RoutedEventArgs e)
+    {
+        HandlePLUStoggle("Audio", "Mute", false, "Mute");
+    }
+
+    private void UnfocusedMute_Click(object sender, RoutedEventArgs e)
+    {
+        HandlePLUStoggle("Audio", "UnfocusedMute", true, "UnfocusedMute");
+    }
 
     #endregion
 }

@@ -74,6 +74,7 @@
   <EmbeddedResource Include="CustomAssets\**\*" />
   <EmbeddedResource Include="Language\**\*" />
   <AvaloniaResource Include="OvenRonnie\**\*" />
+  <AvaloniaResource Include="Icons\**\*" />
 </ItemGroup>
 
 <ItemGroup>

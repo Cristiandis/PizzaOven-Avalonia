@@ -497,9 +497,11 @@ public partial class MainWindow : Window
                     Global.logger.WriteLine($"Downgrade patch not found: {patchPath}", LoggerType.Error);
                     return false;
                 }
+
                 if (!ModLoader.Downgrade(patchPath))
                     return false;
             }
+
             var mods = Global.config.ModList.Where(x => x.enabled).ToList();
             if (mods.Count == 0) return true;
 
@@ -1324,7 +1326,6 @@ public partial class MainWindow : Window
 
         var jsonPath = Path.Combine(Global.appLocation, "Dependencies", "ptversions.json");
         if (File.Exists(jsonPath))
-        {
             try
             {
                 var versions = JsonSerializer.Deserialize<List<PTversion>>(File.ReadAllText(jsonPath));
@@ -1335,8 +1336,9 @@ public partial class MainWindow : Window
                         DowngradeDownloadCombo.SelectedIndex = 0;
                 }
             }
-            catch { }
-        }
+            catch
+            {
+            }
 
         LoadThemePresets();
         ApplyBackgroundImage();
