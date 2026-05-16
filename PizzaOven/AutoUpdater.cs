@@ -52,6 +52,12 @@ public class AutoUpdater
             });
 
             if (!doUpdate) return false;
+            
+            if (!OperatingSystem.IsWindows())
+            {
+                await ShowInfoAsync("The AutoUpdater does not work on linux, update via your package manager.");
+                return false;
+            }
 
             var files = response.Files;
             if (files == null || files.Count == 0) return false;
