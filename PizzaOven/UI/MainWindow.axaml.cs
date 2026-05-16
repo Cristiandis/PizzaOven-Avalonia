@@ -181,6 +181,39 @@ public partial class MainWindow : Window
         InitThemes();
         InitToggles();
 
+        Task.Run(() =>
+        {
+            try
+            {
+                // Check if announcement needs showing before creating the window
+                var parse = PLUSSavesystem.read_ini("Announcement", "lastshown");
+                PLUSAnnouncementWindow.PLUSAnnouncement? ann = null;
+                try
+                {
+                    ann = PLUSAnnouncementWindow.GetLatestAnnouncement();
+                }
+                catch
+                {
+                    return;
+                }
+
+                if (ann == null || !ann.enabled) return;
+                if (parse != "")
+                    if (DateTimeOffset.TryParse(parse, out var parsed) &&
+                        parsed > ann.date.ToUniversalTime())
+                        return;
+
+                Dispatcher.UIThread.Post(async () =>
+                {
+                    var announcementWindow = new PLUSAnnouncementWindow(ann);
+                    await announcementWindow.ShowDialog(this);
+                });
+            }
+            catch
+            {
+            }
+        });
+
         Task.Run(async () =>
         {
             try

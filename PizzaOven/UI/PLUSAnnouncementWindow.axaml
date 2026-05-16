@@ -1,0 +1,11 @@
+<Window x:Class="PizzaOven.PLUSAnnouncementWindow"
+        xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Announcement"
+        Height="300" Width="500"
+        WindowStartupLocation="CenterScreen"
+        Background="#353535"
+        CanResize="False">
+
+    <Grid />
+</Window>
