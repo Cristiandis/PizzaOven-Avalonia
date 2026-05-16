@@ -54,7 +54,7 @@ public partial class PLUSAnnouncementWindow : Window
 
     public static PLUSAnnouncement? GetLatestAnnouncement()
     {
-        const string url = "https://raw.githubusercontent.com/SurfyCrescent97/PizzaOvenPLUS/main/announcements.json";
+        const string url = "https://raw.githubusercontent.com/Cristiandis/PizzaOven-Avalonia/refs/heads/PO%2B/announcements.json";
         using var client = new HttpClient();
         var json = client.GetStringAsync(url).GetAwaiter().GetResult();
         return JsonSerializer.Deserialize<PLUSAnnouncement>(json);
