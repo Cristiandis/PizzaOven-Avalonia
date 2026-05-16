@@ -426,6 +426,7 @@ public partial class MainWindow : Window
         Global.config.BottomGridHeight = MainGrid.RowDefinitions[3].Height.Value;
         Global.config.LeftGridWidth = MiddleGrid.ColumnDefinitions[0].Width.Value;
         Global.config.RightGridWidth = MiddleGrid.ColumnDefinitions[2].Width.Value;
+        _settingAnimator?.Destroy();
         Global.UpdateConfig();
         POPRESENCE.Shutdown();
         PLUSMUSIC.Shutdown();

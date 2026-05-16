@@ -10,15 +10,16 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
-using PizzaOven.UI;
 using MsBox.Avalonia;
 using MsBox.Avalonia.Enums;
+using PizzaOven.UI;
 
 namespace PizzaOven;
 
@@ -28,6 +29,8 @@ public partial class MainWindow
     private static readonly string[] themeimageExtensions = { ".png", ".jpg", ".jpeg", ".bmp" };
     private static readonly string[] transparentboxes = { "Logger", "ModDescription", "ModGrid" };
     private readonly Dictionary<string, string> defaultBrushHexes = new();
+
+    private PLUSRonnieAnimate _settingAnimator;
 
     private static string CustomAssetsFolder =>
         Path.Combine(Global.assemblyLocation, "CustomAssets");
@@ -178,11 +181,56 @@ public partial class MainWindow
 
     private void SettingsNav_Click(object sender, RoutedEventArgs e)
     {
+        if (_settingsPanels.Count == 0) InitSettingsPanels();
         if (sender is not Button btn) return;
         foreach (var panel in _settingsPanels.Values)
             panel.IsVisible = false;
         if (_settingsPanels.TryGetValue(btn.Name ?? "", out var target))
             target.IsVisible = true;
+    }
+
+    private void SettingsNavButton_PointerEntered(object sender, PointerEventArgs e)
+    {
+        if (sender is not Button btn) return;
+
+        _settingAnimator?.Destroy();
+        _settingAnimator = null;
+
+        var messages = new Dictionary<string, string>
+        {
+            ["NavTutorial"] = "You can use this to replay my tutorial",
+            ["NavLinks"] =
+                "Wanna suggest something? there's a form in there where you can suggest features, maybe join our discord or check out other social links",
+            ["NavAppSettings"] =
+                "Settings mainly to do with the application such as display on discord so people can see my cute little face on it or startup on opening your device",
+            ["NavLaunchSettings"] =
+                "Settings mainly to do with the launch like applying downgrades or customising what happens on launch",
+            ["NavModSettings"] =
+                "Settings mainly to do with mods such as PO. Files, Adding folder to categorise your mods or saving current Pizza Tower folder as mod",
+            ["NavCustomizaton"] = "Settings mainly to do with the looks of the app or the sounds of the app",
+            ["NavGMLoader"] =
+                "Settings to mainly convert your xdelta mods into GMLoader mods(recommended for mods that have smaller additions)",
+            ["NavCredits"] = "Contributions to PizzaOven+ and the original PizzaOven too"
+        };
+
+        if (btn.Name != null && messages.TryGetValue(btn.Name, out var message))
+        {
+            _settingAnimator = new PLUSRonnieAnimate();
+            var ronnieX = Bounds.Width - 500;
+            var ronnieY = Bounds.Height - 250;
+            _settingAnimator.Initialize(this, ronnieX, ronnieY);
+            _settingAnimator.SetExpression(btn.Name == "NavTutorial" ? "happy" : "thinking");
+            _settingAnimator.MakeTextbox(
+                _settingAnimator.GetX() + 110,
+                _settingAnimator.GetY() + 25,
+                message);
+        }
+    }
+
+    private void SettingsNavButton_PointerExited(object sender, PointerEventArgs e)
+    {
+        _settingAnimator?.Destroy();
+        _settingAnimator = null;
     }
 
     public void InitToggles()
@@ -316,7 +364,7 @@ public partial class MainWindow
         File.Copy(dataWin, dataWinPO, true);
         Global.logger.WriteLine("Created/overwritten data.win.po from current data.win.", LoggerType.Info);
     }
-    
+
     private void AssignFolder_Click(object sender, RoutedEventArgs e)
     {
         var selectedMods = ModGrid.SelectedItems.OfType<Mod>().ToArray();
@@ -326,6 +374,7 @@ public partial class MainWindow
             var fw = new PLUSFolderwindow(row.name, true);
             fw.ShowDialog(this);
         }
+
         ModsWatcher.EnableRaisingEvents = true;
         PLUSRefreshFolders();
     }
@@ -334,11 +383,11 @@ public partial class MainWindow
     {
         if (IsLoaded()) Refresh();
     }
-    
+
     private async void DeleteModFolder_Click(object? sender, RoutedEventArgs e)
     {
-        var selectedItem = ModFolderCombo.SelectedItem is ComboBoxItem cbi 
-            ? cbi.Content?.ToString() 
+        var selectedItem = ModFolderCombo.SelectedItem is ComboBoxItem cbi
+            ? cbi.Content?.ToString()
             : ModFolderCombo.SelectedItem?.ToString();
 
         if (selectedItem == "All")
@@ -349,8 +398,8 @@ public partial class MainWindow
                 ButtonEnum.YesNo,
                 MsBox.Avalonia.Enums.Icon.Question);
 
-            var allResult = await allBox.ShowWindowDialogAsync(this); 
-        
+            var allResult = await allBox.ShowWindowDialogAsync(this);
+
             if (allResult == ButtonResult.No)
                 return;
 
@@ -360,24 +409,21 @@ public partial class MainWindow
         }
 
         var box = MessageBoxManager.GetMessageBoxStandard(
-            "Confirm Delete", 
-            "Do you want to delete this folder?", 
-            ButtonEnum.YesNo, 
-            MsBox.Avalonia.Enums.Icon.Question); 
+            "Confirm Delete",
+            "Do you want to delete this folder?",
+            ButtonEnum.YesNo,
+            MsBox.Avalonia.Enums.Icon.Question);
 
         var result = await box.ShowWindowDialogAsync(this);
-    
+
         if (result == ButtonResult.No)
             return;
 
         var saves = PLUSSavesystem.read_ini_section("Folder");
-        for (int i = 0; i < saves.GetLength(0); i++)
-        {
+        for (var i = 0; i < saves.GetLength(0); i++)
             if (saves[i, 0] == selectedItem)
-            {
                 PLUSSavesystem.delete_ini_value("Folder", saves[i, 0]);
-            }
-        }
+
         ModFolderCombo.SelectedItem = "All";
         PLUSRefreshFolders();
     }
@@ -391,8 +437,8 @@ public partial class MainWindow
         var section = PLUSSavesystem.read_ini_section("Folder");
         if (section != null)
         {
-            var folders = new System.Collections.Generic.HashSet<string>();
-            for (int i = 0; i < section.GetLength(0); i++)
+            var folders = new HashSet<string>();
+            for (var i = 0; i < section.GetLength(0); i++)
                 if (!string.IsNullOrEmpty(section[i, 1]))
                     folders.Add(section[i, 1]);
             foreach (var f in folders)

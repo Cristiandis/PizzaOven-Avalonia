@@ -893,49 +893,65 @@
                                     Background="{DynamicResource SecondaryBrush}"
                                     BorderBrush="{DynamicResource SecondaryBrush}"
                                     Foreground="{DynamicResource TextBrush}"
-                                    FontSize="14" Click="SettingsNav_Click" />
+                                    FontSize="14" Click="SettingsNav_Click"
+                                    PointerEntered="SettingsNavButton_PointerEntered"
+                                    PointerExited="SettingsNavButton_PointerExited" />
                             <Button x:Name="NavLinks" Content="Links"
                                     HorizontalAlignment="Stretch" Height="35"
                                     Background="{DynamicResource SecondaryBrush}"
                                     BorderBrush="{DynamicResource SecondaryBrush}"
                                     Foreground="{DynamicResource TextBrush}"
-                                    FontSize="14" Click="SettingsNav_Click" />
+                                    FontSize="14" Click="SettingsNav_Click"
+                                    PointerEntered="SettingsNavButton_PointerEntered"
+                                    PointerExited="SettingsNavButton_PointerExited" />
                             <Button x:Name="NavAppSettings" Content="App Settings"
                                     HorizontalAlignment="Stretch" Height="35"
                                     Background="{DynamicResource SecondaryBrush}"
                                     BorderBrush="{DynamicResource SecondaryBrush}"
                                     Foreground="{DynamicResource TextBrush}"
-                                    FontSize="14" Click="SettingsNav_Click" />
+                                    FontSize="14" Click="SettingsNav_Click"
+                                    PointerEntered="SettingsNavButton_PointerEntered"
+                                    PointerExited="SettingsNavButton_PointerExited" />
                             <Button x:Name="NavLaunchSettings" Content="Launch Settings"
                                     HorizontalAlignment="Stretch" Height="35"
                                     Background="{DynamicResource SecondaryBrush}"
                                     BorderBrush="{DynamicResource SecondaryBrush}"
                                     Foreground="{DynamicResource TextBrush}"
-                                    FontSize="14" Click="SettingsNav_Click" />
+                                    FontSize="14" Click="SettingsNav_Click"
+                                    PointerEntered="SettingsNavButton_PointerEntered"
+                                    PointerExited="SettingsNavButton_PointerExited" />
                             <Button x:Name="NavModSettings" Content="Mod Settings"
                                     HorizontalAlignment="Stretch" Height="35"
                                     Background="{DynamicResource SecondaryBrush}"
                                     BorderBrush="{DynamicResource SecondaryBrush}"
                                     Foreground="{DynamicResource TextBrush}"
-                                    FontSize="14" Click="SettingsNav_Click" />
+                                    FontSize="14" Click="SettingsNav_Click"
+                                    PointerEntered="SettingsNavButton_PointerEntered"
+                                    PointerExited="SettingsNavButton_PointerExited" />
                             <Button x:Name="NavCustomizaton" Content="App Customization"
                                     HorizontalAlignment="Stretch" Height="35"
                                     Background="{DynamicResource SecondaryBrush}"
                                     BorderBrush="{DynamicResource SecondaryBrush}"
                                     Foreground="{DynamicResource TextBrush}"
-                                    FontSize="14" Click="SettingsNav_Click" />
+                                    FontSize="14" Click="SettingsNav_Click"
+                                    PointerEntered="SettingsNavButton_PointerEntered"
+                                    PointerExited="SettingsNavButton_PointerExited" />
                             <Button x:Name="NavGMLoader" Content="GMLoader"
                                     HorizontalAlignment="Stretch" Height="35"
                                     Background="{DynamicResource SecondaryBrush}"
                                     BorderBrush="{DynamicResource SecondaryBrush}"
                                     Foreground="{DynamicResource TextBrush}"
-                                    FontSize="14" Click="SettingsNav_Click" />
+                                    FontSize="14" Click="SettingsNav_Click"
+                                    PointerEntered="SettingsNavButton_PointerEntered"
+                                    PointerExited="SettingsNavButton_PointerExited" />
                             <Button x:Name="NavCredits" Content="Credits"
                                     HorizontalAlignment="Stretch" Height="35"
                                     Background="{DynamicResource SecondaryBrush}"
                                     BorderBrush="{DynamicResource SecondaryBrush}"
                                     Foreground="{DynamicResource TextBrush}"
-                                    FontSize="14" Click="SettingsNav_Click" />
+                                    FontSize="14" Click="SettingsNav_Click"
+                                    PointerEntered="SettingsNavButton_PointerEntered"
+                                    PointerExited="SettingsNavButton_PointerExited" />
                         </StackPanel>
                     </Border>
 
