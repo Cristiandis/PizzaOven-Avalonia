@@ -1549,7 +1549,7 @@ public partial class MainWindow : Window
         {
             PatchNotesPanel.Children.Clear();
             var url =
-                "https://api.gamebanana.com/Core/Item/Data?itemtype=Tool&itemid=21866&fields=Updates().bSubmissionHasUpdates(),Updates().aGetLatestUpdates()&return_keys=1";
+                "https://api.gamebanana.com/Core/Item/Data?itemtype=Tool&itemid=22718&fields=Updates().bSubmissionHasUpdates(),Updates().aGetLatestUpdates()&return_keys=1";
 
             using var client = new HttpClient();
             var jsonResponse = await client.GetStringAsync(url);
@@ -1559,6 +1559,12 @@ public partial class MainWindow : Window
 
             if (!root.TryGetProperty("Updates().aGetLatestUpdates()", out var updatesArray))
                 return;
+
+            if (updatesArray.GetArrayLength() == 0)
+            {
+                AddPatchNotes("No updates available", new[] { "" }, new string[0], new string[0], false, "");
+                return;
+            }
 
             var latest = updatesArray[0];
 
@@ -1598,13 +1604,7 @@ public partial class MainWindow : Window
             }
 
 
-            var topNotes = versionNumber switch
-            {
-                "1.0.4" => new[] { "Autoupdater should work from 1.0.3" },
-                "1.0.5" => new[] { "Patch Notes Tab Introduction" },
-                "1.0.6" => new[] { "Bug Fixes" },
-                _ => new[] { "" }
-            };
+            var topNotes = new[] { "" };
 
             AddPatchNotes(versionTitle, topNotes, notes, catnotes, warnupdate, timeago);
         }

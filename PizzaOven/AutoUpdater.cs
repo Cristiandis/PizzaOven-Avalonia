@@ -27,7 +27,7 @@ public class AutoUpdater
         try
         {
             const string requestUrl =
-                "https://api.gamebanana.com/Core/Item/Data?itemtype=Tool&itemid=12625" +
+                "https://api.gamebanana.com/Core/Item/Data?itemtype=Tool&itemid=22718" +
                 "&fields=Updates().bSubmissionHasUpdates(),Updates().aGetLatestUpdates(),Files().aFiles()&return_keys=1";
 
             var response = JsonSerializer.Deserialize<GameBananaItem>(await _client.GetStringAsync(requestUrl));
