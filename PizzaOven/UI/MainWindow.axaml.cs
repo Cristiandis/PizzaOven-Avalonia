@@ -373,7 +373,8 @@ public partial class MainWindow : Window
                     {
                         WorkingDirectory = Path.GetDirectoryName(Global.config.Launcher),
                         UseShellExecute = true,
-                        Verb = "open"
+                        Verb = "open",
+                        Arguments = PLUSSavesystem.read_ini_bool("Launch", "Debug", false) ? "--debug" : ""
                     };
                 Process.Start(ps);
             }
