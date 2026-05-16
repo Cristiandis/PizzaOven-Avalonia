@@ -186,17 +186,10 @@ public partial class MainWindow : Window
         {
             try
             {
-                // Check if announcement needs showing before creating the window
                 var parse = PLUSSavesystem.read_ini("Announcement", "lastshown");
                 PLUSAnnouncementWindow.PLUSAnnouncement? ann = null;
-                try
-                {
-                    ann = PLUSAnnouncementWindow.GetLatestAnnouncement();
-                }
-                catch
-                {
-                    return;
-                }
+                try { ann = PLUSAnnouncementWindow.GetLatestAnnouncementAsync().GetAwaiter().GetResult(); }
+                catch { return; }
 
                 if (ann == null || !ann.enabled) return;
                 if (parse != "")
@@ -204,15 +197,13 @@ public partial class MainWindow : Window
                         parsed > ann.date.ToUniversalTime())
                         return;
 
-                Dispatcher.UIThread.Post(async () =>
+                Dispatcher.UIThread.Post(() =>
                 {
                     var announcementWindow = new PLUSAnnouncementWindow(ann);
-                    await announcementWindow.ShowDialog(this);
+                    announcementWindow.Show(this);
                 });
             }
-            catch
-            {
-            }
+            catch { }
         });
 
         Task.Run(async () =>
@@ -226,9 +217,7 @@ public partial class MainWindow : Window
                 await PLUSMUSIC.InitializeAsync();
                 PLUSMUSIC.StartMusicWatcher();
             }
-            catch
-            {
-            }
+            catch { }
         });
     }
 

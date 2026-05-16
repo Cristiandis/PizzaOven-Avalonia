@@ -1,76 +1,18 @@
 using System;
-using System.Diagnostics;
-using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
 
 namespace PizzaOven;
 
 public partial class PLUSAnnouncementWindow : Window
 {
-    public PLUSAnnouncementWindow(PLUSAnnouncement ann)
-    {
-        Closed += (s, e) => IsClosed = true;
-        Title = "Announcement";
-        Height = 300;
-        Width = 500;
-        WindowStartupLocation = WindowStartupLocation.CenterScreen;
-        Background = new SolidColorBrush(Color.Parse("#353535"));
-        CanResize = false;
-
-        Content = new StackPanel
-        {
-            Margin = new Thickness(20),
-            Spacing = 16,
-            Children =
-            {
-                new TextBlock
-                {
-                    Text = ann.message,
-                    Foreground = Brushes.White,
-                    TextWrapping = TextWrapping.Wrap,
-                    FontSize = 16
-                },
-                new Button
-                {
-                    Content = "OK",
-                    HorizontalAlignment = HorizontalAlignment.Center
-                }
-            }
-        };
-
-        var okBtn = ((StackPanel)Content).Children
-            .OfType<Button>().First();
-        okBtn.Click += (_, _) => Close();
-
-        Opened += (s, e) => ShowAnnouncement(ann);
-    }
-
     public bool IsClosed { get; private set; }
-
-    public static PLUSAnnouncement? GetLatestAnnouncement()
-    {
-        const string url = "https://raw.githubusercontent.com/Cristiandis/PizzaOven-Avalonia/refs/heads/PO%2B/announcements.json";
-        using var client = new HttpClient();
-        var json = client.GetStringAsync(url).GetAwaiter().GetResult();
-        return JsonSerializer.Deserialize<PLUSAnnouncement>(json);
-    }
-
-    private void ShowAnnouncement(PLUSAnnouncement ann)
-    {
-        Global.logger.WriteLine($"[Announcement] {ann.message}", LoggerType.Info);
-
-        PLUSSavesystem.write_ini("Announcement", "lastshown",
-            DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ"));
-
-        if (!string.IsNullOrEmpty(ann.url))
-            Process.Start(
-                new ProcessStartInfo(ann.url) { UseShellExecute = true });
-    }
+    public PLUSRonnieAnimate announcewindowanimator;
 
     public class PLUSAnnouncement
     {
@@ -80,5 +22,63 @@ public partial class PLUSAnnouncementWindow : Window
         public string expression { get; set; }
         public bool shake { get; set; }
         public string url { get; set; }
+    }
+
+    public static async Task<PLUSAnnouncement?> GetLatestAnnouncementAsync()
+    {
+        const string url = "https://raw.githubusercontent.com/Cristiandis/PizzaOven-Avalonia/refs/heads/PO%2B/announcements.json";
+        using var client = new HttpClient();
+        var json = await client.GetStringAsync(url);
+        return JsonSerializer.Deserialize<PLUSAnnouncement>(json);
+    }
+
+    public PLUSAnnouncementWindow(PLUSAnnouncement ann)
+    {
+        InitializeComponent();
+        Closed += (s, e) => IsClosed = true;
+        Opened += async (s, e) => await ShowAnnouncementAsync(ann);
+    }
+
+    private async Task ShowAnnouncementAsync(PLUSAnnouncement ann)
+    {
+        try
+        {
+            announcewindowanimator = new PLUSRonnieAnimate();
+            announcewindowanimator.Initialize(this, 10, 50, 1.5);
+
+
+            try { announcewindowanimator.SetExpression(ann.expression); }
+            catch { }
+
+            if (ann.shake)
+                announcewindowanimator.ShakeVisual(5, 5);
+
+            try
+            {
+                announcewindowanimator.MakeTextbox(
+                    announcewindowanimator.GetX() + 110,
+                    announcewindowanimator.GetY() + 25,
+                    ann.message);
+                double textboxHeight = PLUSRonnieAnimate.MeasureTextBlockHeight(ann.message);
+                Height = 50 + 25 + textboxHeight + 80;
+            }
+            catch { }
+
+            Width = 500;
+
+            SizeChanged += (s, e) =>
+            {
+                if (announcewindowanimator?._overlayCanvas == null || IsClosed) return;
+                announcewindowanimator._overlayCanvas.Width = Bounds.Width;
+                announcewindowanimator._overlayCanvas.Height = Bounds.Height;
+            };
+
+            PLUSSavesystem.write_ini("Announcement", "lastshown",
+                DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ"));
+        }
+        catch
+        {
+            Close();
+        }
     }
 }
