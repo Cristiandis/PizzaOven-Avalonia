@@ -188,8 +188,14 @@ public partial class MainWindow : Window
             {
                 var parse = PLUSSavesystem.read_ini("Announcement", "lastshown");
                 PLUSAnnouncementWindow.PLUSAnnouncement? ann = null;
-                try { ann = PLUSAnnouncementWindow.GetLatestAnnouncementAsync().GetAwaiter().GetResult(); }
-                catch { return; }
+                try
+                {
+                    ann = PLUSAnnouncementWindow.GetLatestAnnouncementAsync().GetAwaiter().GetResult();
+                }
+                catch
+                {
+                    return;
+                }
 
                 if (ann == null || !ann.enabled) return;
                 if (parse != "")
@@ -203,7 +209,9 @@ public partial class MainWindow : Window
                     announcementWindow.Show(this);
                 });
             }
-            catch { }
+            catch
+            {
+            }
         });
 
         Task.Run(async () =>
@@ -217,7 +225,9 @@ public partial class MainWindow : Window
                 await PLUSMUSIC.InitializeAsync();
                 PLUSMUSIC.StartMusicWatcher();
             }
-            catch { }
+            catch
+            {
+            }
         });
     }
 
@@ -235,7 +245,7 @@ public partial class MainWindow : Window
             Dispatcher.UIThread.Invoke(() =>
             {
                 var index = Global.ModList.ToList().FindIndex(mod => mod.enabled);
-                if (index != -1)
+                if (index != -1 && index < ModGrid.Items.Count)
                 {
                     ModGrid.SelectedItem = ModGrid.Items[index];
                     ModGrid.ScrollIntoView(ModGrid.Items[index]);
@@ -261,6 +271,7 @@ public partial class MainWindow : Window
                     var modFolder = PLUSSavesystem.read_ini("Folder", Path.GetFileName(mod), "All");
                     if (modFolder != currentFolder) continue;
                 }
+
                 var m = new Mod();
                 m.name = Path.GetFileName(mod);
                 m.enabled = false;
@@ -373,7 +384,7 @@ public partial class MainWindow : Window
                         Arguments = PLUSSavesystem.read_ini_bool("Launch", "Debug", false) ? "--debug" : ""
                     };
                 Process.Start(ps);
-            }       
+            }
             catch (Exception ex)
             {
                 Global.logger.WriteLine($"Couldn't launch {path} ({ex.Message})", LoggerType.Error);
@@ -969,21 +980,18 @@ public partial class MainWindow : Window
                 }
             });
 
+            if (TypeBox.SelectedIndex < 0)
+                TypeBox.SelectedIndex = 0;
+
             filterSelect = true;
             FilterBox.ItemsSource = FilterBoxList;
-
-            if (cats.ContainsKey((TypeFilter)TypeBox.SelectedIndex))
-                CatBox.ItemsSource = All.Concat(cats[(TypeFilter)TypeBox.SelectedIndex]
-                    .Where(x => x.RootID == 0).OrderBy(y => y.ID));
-            else
-                CatBox.ItemsSource = None;
-
+            CatBox.ItemsSource = All.Concat(cats[(TypeFilter)TypeBox.SelectedIndex]
+                .Where(x => x.RootID == 0).OrderBy(y => y.ID));
             SubCatBox.ItemsSource = None;
             CatBox.SelectedIndex = 0;
             SubCatBox.SelectedIndex = 0;
             FilterBox.SelectedIndex = 1;
             filterSelect = false;
-
             RefreshFilter();
             selected = true;
         }
