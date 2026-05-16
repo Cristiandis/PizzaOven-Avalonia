@@ -180,6 +180,7 @@ public partial class MainWindow : Window
         InitSettingsPanels();
         InitThemes();
         InitToggles();
+        PLUSRefreshFolders();
 
         Task.Run(() =>
         {
@@ -262,9 +263,15 @@ public partial class MainWindow : Window
     private async void Refresh()
     {
         var currentModDirectory = $@"{Global.assemblyLocation}{Global.s}Mods";
+        var currentFolder = ModFolderCombo?.SelectedItem as string ?? "All";
         foreach (var mod in Directory.GetDirectories(currentModDirectory))
             if (Global.ModList.ToList().Where(x => x.name == Path.GetFileName(mod)).Count() == 0)
             {
+                if (currentFolder != "All")
+                {
+                    var modFolder = PLUSSavesystem.read_ini("Folder", Path.GetFileName(mod), "All");
+                    if (modFolder != currentFolder) continue;
+                }
                 var m = new Mod();
                 m.name = Path.GetFileName(mod);
                 m.enabled = false;
@@ -377,7 +384,7 @@ public partial class MainWindow : Window
                         Arguments = PLUSSavesystem.read_ini_bool("Launch", "Debug", false) ? "--debug" : ""
                     };
                 Process.Start(ps);
-            }
+            }       
             catch (Exception ex)
             {
                 Global.logger.WriteLine($"Couldn't launch {path} ({ex.Message})", LoggerType.Error);

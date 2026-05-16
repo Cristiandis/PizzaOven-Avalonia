@@ -16,6 +16,9 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using PizzaOven.UI;
+using MsBox.Avalonia;
+using MsBox.Avalonia.Enums;
 
 namespace PizzaOven;
 
@@ -312,6 +315,93 @@ public partial class MainWindow
 
         File.Copy(dataWin, dataWinPO, true);
         Global.logger.WriteLine("Created/overwritten data.win.po from current data.win.", LoggerType.Info);
+    }
+    
+    private void AssignFolder_Click(object sender, RoutedEventArgs e)
+    {
+        var selectedMods = ModGrid.SelectedItems.OfType<Mod>().ToArray();
+        ModsWatcher.EnableRaisingEvents = false;
+        foreach (var row in selectedMods)
+        {
+            var fw = new PLUSFolderwindow(row.name, true);
+            fw.ShowDialog(this);
+        }
+        ModsWatcher.EnableRaisingEvents = true;
+        PLUSRefreshFolders();
+    }
+
+    private void ModFolderCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (IsLoaded()) Refresh();
+    }
+    
+    private async void DeleteModFolder_Click(object? sender, RoutedEventArgs e)
+    {
+        var selectedItem = ModFolderCombo.SelectedItem is ComboBoxItem cbi 
+            ? cbi.Content?.ToString() 
+            : ModFolderCombo.SelectedItem?.ToString();
+
+        if (selectedItem == "All")
+        {
+            var allBox = MessageBoxManager.GetMessageBoxStandard(
+                "Confirm Delete",
+                "Do you want to delete ALL folders?",
+                ButtonEnum.YesNo,
+                MsBox.Avalonia.Enums.Icon.Question);
+
+            var allResult = await allBox.ShowWindowDialogAsync(this); 
+        
+            if (allResult == ButtonResult.No)
+                return;
+
+            PLUSSavesystem.delete_ini_section("Folder");
+            PLUSRefreshFolders();
+            return;
+        }
+
+        var box = MessageBoxManager.GetMessageBoxStandard(
+            "Confirm Delete", 
+            "Do you want to delete this folder?", 
+            ButtonEnum.YesNo, 
+            MsBox.Avalonia.Enums.Icon.Question); 
+
+        var result = await box.ShowWindowDialogAsync(this);
+    
+        if (result == ButtonResult.No)
+            return;
+
+        var saves = PLUSSavesystem.read_ini_section("Folder");
+        for (int i = 0; i < saves.GetLength(0); i++)
+        {
+            if (saves[i, 0] == selectedItem)
+            {
+                PLUSSavesystem.delete_ini_value("Folder", saves[i, 0]);
+            }
+        }
+        ModFolderCombo.SelectedItem = "All";
+        PLUSRefreshFolders();
+    }
+
+    private void PLUSRefreshFolders()
+    {
+        var current = ModFolderCombo.SelectedItem as string;
+        ModFolderCombo.Items.Clear();
+        ModFolderCombo.Items.Add("All");
+
+        var section = PLUSSavesystem.read_ini_section("Folder");
+        if (section != null)
+        {
+            var folders = new System.Collections.Generic.HashSet<string>();
+            for (int i = 0; i < section.GetLength(0); i++)
+                if (!string.IsNullOrEmpty(section[i, 1]))
+                    folders.Add(section[i, 1]);
+            foreach (var f in folders)
+                ModFolderCombo.Items.Add(f);
+        }
+
+        ModFolderCombo.SelectedItem = current ?? "All";
+        if (ModFolderCombo.SelectedItem == null)
+            ModFolderCombo.SelectedIndex = 0;
     }
 
     #endregion

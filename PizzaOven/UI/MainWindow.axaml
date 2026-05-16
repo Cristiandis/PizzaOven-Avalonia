@@ -405,6 +405,7 @@
                                         <MenuItem Header="Rename Mod" Click="EditItem_Click" />
                                         <MenuItem Header="Open Mod Folder" Click="OpenItem_Click" />
                                         <MenuItem Header="Delete Mod" Click="DeleteItem_Click" />
+                                        <MenuItem Header="Assign to Folder" Click="AssignFolder_Click"/>
                                     </ContextMenu>
                                 </ListBox.ContextMenu>
                                 <ListBox.Styles>
@@ -1100,6 +1101,14 @@
                                         BorderBrush="{DynamicResource SecondaryBrush}"
                                         Foreground="{DynamicResource TextBrush}"
                                         FontSize="14" Click="MakeDataWinPO_Click" />
+                                <TextBlock Text="Mod Folder (You can set folders by selecting the mod, right clicking and adding a folder name):" Margin="0,5,0,2" Foreground="{DynamicResource TextBrush}"/>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <ComboBox x:Name="ModFolderCombo" Height="35" MinWidth="120"
+                                              VerticalAlignment="Center"
+                                              SelectionChanged="ModFolderCombo_SelectionChanged"/>
+
+                                    <Button x:Name="DeleteModFolderButton" Content="X" Width="35" Height="35" Margin="5,0,0,0" Click="DeleteModFolder_Click" />
+                                </StackPanel>
                             </StackPanel>
 
                             <!-- GMLoader -->
