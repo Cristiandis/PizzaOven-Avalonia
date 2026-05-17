@@ -7,7 +7,7 @@
         xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
         xmlns:local="using:PizzaOven"
         Background="{DynamicResource PrimaryBrush}"
-        Title="Pizza Oven"
+        Title="Pizza Oven+ | An Extenstion by SurfyCrescent97"
         mc:Ignorable="d"
         WindowStartupLocation="CenterScreen"
         Height="750" Width="1280" MinHeight="750" MinWidth="1280"
