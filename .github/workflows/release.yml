@@ -8,6 +8,7 @@ on:
 jobs:
   build-linux:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -50,67 +51,61 @@ jobs:
           mkdir -p "$PKGDIR/usr/share/applications"
           mkdir -p "$PKGDIR/usr/share/icons/hicolor/256x256/apps"
 
-          # Copy entire publish output — includes Themes, GMLOADER-windows,
-          # GMLOADER-linux, Dependencies, etc.
           cp -r publish/linux/. "$PKGDIR/usr/lib/pizzaoven/"
 
-          # Ensure executables have correct permissions
           chmod -f 755 "$PKGDIR/usr/lib/pizzaoven/Dependencies/DepotDownloader-linux/DepotDownloader" || true
           find "$PKGDIR/usr/lib/pizzaoven/GMLOADER-linux" -type f -exec chmod 755 {} + 2>/dev/null || true
           find "$PKGDIR/usr/lib/pizzaoven/GMLOADER-windows" -type f -exec chmod 755 {} + 2>/dev/null || true
 
-          # Wrapper script — printf avoids heredoc-in-YAML column-0 issues
-          printf '#!/bin/sh\nexec /usr/lib/pizzaoven/PizzaOven "$@"\n' \
+          printf '%s\n' \
+            'Package: pizzaoven' \
+            "Version: ${VERSION}" \
+            'Section: games' \
+            'Priority: optional' \
+            'Architecture: amd64' \
+            'Depends: dotnet-runtime-8.0, xdelta3' \
+            'Maintainer: Cristiandis <pizzaoven@izzoserver.top>' \
+            'Homepage: https://github.com/Cristiandis/PizzaOven-Avalonia' \
+            'Description: Cross-platform mod manager for Pizza Tower' \
+            ' Pizza Oven allows you to download, install, and manage mods' \
+            ' for Pizza Tower using GameBanana integration.' \
+            > "$PKGDIR/DEBIAN/control"
+
+          printf '%s\n' \
+            '#!/bin/sh' \
+            'exec /usr/lib/pizzaoven/PizzaOven "$@"' \
             > "$PKGDIR/usr/bin/pizzaoven"
+
           chmod 755 "$PKGDIR/usr/bin/pizzaoven"
 
-          # DEBIAN/control — written with python3 so content has no leading
-          # whitespace (dpkg is strict: field lines must start at column 0)
-          python3 -c "
-          import sys
-          content = '''Package: ${PKGNAME}
-Version: ${VERSION}
-Section: games
-Priority: optional
-Architecture: ${ARCH}
-Depends: dotnet-runtime-8.0, xdelta3
-Maintainer: Cristiandis <pizzaoven@izzoserver.top>
-Homepage: https://github.com/Cristiandis/PizzaOven-Avalonia
-Description: Cross-platform mod manager for Pizza Tower
- Pizza Oven allows you to download, install, and manage mods
- for Pizza Tower using GameBanana integration.
-'''
-          open('${PKGDIR}/DEBIAN/control', 'w').write(content)
-          "
+          printf '%s\n' \
+            '[Desktop Entry]' \
+            'Name=Pizza Oven+' \
+            'Comment=Mod manager for Pizza Tower' \
+            'Exec=/usr/bin/pizzaoven' \
+            'Icon=pizzaoven' \
+            'Type=Application' \
+            'Categories=Game;' \
+            > "$PKGDIR/usr/share/applications/pizzaoven.desktop"
 
-          # Desktop entries
-          python3 -c "
-          open('${PKGDIR}/usr/share/applications/pizzaoven.desktop', 'w').write('''[Desktop Entry]
-Name=Pizza Oven+
-Comment=Mod manager for Pizza Tower
-Exec=/usr/bin/pizzaoven
-Icon=pizzaoven
-Type=Application
-Categories=Game;
-''')
-          "
-
-          python3 -c "
-          open('${PKGDIR}/usr/share/applications/pizzaoven-handler.desktop', 'w').write('''[Desktop Entry]
-Name=Pizza Oven+
-Exec=/usr/bin/pizzaoven -download %u
-Type=Application
-NoDisplay=true
-MimeType=x-scheme-handler/pizzaovenplus;
-''')
-          "
+          printf '%s\n' \
+            '[Desktop Entry]' \
+            'Name=Pizza Oven+' \
+            'Exec=/usr/bin/pizzaoven -download %u' \
+            'Type=Application' \
+            'NoDisplay=true' \
+            'MimeType=x-scheme-handler/pizzaovenplus;' \
+            > "$PKGDIR/usr/share/applications/pizzaoven-handler.desktop"
 
           cp PizzaOven/Assets/PizzaOvenIcon.png \
             "$PKGDIR/usr/share/icons/hicolor/256x256/apps/pizzaoven.png"
 
-          # postinst — MIME type must match handler desktop MimeType= exactly
-          printf '#!/bin/sh\nxdg-mime default pizzaoven-handler.desktop x-scheme-handler/pizzaovenplus\nupdate-desktop-database /usr/share/applications || true\n' \
+          printf '%s\n' \
+            '#!/bin/sh' \
+            'xdg-mime default pizzaoven-handler.desktop x-scheme-handler/pizzaovenplus' \
+            'update-desktop-database /usr/share/applications || true' \
             > "$PKGDIR/DEBIAN/postinst"
+
           chmod 755 "$PKGDIR/DEBIAN/postinst"
 
           dpkg-deb --build "$PKGDIR"
@@ -124,103 +119,70 @@ MimeType=x-scheme-handler/pizzaovenplus;
       - name: Build .rpm
         run: |
           VERSION=${GITHUB_REF_NAME#v}
+
+          sudo apt-get update
           sudo apt-get install -y rpm
 
-          mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+          mkdir -p ~/rpmbuild/BUILD
+          mkdir -p ~/rpmbuild/RPMS
+          mkdir -p ~/rpmbuild/SOURCES
+          mkdir -p ~/rpmbuild/SPECS
+          mkdir -p ~/rpmbuild/SRPMS
+
           cp PizzaOven-linux-x64.tar.gz ~/rpmbuild/SOURCES/
 
-          # Write spec file with python3 — avoids heredoc terminator at col 0
-          # which would break YAML parsing of this workflow file
-          python3 -c "
-          import subprocess, datetime
-          version = '${VERSION}'
-          date = datetime.datetime.now().strftime('%a %b %d %Y')
-          spec = f'''Name:           pizzaoven
-Version:        {version}
-Release:        1%{{?dist}}
-Summary:        Cross-platform mod manager for Pizza Tower
-License:        GPLv3
-URL:            https://github.com/Cristiandis/PizzaOven-Avalonia
-Source0:        PizzaOven-linux-x64.tar.gz
+          SPEC=~/rpmbuild/SPECS/pizzaoven.spec
 
-Requires:       dotnet-runtime-8.0
-Requires:       xdelta
+          printf '%s\n' \
+            'Name: pizzaoven' \
+            "Version: ${VERSION}" \
+            'Release: 1' \
+            'Summary: Cross-platform mod manager for Pizza Tower' \
+            '' \
+            'License: GPLv3' \
+            'URL: https://github.com/Cristiandis/PizzaOven-Avalonia' \
+            'Source0: PizzaOven-linux-x64.tar.gz' \
+            '' \
+            'Requires: dotnet-runtime-8.0' \
+            'Requires: xdelta' \
+            '' \
+            'BuildArch: x86_64' \
+            '' \
+            '%description' \
+            'Pizza Oven allows downloading and managing Pizza Tower mods.' \
+            '' \
+            '%prep' \
+            '%setup -q -c' \
+            '' \
+            '%install' \
+            'mkdir -p %{buildroot}/usr/lib/pizzaoven' \
+            'cp -r * %{buildroot}/usr/lib/pizzaoven/' \
+            '' \
+            'mkdir -p %{buildroot}/usr/bin' \
+            'printf "#!/bin/sh\nexec /usr/lib/pizzaoven/PizzaOven \"\$@\"\n" > %{buildroot}/usr/bin/pizzaoven' \
+            'chmod 755 %{buildroot}/usr/bin/pizzaoven' \
+            '' \
+            'mkdir -p %{buildroot}/usr/share/applications' \
+            'printf "[Desktop Entry]\nName=Pizza Oven+\nComment=Mod manager for Pizza Tower\nExec=/usr/bin/pizzaoven\nIcon=pizzaoven\nType=Application\nCategories=Game;\n" > %{buildroot}/usr/share/applications/pizzaoven.desktop' \
+            'printf "[Desktop Entry]\nName=Pizza Oven+\nExec=/usr/bin/pizzaoven -download %%u\nType=Application\nNoDisplay=true\nMimeType=x-scheme-handler/pizzaovenplus;\n" > %{buildroot}/usr/share/applications/pizzaoven-handler.desktop' \
+            '' \
+            'mkdir -p %{buildroot}/usr/share/icons/hicolor/256x256/apps' \
+            'cp pizzaoven.png %{buildroot}/usr/share/icons/hicolor/256x256/apps/pizzaoven.png' \
+            '' \
+            '%post' \
+            'xdg-mime default pizzaoven-handler.desktop x-scheme-handler/pizzaovenplus' \
+            'update-desktop-database /usr/share/applications || true' \
+            '' \
+            '%files' \
+            '/usr/lib/pizzaoven' \
+            '/usr/bin/pizzaoven' \
+            '/usr/share/applications/pizzaoven.desktop' \
+            '/usr/share/applications/pizzaoven-handler.desktop' \
+            '/usr/share/icons/hicolor/256x256/apps/pizzaoven.png' \
+            > "$SPEC"
 
-BuildArch:      x86_64
+          rpmbuild -ba "$SPEC"
 
-%description
-Pizza Oven allows you to download, install, and manage mods
-for Pizza Tower using GameBanana integration.
-
-%prep
-%setup -q -c
-
-%install
-install -Dm755 PizzaOven %{{buildroot}}/usr/lib/pizzaoven/PizzaOven
-install -Dm644 pizzaoven.png %{{buildroot}}/usr/share/icons/hicolor/256x256/apps/pizzaoven.png
-
-if [ -d Themes ]; then
-  find Themes -name \"*.potheme\" | while read -r f; do
-    install -Dm644 \"\$f\" \"%{{buildroot}}/usr/lib/pizzaoven/\$f\"
-  done
-fi
-
-if [ -d GMLOADER-windows ]; then
-  find GMLOADER-windows -type f | while read -r f; do
-    install -Dm755 \"\$f\" \"%{{buildroot}}/usr/lib/pizzaoven/\$f\"
-  done
-fi
-
-if [ -d GMLOADER-linux ]; then
-  find GMLOADER-linux -type f | while read -r f; do
-    install -Dm755 \"\$f\" \"%{{buildroot}}/usr/lib/pizzaoven/\$f\"
-  done
-fi
-
-if [ -d Dependencies ]; then
-  find Dependencies -type f | while read -r f; do
-    install -Dm644 \"\$f\" \"%{{buildroot}}/usr/lib/pizzaoven/\$f\"
-  done
-  chmod -f 755 \\
-    \"%{{buildroot}}/usr/lib/pizzaoven/Dependencies/DepotDownloader-linux/DepotDownloader\" \\
-    || true
-fi
-
-install -dm755 %{{buildroot}}/usr/bin
-printf \"#!/bin/sh\\nexec /usr/lib/pizzaoven/PizzaOven \\\\\"\\$@\\\\\"\\n\" \\
-  > %{{buildroot}}/usr/bin/pizzaoven
-chmod 755 %{{buildroot}}/usr/bin/pizzaoven
-
-install -dm755 %{{buildroot}}/usr/share/applications
-printf \"[Desktop Entry]\\nName=Pizza Oven+\\nComment=Mod manager for Pizza Tower\\nExec=/usr/bin/pizzaoven\\nIcon=pizzaoven\\nType=Application\\nCategories=Game;\\n\" \\
-  > %{{buildroot}}/usr/share/applications/pizzaoven.desktop
-printf \"[Desktop Entry]\\nName=Pizza Oven+\\nExec=/usr/bin/pizzaoven -download %%u\\nType=Application\\nNoDisplay=true\\nMimeType=x-scheme-handler/pizzaovenplus;\\n\" \\
-  > %{{buildroot}}/usr/share/applications/pizzaoven-handler.desktop
-
-%post
-xdg-mime default pizzaoven-handler.desktop x-scheme-handler/pizzaovenplus
-update-desktop-database /usr/share/applications || true
-
-%files
-%dir /usr/lib/pizzaoven
-/usr/lib/pizzaoven/PizzaOven
-/usr/lib/pizzaoven/Themes/
-/usr/lib/pizzaoven/GMLOADER-windows/
-/usr/lib/pizzaoven/GMLOADER-linux/
-/usr/lib/pizzaoven/Dependencies/
-/usr/bin/pizzaoven
-/usr/share/applications/pizzaoven.desktop
-/usr/share/applications/pizzaoven-handler.desktop
-/usr/share/icons/hicolor/256x256/apps/pizzaoven.png
-
-%changelog
-* {date} Cristian <pizzaoven@izzoserver.top> - {version}-1
-- Release {version}
-'''
-          open('/root/rpmbuild/SPECS/pizzaoven.spec', 'w').write(spec)
-          "
-
-          rpmbuild -ba ~/rpmbuild/SPECS/pizzaoven.spec
           cp ~/rpmbuild/RPMS/x86_64/pizzaoven-*.rpm .
 
       - name: Upload .rpm
@@ -231,6 +193,7 @@ update-desktop-database /usr/share/applications || true
 
   build-windows:
     runs-on: windows-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -246,7 +209,8 @@ update-desktop-database /usr/share/applications || true
 
       - name: Zip Windows build
         run: |
-          Compress-Archive -Path publish/windows/* -DestinationPath PizzaOven-windows-x64.zip
+          Compress-Archive -Path publish/windows/* \
+            -DestinationPath PizzaOven-windows-x64.zip
 
       - name: Upload Windows zip
         uses: actions/upload-artifact@v4
@@ -255,10 +219,15 @@ update-desktop-database /usr/share/applications || true
           path: PizzaOven-windows-x64.zip
 
   release:
-    needs: [build-linux, build-windows]
+    needs:
+      - build-linux
+      - build-windows
+
     runs-on: ubuntu-latest
+
     permissions:
       contents: write
+
     steps:
       - uses: actions/checkout@v4
 
@@ -293,6 +262,7 @@ update-desktop-database /usr/share/applications || true
             ### Requirements
             - .NET 8 Runtime
             - xdelta3 (Linux only, not required on Windows)
+
           files: |
             artifacts/linux-tarball/PizzaOven-linux-x64.tar.gz
             artifacts/deb-package/pizzaoven_*.deb
