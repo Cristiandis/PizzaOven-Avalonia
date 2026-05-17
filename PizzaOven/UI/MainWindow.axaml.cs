@@ -118,7 +118,7 @@ public partial class MainWindow : Window
         var PizzaOvenVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
         version = PizzaOvenVersion.Substring(0, PizzaOvenVersion.LastIndexOf('.'));
 
-        Global.logger.WriteLine($"Launched PizzaOven Mod Manager v{version}!", LoggerType.Info);
+        Global.logger.WriteLine($"Launched PizzaOven+ Mod Manager v{version}!", LoggerType.Info);
 
         if (File.Exists($@"{Global.assemblyLocation}{Global.s}Config.json"))
             try
