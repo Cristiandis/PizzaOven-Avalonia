@@ -160,9 +160,8 @@ public partial class MainWindow
         var url = btn.Name switch
         {
             "OpenSuggestForm" =>
-                "https://docs.google.com/forms/d/e/1FAIpQLScI-8L6-ATpE6_ip3gzESXAWi4B_0pwHiHI5g83fb3SlLTM_A/viewform",
-            "OpenEmail" => "https://mail.google.com/mail/u/0/#inbox",
-            "OpenTwitterX" => "https://x.com/SurfyCrescent97",
+                "https://github.com/Cristiandis/PizzaOven-Avalonia/issues/new?template=feature_request.md",
+            "BugReport" => "https://github.com/Cristiandis/PizzaOven-Avalonia/issues/new?template=bug_report.md",
             "OpenDiscord" => "https://discord.gg/snv7CrRQzx",
             _ => null
         };
