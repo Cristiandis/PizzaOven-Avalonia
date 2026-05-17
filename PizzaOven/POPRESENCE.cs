@@ -1,7 +1,4 @@
 using System;
-using System.IO;
-using System.Reflection;
-using System.Text.Json;
 using DiscordRPC;
 using DiscordRPC.Logging;
 
@@ -15,13 +12,7 @@ public static class POPRESENCE
     {
         try
         {
-            using var stream = Assembly.GetEntryAssembly()!
-                .GetManifestResourceStream("PizzaOven.POSECRETS.json")!;
-            using var reader = new StreamReader(stream);
-            var appId = JsonSerializer
-                .Deserialize<JsonElement>(reader.ReadToEnd())
-                .GetProperty("discord_appid")
-                .GetString();
+            var appId = "1503088062647898222";
             
             _client = new DiscordRpcClient(appId)
             {
