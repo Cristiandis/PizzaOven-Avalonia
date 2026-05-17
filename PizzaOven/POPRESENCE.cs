@@ -30,8 +30,8 @@ public static class POPRESENCE
             _client.Initialize();
             _client.SetPresence(new RichPresence
             {
-                Details = "Managing Pizza Tower mods",
-                State = "Pizza Oven Mod Manager",
+                Details = "PizzaOven but More",
+                State = "Tool by SurfyCrescent97",
                 Assets = new Assets
                 {
                     LargeImageKey = "pizzaoven",
