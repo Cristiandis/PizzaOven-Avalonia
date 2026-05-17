@@ -7,7 +7,7 @@
         CanResize="False"
         WindowStartupLocation="CenterOwner">
 
-  <Grid RowDefinitions="*,Auto" Margin="16">
+  <Grid RowDefinitions="*,Auto" Margin="16" x:Name="DownloadGrid">
     <StackPanel Grid.Row="0" Spacing="12">
       <Image x:Name="Preview" Height="120" Stretch="Uniform" />
       <TextBlock x:Name="DownloadText" Foreground="#f2f2f2"
