@@ -21,12 +21,39 @@ for Pizza Tower using GameBanana integration.
 %install
 install -Dm755 PizzaOven %{buildroot}/usr/lib/pizzaoven/PizzaOven
 
-# Wrapper script
+# Icon
+install -Dm644 pizzaoven.png %{buildroot}/usr/share/icons/hicolor/256x256/apps/pizzaoven.png
+
+# Themes
+if [ -d Themes ]; then
+    find Themes -name "*.potheme" | while read -r f; do
+        install -Dm644 "$f" "%{buildroot}/usr/lib/pizzaoven/$f"
+    done
+fi
+
+# GMLoader
+if [ -d GMLOADER-windows ]; then
+    find GMLOADER-windows -type f | while read -r f; do
+        install -Dm755 "$f" "%{buildroot}/usr/lib/pizzaoven/$f"
+    done
+fi
+
+# Dependencies
+if [ -d Dependencies ]; then
+    find Dependencies -type f | while read -r f; do
+        install -Dm644 "$f" "%{buildroot}/usr/lib/pizzaoven/$f"
+    done
+    chmod -f 755 \
+        "%{buildroot}/usr/lib/pizzaoven/Dependencies/DepotDownloader-linux/DepotDownloader" \
+        || true
+fi
+
+# Wrapper
 install -dm755 %{buildroot}/usr/bin
-cat > %{buildroot}/usr/bin/pizzaoven << 'EOF'
+cat > %{buildroot}/usr/bin/pizzaoven << 'WRAPPER'
 #!/bin/sh
 exec /usr/lib/pizzaoven/PizzaOven "$@"
-EOF
+WRAPPER
 chmod 755 %{buildroot}/usr/bin/pizzaoven
 
 
@@ -55,16 +82,21 @@ EOF
 install -Dm644 Assets/PizzaOvenIcon.png %{buildroot}/usr/share/pixmaps/pizzaoven.png 2>/dev/null || true
 
 %post
-xdg-mime default pizzaoven-handler.desktop x-scheme-handler/pizzaoven
+xdg-mime default pizzaoven-handler.desktop x-scheme-handler/pizzaovenplus
 update-desktop-database /usr/share/applications || true
 
 %files
+%dir /usr/lib/pizzaoven
 /usr/lib/pizzaoven/PizzaOven
+/usr/lib/pizzaoven/Themes/
+/usr/lib/pizzaoven/GMLOADER-windows/
+/usr/lib/pizzaoven/Dependencies/
 /usr/bin/pizzaoven
 /usr/share/applications/pizzaoven.desktop
 /usr/share/applications/pizzaoven-handler.desktop
 /usr/share/icons/hicolor/256x256/apps/pizzaoven.png
 
+
 %changelog
-* Sun May 10 2026 Cristiandis <pizzaoven@izzoserver.top> - 1.0.0-1
-- Initial release
+* Sat May 17 2026 Cristiandis <pizzaoven@izzoserver.top> - 1.1.0-1
+- PO+ Features
