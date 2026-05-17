@@ -11,31 +11,42 @@ public static class Global
     public static Logger logger = null!;
     public static char s = Path.DirectorySeparatorChar;
     public static string assemblyLocation = GetUserDataPath();
+
+    public static string appLocation = AppDomain.CurrentDomain.BaseDirectory
+        .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+    public static string appdata = GetAppData();
+    public static string customassetsfolder = Path.Combine(assemblyLocation, "CustomAssets");
+    public static bool ronnietutorial = false;
     public static ObservableCollection<Mod> ModList = new();
+
+    private static string GetAppData()
+    {
+        if (OperatingSystem.IsWindows()) return Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+
+        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share",
+            "Steam", "steamapps", "compatdata", "2231450", "pfx", "drive_c", "users", "steamuser", "Application Data");
+    }
 
     private static string GetUserDataPath()
     {
         if (OperatingSystem.IsWindows())
-        {
             return AppDomain.CurrentDomain.BaseDirectory
                 .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        }
-        else
-        {
-            var xdgDataHome = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
-            var baseDir = string.IsNullOrEmpty(xdgDataHome)
-                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                    ".local", "share")
-                : xdgDataHome;
-            var appDir = Path.Combine(baseDir, "pizzaoven");
-            Directory.CreateDirectory(appDir);
-            return appDir;
-        }
+
+        var xdgDataHome = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
+        var baseDir = string.IsNullOrEmpty(xdgDataHome)
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".local", "share")
+            : xdgDataHome;
+        var appDir = Path.Combine(baseDir, "pizzaoven");
+        Directory.CreateDirectory(appDir);
+        return appDir;
     }
 
     public static void UpdateConfig()
     {
-        string configString = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
+        var configString = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
         try
         {
             File.WriteAllText($@"{assemblyLocation}{s}Config.json", configString);

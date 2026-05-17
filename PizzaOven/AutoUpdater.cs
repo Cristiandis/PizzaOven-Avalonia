@@ -27,7 +27,7 @@ public class AutoUpdater
         try
         {
             const string requestUrl =
-                "https://api.gamebanana.com/Core/Item/Data?itemtype=Tool&itemid=12625" +
+                "https://api.gamebanana.com/Core/Item/Data?itemtype=Tool&itemid=22718" +
                 "&fields=Updates().bSubmissionHasUpdates(),Updates().aGetLatestUpdates(),Files().aFiles()&return_keys=1";
 
             var response = JsonSerializer.Deserialize<GameBananaItem>(await _client.GetStringAsync(requestUrl));
@@ -52,6 +52,12 @@ public class AutoUpdater
             });
 
             if (!doUpdate) return false;
+            
+            if (!OperatingSystem.IsWindows())
+            {
+                await ShowInfoAsync("The AutoUpdater does not work on linux, update via your package manager.");
+                return false;
+            }
 
             var files = response.Files;
             if (files == null || files.Count == 0) return false;
@@ -145,7 +151,7 @@ public class AutoUpdater
         });
     }
 
-    private static bool UpdateAvailable(string? online, string? local)
+    public static bool UpdateAvailable(string? online, string? local)
     {
         if (online == null || local == null) return false;
         var o = online.Split('.');

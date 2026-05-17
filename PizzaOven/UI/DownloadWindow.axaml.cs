@@ -1,12 +1,17 @@
-using Avalonia.Controls;
-using Avalonia.Media.Imaging;
 using System;
+using System.IO;
+using System.Net.Http;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 
 namespace PizzaOven;
 
 public partial class DownloadWindow : Window
 {
-    public bool YesNo = false;
+    public bool YesNo;
+    public bool Tower = false;
 
     public DownloadWindow(GameBananaAPIV4 record)
     {
@@ -27,19 +32,39 @@ public partial class DownloadWindow : Window
         if (uri == null) return;
         try
         {
-            using var http = new System.Net.Http.HttpClient();
-            var bytes = await http.GetByteArrayAsync(uri);
-            using var ms = new System.IO.MemoryStream(bytes);
-            Preview.Source = new Bitmap(ms);
+            if (uri.Scheme == "avares")
+            {
+                var assets = AssetLoader.Open(uri);
+                Preview.Source = new Bitmap(assets);
+            }
+            else
+            {
+                using var http = new HttpClient();
+                var bytes = await http.GetByteArrayAsync(uri);
+                using var ms = new MemoryStream(bytes);
+                Preview.Source = new Bitmap(ms);
+            }
         }
-        catch { }
+        catch
+        {
+        }
     }
 
-    private void Yes_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private void Yes_Click(object? sender, RoutedEventArgs e)
     {
         YesNo = true;
         Close();
     }
 
-    private void No_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => Close();
+    private void No_Click(object? sender, RoutedEventArgs e)
+    {
+        Close();
+    }
+
+    public void YesTower_Click(object? sender, RoutedEventArgs e)
+    {
+        YesNo = true;
+        Tower = true;
+        Close();
+    }
 }

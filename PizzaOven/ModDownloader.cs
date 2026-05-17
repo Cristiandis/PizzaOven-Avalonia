@@ -1,8 +1,5 @@
-using Avalonia.Controls;
-using Avalonia.Threading;
-using SharpCompress.Common;
-using SharpCompress.Readers;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -10,82 +7,117 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Threading;
 using PizzaOven.UI;
+using SharpCompress.Archives;
+using SharpCompress.Common;
 
 namespace PizzaOven;
 
 public class ModDownloader
 {
-    private string? _urlToArchive;
-    private string? _url;
+    private readonly HttpClient _client = new();
+    private readonly CancellationTokenSource _cts = new();
+    private bool _cancelled;
     private string? _dlId;
-    private string? _modType;
-    private string? _modId;
-    private string? _fileName;
+    private bool _downloadAll;
     private string? _fileDescription;
-    private bool    _cancelled;
-    private bool    _downloadAll;
-    private readonly HttpClient              _client = new();
-    private readonly CancellationTokenSource _cts   = new();
-    private GameBananaAPIV4 _response = new();
+    private string? _fileName;
+    private string? _modId;
+    private string? _modType;
     private ProgressBox? _progressBox;
+    private GameBananaAPIV4 _response = new();
+    private string? _url;
+    private string? _urlToArchive;
 
-    private static Window? GetMainWindow() =>
-        (Avalonia.Application.Current?.ApplicationLifetime as
-            Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+    private static Window? GetMainWindow()
+    {
+        return (Application.Current?.ApplicationLifetime as
+            IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+    }
 
     public async void BrowserDownload(string game, GameBananaRecord record)
     {
-        bool doDownload = false;
+        var doDownload = false;
+        var downloadAsTower = false;
+
         await Dispatcher.UIThread.InvokeAsync(async () =>
         {
             var dlg = new DownloadWindow(record);
+
+            // Add Tower button if AFOM category
+            if (record.CategoryName == "Towers/Levels CYOP/AFOM")
+            {
+                var towerBtn = new Button
+                {
+                    Content = "Yes (Download as Tower)",
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    FontSize = 16,
+                    FontWeight = FontWeight.Bold,
+                    Margin = new Thickness(20, 5, 20, 5)
+                };
+                towerBtn.Click += dlg.YesTower_Click;
+                dlg.DownloadGrid.RowDefinitions.Add(new RowDefinition(40, GridUnitType.Pixel));
+                Grid.SetRow(towerBtn, dlg.DownloadGrid.RowDefinitions.Count - 1);
+                Grid.SetColumnSpan(towerBtn, 2);
+                dlg.DownloadGrid.Children.Add(towerBtn);
+            }
+
             await dlg.ShowDialog(GetMainWindow()!);
             doDownload = dlg.YesNo;
+            downloadAsTower = dlg.Tower;
         });
+
         if (!doDownload) return;
 
         string? downloadUrl = null, fileName = null;
-
         if (record.AllFiles?.Count == 1)
         {
-            downloadUrl       = record.AllFiles[0].DownloadUrl;
-            fileName          = record.AllFiles[0].FileName;
-            _fileDescription  = record.AllFiles[0].Description;
+            downloadUrl = record.AllFiles[0].DownloadUrl;
+            fileName = record.AllFiles[0].FileName;
+            _fileDescription = record.AllFiles[0].Description;
         }
         else if (record.AllFiles?.Count > 1)
         {
             UpdateFileBox? fileBox = null;
+
             await Dispatcher.UIThread.InvokeAsync(async () =>
             {
                 fileBox = new UpdateFileBox(record.AllFiles!, record.Title);
                 await fileBox.ShowDialog(GetMainWindow()!);
             });
-            _downloadAll     = fileBox?.selectedDownloadAll ?? false;
-            downloadUrl      = fileBox?.chosenFileUrl;
-            fileName         = fileBox?.chosenFileName;
+
+            _downloadAll = fileBox?.selectedDownloadAll ?? false;
+            downloadUrl = fileBox?.chosenFileUrl;
+            fileName = fileBox?.chosenFileName;
             _fileDescription = fileBox?.chosenFileDescription;
         }
 
-        if (_downloadAll && record.AllFiles != null)
+        var filesToProcess = _downloadAll && record.AllFiles != null
+            ? record.AllFiles.Select(f => (f.DownloadUrl, f.FileName, f.Description)).ToList()
+            : downloadUrl != null && fileName != null
+                ? new List<(string, string, string?)> { (downloadUrl, fileName, _fileDescription) }
+                : new List<(string, string, string?)>();
+
+        foreach (var (url, name, desc) in filesToProcess)
         {
-            foreach (var file in record.AllFiles)
-            {
-                _cancelled = false;
-                await DownloadFileAsync(file.DownloadUrl, file.FileName,
-                    new Progress<DownloadProgress>(ReportProgress),
-                    CancellationTokenSource.CreateLinkedTokenSource(_cts.Token));
-                if (!_cancelled)
-                    await ExtractFileAsync(file.FileName, record);
-            }
-        }
-        else if (downloadUrl != null && fileName != null)
-        {
-            await DownloadFileAsync(downloadUrl, fileName,
+            _cancelled = false;
+            _fileDescription = desc;
+            await DownloadFileAsync(url, name,
                 new Progress<DownloadProgress>(ReportProgress),
                 CancellationTokenSource.CreateLinkedTokenSource(_cts.Token));
-            if (!_cancelled)
-                await ExtractFileAsync(fileName, record);
+
+            if (_cancelled) continue;
+
+            if (downloadAsTower)
+                await ExtractAsTowerAsync(name, record);
+            else
+                await ExtractFileAsync(name, record);
         }
     }
 
@@ -93,7 +125,7 @@ public class ModDownloader
     {
         if (ParseProtocol(line) && await GetDataAsync())
         {
-            bool doDownload = false;
+            var doDownload = false;
             await Dispatcher.UIThread.InvokeAsync(async () =>
             {
                 var dlg = new DownloadWindow(_response);
@@ -109,6 +141,7 @@ public class ModDownloader
                     await ExtractFileAsync(_fileName, _response);
             }
         }
+
         if (running) Environment.Exit(0);
     }
 
@@ -116,10 +149,10 @@ public class ModDownloader
     {
         try
         {
-            var json  = await _client.GetStringAsync(_url);
-            _response = JsonSerializer.Deserialize<GameBananaAPIV4>(json) ?? new();
-            var file  = _response.Files?.First(x => x.Id == _dlId);
-            _fileName        = file?.FileName;
+            var json = await _client.GetStringAsync(_url);
+            _response = JsonSerializer.Deserialize<GameBananaAPIV4>(json) ?? new GameBananaAPIV4();
+            var file = _response.Files?.First(x => x.Id == _dlId);
+            _fileName = file?.FileName;
             _fileDescription = file?.Description;
             return true;
         }
@@ -136,9 +169,9 @@ public class ModDownloader
         Dispatcher.UIThread.Post(() =>
         {
             if (p.Percentage == 1) _progressBox.finished = true;
-            _progressBox.Progress.Value  = p.Percentage * 100;
+            _progressBox.Progress.Value = p.Percentage * 100;
             _progressBox.StatusText.Text = $"{Math.Round(p.Percentage * 100, 2)}% " +
-                $"({StringConverters.FormatSize(p.DownloadedBytes)} of {StringConverters.FormatSize(p.TotalBytes)})";
+                                           $"({StringConverters.FormatSize(p.DownloadedBytes)} of {StringConverters.FormatSize(p.TotalBytes)})";
         });
     }
 
@@ -147,15 +180,15 @@ public class ModDownloader
         try
         {
             line = line.Replace("pizzaoven:", "");
-            var data     = line.Split(',');
+            var data = line.Split(',');
             _urlToArchive = data[0];
-            _dlId        = Regex.Match(_urlToArchive, @"\d*$").Value;
-            _modType     = data[1];
-            _modId       = data[2];
-            _url         = $"https://gamebanana.com/apiv6/{_modType}/{_modId}" +
-                           "?_csvProperties=_sName,_aGame,_sProfileUrl,_aPreviewMedia,_sDescription," +
-                           "_aSubmitter,_aCategory,_aSuperCategory,_aFiles,_tsDateUpdated," +
-                           "_aAlternateFileSources,_bHasUpdates,_aLatestUpdates";
+            _dlId = Regex.Match(_urlToArchive, @"\d*$").Value;
+            _modType = data[1];
+            _modId = data[2];
+            _url = $"https://gamebanana.com/apiv6/{_modType}/{_modId}" +
+                   "?_csvProperties=_sName,_aGame,_sProfileUrl,_aPreviewMedia,_sDescription," +
+                   "_aSubmitter,_aCategory,_aSuperCategory,_aFiles,_tsDateUpdated," +
+                   "_aAlternateFileSources,_bHasUpdates,_aLatestUpdates";
             return true;
         }
         catch (Exception e)
@@ -165,38 +198,48 @@ public class ModDownloader
         }
     }
 
-    private async Task ExtractFileAsync(string fileName, GameBananaRecord record) =>
+    private async Task ExtractFileAsync(string fileName, GameBananaRecord record)
+    {
         await ExtractCoreAsync(fileName, record.Title,
             dest => !File.Exists(Path.Combine(dest, "mod.json")) ? BuildMeta(record) : null);
+    }
 
-    private async Task ExtractFileAsync(string fileName, GameBananaAPIV4 record) =>
+    private async Task ExtractFileAsync(string fileName, GameBananaAPIV4 record)
+    {
         await ExtractCoreAsync(fileName, record.Title,
             dest => !File.Exists(Path.Combine(dest, "mod.json")) ? BuildMeta(record) : null);
+    }
 
-    private Metadata BuildMeta(GameBananaRecord r) => new()
+    private Metadata BuildMeta(GameBananaRecord r)
     {
-        title = r.Title, submitter = r.Owner.Name, description = r.Description,
-        filedescription = _fileDescription, preview = r.Image, homepage = r.Link,
-        avi = r.Owner.Avatar, upic = r.Owner.Upic, cat = r.CategoryName,
-        caticon = r.Category.Icon, lastupdate = r.DateUpdated
-    };
+        return new Metadata
+        {
+            title = r.Title, submitter = r.Owner.Name, description = r.Description,
+            filedescription = _fileDescription, preview = r.Image, homepage = r.Link,
+            avi = r.Owner.Avatar, upic = r.Owner.Upic, cat = r.CategoryName,
+            caticon = r.Category.Icon, lastupdate = r.DateUpdated
+        };
+    }
 
-    private Metadata BuildMeta(GameBananaAPIV4 r) => new()
+    private Metadata BuildMeta(GameBananaAPIV4 r)
     {
-        title = r.Title, submitter = r.Owner.Name, description = r.Description,
-        filedescription = _fileDescription, preview = r.Image, homepage = r.Link,
-        avi = r.Owner.Avatar, upic = r.Owner.Upic, cat = r.CategoryName,
-        caticon = r.Category.Icon, lastupdate = r.DateUpdated
-    };
+        return new Metadata
+        {
+            title = r.Title, submitter = r.Owner.Name, description = r.Description,
+            filedescription = _fileDescription, preview = r.Image, homepage = r.Link,
+            avi = r.Owner.Avatar, upic = r.Owner.Upic, cat = r.CategoryName,
+            caticon = r.Category.Icon, lastupdate = r.DateUpdated
+        };
+    }
 
     private async Task ExtractCoreAsync(string fileName, string title, Func<string, Metadata?> metaFactory)
     {
         await Task.Run(() =>
         {
-            var src  = Path.Combine(Global.assemblyLocation, "Downloads", fileName);
+            var src = Path.Combine(Global.assemblyLocation, "Downloads", fileName);
             var dest = Path.Combine(Global.assemblyLocation, "Mods",
                 string.Concat(title.Split(Path.GetInvalidFileNameChars())));
-            int n = 2;
+            var n = 2;
             while (Directory.Exists(dest))
                 dest = Path.Combine(Global.assemblyLocation, "Mods",
                     $"{string.Concat(title.Split(Path.GetInvalidFileNameChars()))} ({n++})");
@@ -204,25 +247,12 @@ public class ModDownloader
             if (!File.Exists(src)) return;
             try
             {
-                if (Path.GetExtension(src).Equals(".7z", StringComparison.OrdinalIgnoreCase))
-                {
-                    using var stream = File.OpenRead(src);
-                    using var archive = SharpCompress.Archives.SevenZip.SevenZipArchive.Open(stream);
-                    using var reader = archive.ExtractAllEntries();
-                    while (reader.MoveToNextEntry())
-                        if (!reader.Entry.IsDirectory)
-                            reader.WriteEntryToDirectory(dest,
-                                new ExtractionOptions { ExtractFullPath = true, Overwrite = true });
-                }
-                else
-                {
-                    using var stream = File.OpenRead(src);
-                    using var reader = ReaderFactory.Open(stream);
-                    while (reader.MoveToNextEntry())
-                        if (!reader.Entry.IsDirectory)
-                            reader.WriteEntryToDirectory(dest,
-                                new ExtractionOptions { ExtractFullPath = true, Overwrite = true });
-                }
+                using var archive = ArchiveFactory.OpenArchive(src);
+                Directory.CreateDirectory(dest);
+                foreach (var entry in archive.Entries)
+                    if (!entry.IsDirectory)
+                        entry.WriteToDirectory(dest,
+                            new ExtractionOptions { ExtractFullPath = true, Overwrite = true });
 
                 var meta = metaFactory(dest);
                 if (meta != null)
@@ -245,7 +275,7 @@ public class ModDownloader
         Progress<DownloadProgress> progress, CancellationTokenSource cts)
     {
         var dlDir = Path.Combine(Global.assemblyLocation, "Downloads");
-        var dest  = Path.Combine(dlDir, fileName);
+        var dest = Path.Combine(dlDir, fileName);
         Directory.CreateDirectory(dlDir);
 
         try
@@ -256,8 +286,8 @@ public class ModDownloader
             {
                 _progressBox = new ProgressBox(cts);
                 _progressBox.Progress.Value = 0;
-                _progressBox.finished       = false;
-                _progressBox.Title          = "Download Progress";
+                _progressBox.finished = false;
+                _progressBox.Title = "Download Progress";
                 _progressBox.Show();
             });
 
@@ -271,7 +301,11 @@ public class ModDownloader
             if (File.Exists(dest)) File.Delete(dest);
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                if (_progressBox != null) { _progressBox.finished = true; _progressBox.Close(); }
+                if (_progressBox != null)
+                {
+                    _progressBox.finished = true;
+                    _progressBox.Close();
+                }
             });
             _cancelled = true;
         }
@@ -279,10 +313,83 @@ public class ModDownloader
         {
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                if (_progressBox != null) { _progressBox.finished = true; _progressBox.Close(); }
+                if (_progressBox != null)
+                {
+                    _progressBox.finished = true;
+                    _progressBox.Close();
+                }
             });
             Global.logger.WriteLine($"Error whilst downloading {fileName}: {e.Message}", LoggerType.Error);
             _cancelled = true;
         }
+    }
+
+    private async Task ExtractAsTowerAsync(string fileName, GameBananaRecord record)
+    {
+        await Task.Run(() =>
+        {
+            var src = Path.Combine(Global.assemblyLocation, "Downloads", fileName);
+            var tempPath = Path.Combine(Global.assemblyLocation, "AFOMTEMP");
+
+            if (!File.Exists(src)) return;
+
+            if (Directory.Exists(tempPath))
+                Directory.Delete(tempPath, true);
+
+            try
+            {
+                using var archive = ArchiveFactory.OpenArchive(src);
+                Directory.CreateDirectory(tempPath);
+                foreach (var entry in archive.Entries)
+                    if (!entry.IsDirectory)
+                        entry.WriteToDirectory(tempPath,
+                            new ExtractionOptions { ExtractFullPath = true, Overwrite = true });
+            }
+            catch (Exception e)
+            {
+                Global.logger.WriteLine($"Couldn't extract {fileName}: {e.Message}", LoggerType.Error);
+                return;
+            }
+
+            var realFolder = tempPath;
+            foreach (var dir in Directory.GetDirectories(tempPath, "*", SearchOption.AllDirectories))
+                if (Directory.Exists(Path.Combine(dir, "levels")))
+                {
+                    realFolder = dir;
+                    break;
+                }
+
+            var towersPath = Path.Combine(Global.appdata, "PizzaTower_GM2", "towers");
+
+            if (!Directory.Exists(towersPath))
+            {
+                Global.logger.WriteLine(
+                    $"AFOM towers folder not found at {towersPath}. Launch AFOM at least once first.",
+                    LoggerType.Error);
+                if (Directory.Exists(tempPath)) Directory.Delete(tempPath, true);
+                return;
+            }
+
+            var basePath = Path.Combine(towersPath,
+                string.Concat(record.Title.Split(Path.GetInvalidFileNameChars())));
+            var finalPath = basePath;
+            var counter = 2;
+            while (Directory.Exists(finalPath))
+                finalPath = $"{basePath} ({counter++})";
+
+            Directory.CreateDirectory(finalPath);
+
+            foreach (var dir in Directory.GetDirectories(realFolder, "*", SearchOption.AllDirectories))
+                Directory.CreateDirectory(dir.Replace(realFolder, finalPath));
+
+            foreach (var file in Directory.GetFiles(realFolder, "*", SearchOption.AllDirectories))
+                File.Copy(file, file.Replace(realFolder, finalPath), true);
+
+            if (Directory.Exists(tempPath))
+                Directory.Delete(tempPath, true);
+
+            File.Delete(src);
+            Global.logger.WriteLine($"Downloaded tower to: {finalPath}", LoggerType.Info);
+        });
     }
 }

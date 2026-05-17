@@ -6,10 +6,29 @@
 
     <Application.Styles>
         <FluentTheme />
+        <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
         <avalonia:MaterialIconStyles />
         <StyleInclude Source="avares://PizzaOven/Controls/Button.axaml" />
         <StyleInclude Source="avares://PizzaOven/Controls/ComboBox.axaml" />
         <StyleInclude Source="avares://PizzaOven/Controls/ScrollViewer.axaml" />
+        
+        <Style Selector="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource SecondaryBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        </Style>
+        <Style Selector="ComboBoxItem">
+            <Setter Property="Background" Value="{DynamicResource SecondaryBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        </Style>
+
     </Application.Styles>
+    
+    <Application.Resources>
+        <SolidColorBrush x:Key="PrimaryBrush" Color="#202020"/>
+        <SolidColorBrush x:Key="SecondaryBrush" Color="#303030"/>
+        <SolidColorBrush x:Key="InnerBrush" Color="#000000"/>
+        <SolidColorBrush x:Key="LoadingBrush" Color="#ffee5f"/>
+        <SolidColorBrush x:Key="TextBrush" Color="#f2f2f2"/>
+    </Application.Resources>
 
 </Application>

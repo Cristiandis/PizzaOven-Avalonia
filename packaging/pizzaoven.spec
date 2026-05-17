@@ -1,5 +1,5 @@
 Name:           pizzaoven
-Version:        1.0.1
+Version:        1.1.0
 Release:        1%{?dist}
 Summary:        Cross-platform mod manager for Pizza Tower
 License:        GPLv3
@@ -34,7 +34,7 @@ chmod 755 %{buildroot}/usr/bin/pizzaoven
 install -dm755 %{buildroot}/usr/share/applications
 cat > %{buildroot}/usr/share/applications/pizzaoven.desktop << 'EOF'
 [Desktop Entry]
-Name=Pizza Oven
+Name=Pizza Oven+
 Comment=Mod manager for Pizza Tower
 Exec=/usr/bin/pizzaoven
 Icon=pizzaoven
@@ -44,11 +44,11 @@ EOF
 
 cat > %{buildroot}/usr/share/applications/pizzaoven-handler.desktop << 'EOF'
 [Desktop Entry]
-Name=Pizza Oven
+Name=Pizza Oven+
 Exec=/usr/bin/pizzaoven -download %u
 Type=Application
 NoDisplay=true
-MimeType=x-scheme-handler/pizzaoven;
+MimeType=x-scheme-handler/pizzaovenplus;
 EOF
 
 # Icon
