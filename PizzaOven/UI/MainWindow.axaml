@@ -21,8 +21,8 @@
 
         <DataTemplate x:Key="BrowserTemplate" x:DataType="local:GameBananaRecord">
             <Border CornerRadius="5" Margin="5"
-                    BorderBrush="{DynamicResource InnerBrush}"
-                    Background="{DynamicResource InnerBrush}">
+                    BorderBrush="#1a101010"
+                    Background="#1a101010">
                 <Grid VerticalAlignment="Center" Margin="3">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="180" />
@@ -190,13 +190,11 @@
                         <Button Grid.Column="0" Foreground="{DynamicResource TextBrush}" FontWeight="Medium"
                                 Height="30" HorizontalAlignment="Stretch" Margin="3,0,3,0"
                                 Background="{DynamicResource SecondaryBrush}"
-                                BorderBrush="{DynamicResource SecondaryBrush}"
                                 VerticalAlignment="Center" Content="More Info"
                                 Click="MoreInfo_Click" />
                         <Button Grid.Column="1" Foreground="{DynamicResource TextBrush}" FontWeight="Medium"
                                 Height="30" HorizontalAlignment="Stretch" Margin="3,0,3,0"
                                 Background="{DynamicResource SecondaryBrush}"
-                                BorderBrush="{DynamicResource SecondaryBrush}"
                                 VerticalAlignment="Center" Content="Download"
                                 IsEnabled="{Binding Compatible}"
                                 Click="Download_Click" />
@@ -207,9 +205,9 @@
 
         <DataTemplate x:Key="ModTemplate" x:DataType="local:Mod">
             <Border CornerRadius="5" Margin="5"
-                    BorderBrush="{DynamicResource InnerBrush}"
                     BorderThickness="1"
-                    Background="{DynamicResource InnerBrush}">
+                    BorderBrush="#bf101010"
+                    Background="#bf101010">
                 <Grid VerticalAlignment="Center" Margin="3">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -253,16 +251,16 @@
         </DataTemplate>
     </Window.Resources>
 
-    <Grid>
+    <Grid x:Name="RootGrid">
         <StackPanel ZIndex="3" Orientation="Horizontal"
                     VerticalAlignment="Top" HorizontalAlignment="Right">
-            <TextBox BorderThickness="0" FontSize="18" Margin="5"
-                     Background="Transparent" BorderBrush="Transparent"
-                     IsReadOnly="True" Foreground="{DynamicResource TextBrush}"
-                     FontWeight="Medium" x:Name="Stats" />
+            <TextBlock FontSize="18" Margin="5"
+                       Background="Transparent"
+                       Foreground="{DynamicResource TextBrush}"
+                       FontWeight="Medium" x:Name="Stats" />
         </StackPanel>
 
-        <TabControl Background="{DynamicResource PrimaryBrush}" BorderBrush="#606060"
+        <TabControl Background="Transparent" BorderBrush="#606060"
                     SelectionChanged="TabControl_SelectionChanged">
             <TabControl.Styles>
                 <Style Selector="TabItem">
@@ -285,6 +283,9 @@
                 <Style Selector="TabItem:selected">
                     <Setter Property="Background" Value="{DynamicResource SecondaryBrush}" />
                 </Style>
+                <Style Selector="TabControl /template/ ItemsPresenter#PART_ItemsPresenter WrapPanel">
+                    <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/>
+                </Style>
             </TabControl.Styles>
 
             <TabItem x:Name="ModManager" FontSize="18" HorizontalAlignment="Center" Header="Manage Mods">
@@ -306,25 +307,25 @@
                             Margin="10,0,10,0" Height="35"
                             VerticalAlignment="Center" HorizontalAlignment="Stretch"
                             Grid.Column="0" Content="Launch"
-                            Background="#181818" BorderBrush="#252525"
+                            Background="{DynamicResource SecondaryBrush}" 
                             Foreground="{DynamicResource TextBrush}" Click="Launch_Click" />
                     <Button FontSize="18" FontWeight="Medium" x:Name="ConfigButton"
                             Margin="10,0,10,0" Height="35"
                             HorizontalAlignment="Stretch" VerticalAlignment="Center"
                             Grid.Column="1" Content="Setup"
-                            Background="#181818" BorderBrush="#252525"
+                            Background="{DynamicResource SecondaryBrush}"
                             Foreground="{DynamicResource TextBrush}" Click="Setup_Click" />
                     <Button FontSize="18" FontWeight="Medium" x:Name="ClearButton"
                             Margin="10,0,10,0" Height="35"
                             HorizontalAlignment="Stretch" VerticalAlignment="Center"
                             Grid.Column="2" Content="Clear Selection"
-                            Background="#181818" BorderBrush="#252525"
+                            Background="{DynamicResource SecondaryBrush}" 
                             Foreground="{DynamicResource TextBrush}" Click="Clear_Click" />
                     <Button FontSize="18" FontWeight="Medium" x:Name="UpdateButton"
                             Margin="0,0,10,0" Height="35"
                             VerticalAlignment="Center" HorizontalAlignment="Stretch"
                             Grid.Column="3" Content="Check for Updates"
-                            Background="#181818" BorderBrush="#252525"
+                            Background="{DynamicResource SecondaryBrush}" 
                             Foreground="{DynamicResource TextBrush}" Click="Update_Click" />
 
                     <Grid x:Name="MiddleGrid" Grid.Row="1" Grid.ColumnSpan="4">
@@ -355,7 +356,6 @@
                               Margin="10,5,3,5" Height="35" VerticalAlignment="Center">
                             <TextBox Margin="0,0,35,0" Background="{DynamicResource SecondaryBrush}"
                                      Foreground="{DynamicResource TextBrush}"
-                                     BorderBrush="{DynamicResource SecondaryBrush}"
                                      x:Name="ModGrid_SearchBar"
                                      KeyDown="ModGrid_SearchBar_KeyDown"
                                      Padding="5" TextWrapping="NoWrap" />
@@ -376,7 +376,8 @@
                                     Focusable="False"
                                     Click="ModGridSearchButton_Click"
                                     x:Name="ModGridSearchButton"
-                                    Height="35" Width="35">
+                                    Height="35" Width="35"
+                                    Background="{DynamicResource SecondaryBrush}">
                                 <materialIcons:MaterialIcon Kind="Magnify" Foreground="{DynamicResource TextBrush}"
                                                             Width="16" Height="16" />
                             </Button>
@@ -446,11 +447,11 @@
                                     <RotateTransform />
                                 </materialIcons:MaterialIcon.RenderTransform>
                             </materialIcons:MaterialIcon>
-                            <ScrollViewer Grid.Row="1" Margin="3,5,10,3"
+                            <ScrollViewer x:Name="DescriptionScrollViewer" Grid.Row="1" Margin="3,5,10,3"
                                           VerticalScrollBarVisibility="Auto">
                                 <SelectableTextBlock x:Name="DescriptionWindow"
                                                      Foreground="{DynamicResource TextBrush}"
-                                                     Background="{DynamicResource InnerBrush}"
+                                                     Background="#202020"
                                                      FontSize="12"
                                                      FontWeight="Medium"
                                                      Padding="10"
@@ -463,13 +464,13 @@
                                   HorizontalAlignment="Stretch"
                                   Height="10" Background="Transparent" />
 
-                    <ScrollViewer Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="4"
+                    <ScrollViewer x:Name="ConsoleScrollViewer" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="4"
                                   Margin="10,3,10,10"
                                   VerticalScrollBarVisibility="Auto">
                         <TextBox x:Name="ConsoleWindow"
                                  FontFamily="{StaticResource Monospace}"
                                  FontSize="12"
-                                 Background="{DynamicResource InnerBrush}"
+                                 Background="#202020"
                                  BorderBrush="#424242"
                                  BorderThickness="1"
                                  Foreground="{DynamicResource TextBrush}"
@@ -659,7 +660,7 @@
                                     Foreground="{DynamicResource TextBrush}" CornerRadius="2" />
                             <Border x:Name="DownloadButton" Margin="0,0,20,0"
                                     Height="50" Width="200"
-                                    CornerRadius="2" Background="#ffee5f">
+                                    CornerRadius="2" Background="{DynamicResource LoadingBrush}">
                                 <Button Margin="3" Click="Download_Click"
                                         Content="Download"
                                         IsEnabled="{Binding Compatible}"
@@ -729,7 +730,7 @@
                     </ComboBox>
 
                     <TextBox Margin="5,0,35,0" Background="{DynamicResource SecondaryBrush}"
-                             Foreground="{DynamicResource TextBrush}" BorderBrush="{DynamicResource SecondaryBrush}"
+                             Foreground="{DynamicResource TextBrush}" 
                              Padding="4,0,0,0" Grid.Column="4"
                              IsEnabled="False"
                              KeyDown="SearchBar_KeyDown"
@@ -747,7 +748,8 @@
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center"
                             Click="SearchButton_Click"
-                            x:Name="SearchButton" Height="35" Width="35">
+                            x:Name="SearchButton" Height="35" Width="35"
+                            Background="{DynamicResource SecondaryBrush}">
                         <materialIcons:MaterialIcon Kind="Magnify" Foreground="{DynamicResource TextBrush}" Width="16"
                                                     Height="16" />
                     </Button>
@@ -781,7 +783,7 @@
                                 HorizontalAlignment="Right" Margin="0,0,15,0"
                                 FontSize="18" FontWeight="Medium"
                                 Height="35" Width="35"
-                                Background="#181818" BorderBrush="#252525"
+                                Background="{DynamicResource SecondaryBrush}" 
                                 Foreground="{DynamicResource TextBrush}" />
                         <TextBlock x:Name="Page" Text="Page 1" Foreground="{DynamicResource TextBrush}"
                                    VerticalAlignment="Center" HorizontalAlignment="Center"
@@ -791,7 +793,7 @@
                                 HorizontalAlignment="Left" Margin="15,0,0,0"
                                 FontSize="18" FontWeight="Medium"
                                 Height="35" Width="35"
-                                Background="#181818" BorderBrush="#252525"
+                                Background="{DynamicResource SecondaryBrush}" 
                                 Foreground="{DynamicResource TextBrush}" />
                         <ComboBox IsEnabled="False" Margin="15,0,15,0"
                                   x:Name="PageBox"
@@ -807,7 +809,7 @@
                                 HorizontalAlignment="Center"
                                 FontSize="18" FontWeight="Medium"
                                 Height="35" Width="90"
-                                Background="#181818" BorderBrush="#252525"
+                                Background="{DynamicResource SecondaryBrush}" 
                                 IsEnabled="False" Foreground="{DynamicResource TextBrush}"
                                 CornerRadius="5" />
                         <TextBlock Margin="0,0,15,0" Foreground="{DynamicResource TextBrush}"
@@ -852,11 +854,12 @@
                                 HorizontalAlignment="Center"
                                 FontSize="18" FontWeight="Medium"
                                 Height="40" Width="140"
-                                Background="#181818" BorderBrush="#252525"
+                                Background="{DynamicResource SecondaryBrush}" 
                                 Foreground="{DynamicResource TextBrush}" CornerRadius="5" />
                     </StackPanel>
 
                     <Border Grid.ColumnSpan="7" Grid.Row="1"
+                            x:Name="FeedBoxBorder"
                             CornerRadius="5" Margin="10,0,10,0"
                             BorderBrush="{DynamicResource InnerBrush}"
                             Background="{DynamicResource InnerBrush}"
@@ -891,7 +894,6 @@
                             <Button x:Name="NavTutorial" Content="Tutorial"
                                     HorizontalAlignment="Stretch" Height="35"
                                     Background="{DynamicResource SecondaryBrush}"
-                                    BorderBrush="{DynamicResource SecondaryBrush}"
                                     Foreground="{DynamicResource TextBrush}"
                                     FontSize="14" Click="SettingsNav_Click"
                                     PointerEntered="SettingsNavButton_PointerEntered"
@@ -899,7 +901,6 @@
                             <Button x:Name="NavLinks" Content="Links"
                                     HorizontalAlignment="Stretch" Height="35"
                                     Background="{DynamicResource SecondaryBrush}"
-                                    BorderBrush="{DynamicResource SecondaryBrush}"
                                     Foreground="{DynamicResource TextBrush}"
                                     FontSize="14" Click="SettingsNav_Click"
                                     PointerEntered="SettingsNavButton_PointerEntered"
@@ -907,7 +908,6 @@
                             <Button x:Name="NavAppSettings" Content="App Settings"
                                     HorizontalAlignment="Stretch" Height="35"
                                     Background="{DynamicResource SecondaryBrush}"
-                                    BorderBrush="{DynamicResource SecondaryBrush}"
                                     Foreground="{DynamicResource TextBrush}"
                                     FontSize="14" Click="SettingsNav_Click"
                                     PointerEntered="SettingsNavButton_PointerEntered"
@@ -915,7 +915,6 @@
                             <Button x:Name="NavLaunchSettings" Content="Launch Settings"
                                     HorizontalAlignment="Stretch" Height="35"
                                     Background="{DynamicResource SecondaryBrush}"
-                                    BorderBrush="{DynamicResource SecondaryBrush}"
                                     Foreground="{DynamicResource TextBrush}"
                                     FontSize="14" Click="SettingsNav_Click"
                                     PointerEntered="SettingsNavButton_PointerEntered"
@@ -923,7 +922,6 @@
                             <Button x:Name="NavModSettings" Content="Mod Settings"
                                     HorizontalAlignment="Stretch" Height="35"
                                     Background="{DynamicResource SecondaryBrush}"
-                                    BorderBrush="{DynamicResource SecondaryBrush}"
                                     Foreground="{DynamicResource TextBrush}"
                                     FontSize="14" Click="SettingsNav_Click"
                                     PointerEntered="SettingsNavButton_PointerEntered"
@@ -931,7 +929,6 @@
                             <Button x:Name="NavCustomizaton" Content="App Customization"
                                     HorizontalAlignment="Stretch" Height="35"
                                     Background="{DynamicResource SecondaryBrush}"
-                                    BorderBrush="{DynamicResource SecondaryBrush}"
                                     Foreground="{DynamicResource TextBrush}"
                                     FontSize="14" Click="SettingsNav_Click"
                                     PointerEntered="SettingsNavButton_PointerEntered"
@@ -939,7 +936,6 @@
                             <Button x:Name="NavGMLoader" Content="GMLoader"
                                     HorizontalAlignment="Stretch" Height="35"
                                     Background="{DynamicResource SecondaryBrush}"
-                                    BorderBrush="{DynamicResource SecondaryBrush}"
                                     Foreground="{DynamicResource TextBrush}"
                                     FontSize="14" Click="SettingsNav_Click"
                                     PointerEntered="SettingsNavButton_PointerEntered"
@@ -947,7 +943,6 @@
                             <Button x:Name="NavCredits" Content="Credits"
                                     HorizontalAlignment="Stretch" Height="35"
                                     Background="{DynamicResource SecondaryBrush}"
-                                    BorderBrush="{DynamicResource SecondaryBrush}"
                                     Foreground="{DynamicResource TextBrush}"
                                     FontSize="14" Click="SettingsNav_Click"
                                     PointerEntered="SettingsNavButton_PointerEntered"
@@ -965,7 +960,6 @@
                                 <Button
                                     HorizontalAlignment="Left" Height="35" Padding="10,0"
                                     Background="{DynamicResource SecondaryBrush}"
-                                    BorderBrush="{DynamicResource SecondaryBrush}"
                                     Foreground="{DynamicResource TextBrush}"
                                     FontSize="14" Click="ReplayTutorial_Click">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
@@ -981,7 +975,6 @@
                                 <Button x:Name="OpenSuggestForm"
                                         HorizontalAlignment="Left" Height="35" Padding="10,0"
                                         Background="{DynamicResource SecondaryBrush}"
-                                        BorderBrush="{DynamicResource SecondaryBrush}"
                                         Foreground="{DynamicResource TextBrush}"
                                         FontSize="14" Click="OpenLink_Click">
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
@@ -993,7 +986,6 @@
                                 <Button x:Name="OpenEmail"
                                         HorizontalAlignment="Left" Height="35" Padding="10,0"
                                         Background="{DynamicResource SecondaryBrush}"
-                                        BorderBrush="{DynamicResource SecondaryBrush}"
                                         Foreground="{DynamicResource TextBrush}"
                                         FontSize="14" Click="OpenLink_Click">
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
@@ -1005,7 +997,6 @@
                                 <Button x:Name="OpenTwitterX"
                                         HorizontalAlignment="Left" Height="35" Padding="10,0"
                                         Background="{DynamicResource SecondaryBrush}"
-                                        BorderBrush="{DynamicResource SecondaryBrush}"
                                         Foreground="{DynamicResource TextBrush}"
                                         FontSize="14" Click="OpenLink_Click">
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
@@ -1018,7 +1009,6 @@
                                 <Button x:Name="OpenDiscord"
                                         HorizontalAlignment="Left" Height="35" Padding="10,0"
                                         Background="{DynamicResource SecondaryBrush}"
-                                        BorderBrush="{DynamicResource SecondaryBrush}"
                                         Foreground="{DynamicResource TextBrush}"
                                         FontSize="14" Click="OpenLink_Click">
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
@@ -1034,14 +1024,12 @@
                                 <Button x:Name="StartupToggle" Content="Do open on Startup? [IT'S OFF]"
                                         HorizontalAlignment="Left" Height="35" Padding="10,0"
                                         Background="{DynamicResource SecondaryBrush}"
-                                        BorderBrush="{DynamicResource SecondaryBrush}"
                                         Foreground="{DynamicResource TextBrush}"
                                         FontSize="14" Click="StartupToggle_Click" />
                                 <TextBlock Text="Discord RPC (Displays on Discord):"
                                            Foreground="{DynamicResource TextBrush}" FontSize="14" />
                                 <Button x:Name="RPCtoggle" Height="35" Padding="10,0" HorizontalAlignment="Left"
                                         Click="RPCToggle_Click" Foreground="{DynamicResource TextBrush}"
-                                        BorderBrush="{DynamicResource SecondaryBrush}"
                                         Background="{DynamicResource SecondaryBrush}" Cursor="Hand">
                                     <StackPanel Orientation="Horizontal">
                                         <Image Source="avares://PizzaOven/Icons/Discord.png" Height="30" Width="30"
@@ -1055,7 +1043,6 @@
                                 <Button x:Name="MODUPDATERtoggle" Content="Disable Check for Mod Updates? [IT'S ON]"
                                         HorizontalAlignment="Left" Height="35" Padding="10,0"
                                         Background="{DynamicResource SecondaryBrush}"
-                                        BorderBrush="{DynamicResource SecondaryBrush}"
                                         Foreground="{DynamicResource TextBrush}"
                                         FontSize="14" Click="ModUpdaterToggle_Click" />
                             </StackPanel>
@@ -1074,26 +1061,22 @@
                                     <Button Name="DowngradeDownloadButton" Content="Download" Height="35"
                                             Padding="10,0"
                                             Background="{DynamicResource SecondaryBrush}"
-                                            BorderBrush="{DynamicResource SecondaryBrush}"
                                             Foreground="{DynamicResource TextBrush}"
                                             FontSize="14" Click="DowngradeDownload_Click" />
                                 </StackPanel>
                                 <Button Content="Open Pizza Tower Folder"
                                         HorizontalAlignment="Left" Height="35" Padding="10,0"
                                         Background="{DynamicResource SecondaryBrush}"
-                                        BorderBrush="{DynamicResource SecondaryBrush}"
                                         Foreground="{DynamicResource TextBrush}"
                                         FontSize="14" Click="OpenPTFolder_Click" />
                                 <Button Content="Choose Temporary New Pizza Tower Folder"
                                         HorizontalAlignment="Left" Height="35" Padding="10,0"
                                         Background="{DynamicResource SecondaryBrush}"
-                                        BorderBrush="{DynamicResource SecondaryBrush}"
                                         Foreground="{DynamicResource TextBrush}"
                                         FontSize="14" Click="ChooseNewPTFolder_Click" />
                                 <Button x:Name="DebugToggle" Content="Enable Debug? [IT'S OFF]"
                                         HorizontalAlignment="Left" Height="35" Padding="10,0"
                                         Background="{DynamicResource SecondaryBrush}"
-                                        BorderBrush="{DynamicResource SecondaryBrush}"
                                         Foreground="{DynamicResource TextBrush}"
                                         FontSize="14" Click="DebugToggle_Click" />
                             </StackPanel>
@@ -1104,19 +1087,16 @@
                                 <Button Content="Clean PO. Files"
                                         HorizontalAlignment="Left" Height="35" Padding="10,0"
                                         Background="{DynamicResource SecondaryBrush}"
-                                        BorderBrush="{DynamicResource SecondaryBrush}"
                                         Foreground="{DynamicResource TextBrush}"
                                         FontSize="14" Click="CleanPOFiles_Click" />
                                 <Button x:Name="POLanguage" Content="Do not Apply to Language Files? [IT'S ON]"
                                         HorizontalAlignment="Left" Height="35" Padding="10,0"
                                         Background="{DynamicResource SecondaryBrush}"
-                                        BorderBrush="{DynamicResource SecondaryBrush}"
                                         Foreground="{DynamicResource TextBrush}"
                                         FontSize="14" Click="POLanguage_Click" />
                                 <Button Content="Make/Overwrite new data.win.po"
                                         HorizontalAlignment="Left" Height="35" Padding="10,0"
                                         Background="{DynamicResource SecondaryBrush}"
-                                        BorderBrush="{DynamicResource SecondaryBrush}"
                                         Foreground="{DynamicResource TextBrush}"
                                         FontSize="14" Click="MakeDataWinPO_Click" />
                                 <TextBlock
@@ -1140,7 +1120,6 @@
                                 <Button
                                     HorizontalAlignment="Left" Height="35" Padding="10,0"
                                     Background="{DynamicResource SecondaryBrush}"
-                                    BorderBrush="{DynamicResource SecondaryBrush}"
                                     Foreground="{DynamicResource TextBrush}"
                                     FontSize="14" Click="ConvertToGMLoader_Click">
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
@@ -1152,7 +1131,6 @@
                                 <Button Content="Kill GMLoader (kill background GMLoader processes)"
                                         HorizontalAlignment="Left" Height="35" Padding="10,0"
                                         Background="{DynamicResource SecondaryBrush}"
-                                        BorderBrush="{DynamicResource SecondaryBrush}"
                                         Foreground="{DynamicResource TextBrush}"
                                         FontSize="14" Click="KillGMLoader_Click" />
                             </StackPanel>
@@ -1171,19 +1149,16 @@
                                     <Button Content="Save"
                                             Height="35" Padding="10,0"
                                             Background="{DynamicResource SecondaryBrush}"
-                                            BorderBrush="{DynamicResource SecondaryBrush}"
                                             Foreground="{DynamicResource TextBrush}"
                                             FontSize="14" Click="ThemesSave_Click" />
                                     <Button Content="Load"
                                             Height="35" Padding="10,0"
                                             Background="{DynamicResource SecondaryBrush}"
-                                            BorderBrush="{DynamicResource SecondaryBrush}"
                                             Foreground="{DynamicResource TextBrush}"
                                             FontSize="14" Click="ThemesLoad_Click" />
                                     <Button Content="Reset All"
                                             Height="35" Padding="10,0"
                                             Background="{DynamicResource SecondaryBrush}"
-                                            BorderBrush="{DynamicResource SecondaryBrush}"
                                             Foreground="{DynamicResource TextBrush}"
                                             FontSize="14" Click="ThemesResetAll_Click" />
                                 </StackPanel>
@@ -1195,7 +1170,6 @@
                                     <Button Content="Apply"
                                             Height="35" Padding="10,0"
                                             Background="{DynamicResource SecondaryBrush}"
-                                            BorderBrush="{DynamicResource SecondaryBrush}"
                                             Foreground="{DynamicResource TextBrush}"
                                             FontSize="14" Click="ThemePresetsApply_Click" />
                                 </StackPanel>
@@ -1209,13 +1183,11 @@
                                     <Button Content="Upload"
                                             HorizontalAlignment="Left" Height="35" Padding="10,0"
                                             Background="{DynamicResource SecondaryBrush}"
-                                            BorderBrush="{DynamicResource SecondaryBrush}"
                                             Foreground="{DynamicResource TextBrush}"
                                             FontSize="14" Click="ThemesBackgroundUpload_Click" />
                                     <Button Content="Reset"
                                             HorizontalAlignment="Left" Height="35" Padding="10,0"
                                             Background="{DynamicResource SecondaryBrush}"
-                                            BorderBrush="{DynamicResource SecondaryBrush}"
                                             Foreground="{DynamicResource TextBrush}"
                                             FontSize="14" Click="ThemesBackgroundReset_Click" />
                                 </StackPanel>
@@ -1225,13 +1197,11 @@
                                     <Button x:Name="ThemesPrimary" Content="Select"
                                             HorizontalAlignment="Left" Height="35" Padding="10,0"
                                             Background="{DynamicResource SecondaryBrush}"
-                                            BorderBrush="{DynamicResource SecondaryBrush}"
                                             Foreground="{DynamicResource TextBrush}"
                                             FontSize="14" Click="Theme_Click" />
                                     <Button x:Name="ThemesPrimaryReset" Content="Reset"
                                             Height="35" Padding="10,0"
                                             Background="{DynamicResource SecondaryBrush}"
-                                            BorderBrush="{DynamicResource SecondaryBrush}"
                                             Foreground="{DynamicResource TextBrush}"
                                             FontSize="14" Click="ThemeReset_Click" />
                                 </StackPanel>
@@ -1242,13 +1212,11 @@
                                     <Button x:Name="ThemesSecondary" Content="Select"
                                             HorizontalAlignment="Left" Height="35" Padding="10,0"
                                             Background="{DynamicResource SecondaryBrush}"
-                                            BorderBrush="{DynamicResource SecondaryBrush}"
                                             Foreground="{DynamicResource TextBrush}"
                                             FontSize="14" Click="Theme_Click" />
                                     <Button x:Name="ThemesSecondaryReset" Content="Reset"
                                             Height="35" Padding="10,0"
                                             Background="{DynamicResource SecondaryBrush}"
-                                            BorderBrush="{DynamicResource SecondaryBrush}"
                                             Foreground="{DynamicResource TextBrush}"
                                             FontSize="14" Click="ThemeReset_Click" />
                                 </StackPanel>
@@ -1258,13 +1226,11 @@
                                     <Button x:Name="ThemesInner" Content="Select"
                                             HorizontalAlignment="Left" Height="35" Padding="10,0"
                                             Background="{DynamicResource SecondaryBrush}"
-                                            BorderBrush="{DynamicResource SecondaryBrush}"
                                             Foreground="{DynamicResource TextBrush}"
                                             FontSize="14" Click="Theme_Click" />
                                     <Button x:Name="ThemesInnerReset" Content="Reset"
                                             Height="35" Padding="10,0"
                                             Background="{DynamicResource SecondaryBrush}"
-                                            BorderBrush="{DynamicResource SecondaryBrush}"
                                             Foreground="{DynamicResource TextBrush}"
                                             FontSize="14" Click="ThemeReset_Click" />
                                 </StackPanel>
@@ -1274,13 +1240,11 @@
                                     <Button x:Name="ThemesLoading" Content="Select"
                                             HorizontalAlignment="Left" Height="35" Padding="10,0"
                                             Background="{DynamicResource SecondaryBrush}"
-                                            BorderBrush="{DynamicResource SecondaryBrush}"
                                             Foreground="{DynamicResource TextBrush}"
                                             FontSize="14" Click="Theme_Click" />
                                     <Button x:Name="ThemesLoadingReset" Content="Reset"
                                             Height="35" Padding="10,0"
                                             Background="{DynamicResource SecondaryBrush}"
-                                            BorderBrush="{DynamicResource SecondaryBrush}"
                                             Foreground="{DynamicResource TextBrush}"
                                             FontSize="14" Click="ThemeReset_Click" />
                                 </StackPanel>
@@ -1290,13 +1254,11 @@
                                     <Button x:Name="ThemesText" Content="Select"
                                             HorizontalAlignment="Left" Height="35" Padding="10,0"
                                             Background="{DynamicResource SecondaryBrush}"
-                                            BorderBrush="{DynamicResource SecondaryBrush}"
                                             Foreground="{DynamicResource TextBrush}"
                                             FontSize="14" Click="Theme_Click" />
                                     <Button x:Name="ThemesTextReset" Content="Reset"
                                             Height="35" Padding="10,0"
                                             Background="{DynamicResource SecondaryBrush}"
-                                            BorderBrush="{DynamicResource SecondaryBrush}"
                                             Foreground="{DynamicResource TextBrush}"
                                             FontSize="14" Click="ThemeReset_Click" />
                                 </StackPanel>
@@ -1344,31 +1306,26 @@
                                 <Button x:Name="AssetsFolder" Content="Open Assets Folder" HorizontalAlignment="Left"
                                         Height="35" Padding="10,0"
                                         Background="{DynamicResource SecondaryBrush}"
-                                        BorderBrush="{DynamicResource SecondaryBrush}"
                                         Foreground="{DynamicResource TextBrush}"
                                         FontSize="14" Click="AssetsFolder_Click" />
                                 <Button x:Name="RestoreMissingAssets" Content="Restore Missing Assets"
                                         HorizontalAlignment="Left" Height="35" Padding="10,0"
                                         Background="{DynamicResource SecondaryBrush}"
-                                        BorderBrush="{DynamicResource SecondaryBrush}"
                                         Foreground="{DynamicResource TextBrush}"
                                         FontSize="14" Click="RestoreMissingAssets_Click" />
                                 <Button x:Name="RestoreALLAssets" Content="Restore All Assets"
                                         HorizontalAlignment="Left" Height="35" Padding="10,0"
                                         Background="{DynamicResource SecondaryBrush}"
-                                        BorderBrush="{DynamicResource SecondaryBrush}"
                                         Foreground="{DynamicResource TextBrush}"
                                         FontSize="14" Click="RestoreALLAssets_Click" />
                                 <Button x:Name="MuteButton" Content="Enable Mute?" HorizontalAlignment="Left"
                                         Height="35" Padding="10,0"
                                         Background="{DynamicResource SecondaryBrush}"
-                                        BorderBrush="{DynamicResource SecondaryBrush}"
                                         Foreground="{DynamicResource TextBrush}"
                                         FontSize="14" Click="Mute_Click" />
                                 <Button x:Name="UnfocusedMuteButton" Content="Enable Unfocused Mute?"
                                         HorizontalAlignment="Left" Height="35" Padding="10,0"
                                         Background="{DynamicResource SecondaryBrush}"
-                                        BorderBrush="{DynamicResource SecondaryBrush}"
                                         Foreground="{DynamicResource TextBrush}"
                                         FontSize="14" Click="UnfocusedMute_Click" />
                                 <TextBlock Text="Volume:" FontSize="14" Margin="0,10,0,0"

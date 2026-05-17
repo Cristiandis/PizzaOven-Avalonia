@@ -11,6 +11,16 @@
         <StyleInclude Source="avares://PizzaOven/Controls/Button.axaml" />
         <StyleInclude Source="avares://PizzaOven/Controls/ComboBox.axaml" />
         <StyleInclude Source="avares://PizzaOven/Controls/ScrollViewer.axaml" />
+        
+        <Style Selector="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource SecondaryBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        </Style>
+        <Style Selector="ComboBoxItem">
+            <Setter Property="Background" Value="{DynamicResource SecondaryBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        </Style>
+
     </Application.Styles>
     
     <Application.Resources>

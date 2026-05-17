@@ -749,19 +749,44 @@ public partial class MainWindow
 
     private void ApplyTransparentBoxes(bool init = false)
     {
+        var transparencysettings = new Dictionary<string, double>();
         foreach (var key in transparentboxes)
         {
             var value = PLUSSavesystem.read_ini("Themes", $"Transparency_{key}", "100");
             var slider = this.FindControl<Slider>($"Transparency_{key}");
-            if (slider == null) continue;
             var parsed = double.TryParse(value, out var p) ? p : 100;
-            if (init) slider.Value = parsed;
+            transparencysettings[key] = parsed / 100.0;
+            if (init && slider != null) slider.Value = parsed;
         }
 
         if (init) return;
-        if (ConsoleWindow != null) ConsoleWindow.Opacity = GetTransparency("Logger");
-        if (DescriptionWindow != null) DescriptionWindow.Opacity = GetTransparency("ModDescription");
-        if (ModGridBorder != null) ModGridBorder.Opacity = GetTransparency("ModGrid");
+
+        Color innerColor = Colors.Black;
+        if (Application.Current?.Resources.TryGetValue("InnerBrush", out var innerRes) == true
+            && innerRes is ISolidColorBrush innerScb)
+            innerColor = innerScb.Color;
+
+        var modGridOpacity = 0.75 * transparencysettings["ModGrid"];
+        if (ModGridBorder != null)
+        {
+            ModGridBorder.BorderBrush = new SolidColorBrush(innerColor) { Opacity = modGridOpacity };
+            ModGridBorder.Background = new SolidColorBrush(innerColor) { Opacity = modGridOpacity };
+        }
+        if (FeedBoxBorder != null)
+        {
+            FeedBoxBorder.BorderBrush = new SolidColorBrush(innerColor) { Opacity = 0.75 };
+            FeedBoxBorder.Background = new SolidColorBrush(innerColor) { Opacity = 0.75 };
+        }
+
+        var darkColor = Color.Parse("#202020");
+
+        if (DescriptionWindow != null)
+            DescriptionWindow.Background = new SolidColorBrush(darkColor)
+                { Opacity = transparencysettings["ModDescription"] };
+
+        if (ConsoleWindow != null)
+            ConsoleWindow.Background = new SolidColorBrush(darkColor)
+                { Opacity = transparencysettings["Logger"] };
     }
 
     private double GetTransparency(string key)
@@ -781,7 +806,7 @@ public partial class MainWindow
         if (string.IsNullOrEmpty(bgPath) || !File.Exists(bgPath))
         {
             if (this.TryFindResource("PrimaryBrush", out var res) && res is IBrush fallback)
-                MainGrid.Background = fallback;
+                RootGrid.Background = fallback;
             return;
         }
 
@@ -790,7 +815,7 @@ public partial class MainWindow
             var bytes = File.ReadAllBytes(bgPath);
             using var ms = new MemoryStream(bytes);
             var bitmap = new Bitmap(ms);
-            MainGrid.Background = new ImageBrush(bitmap) { Stretch = Stretch.UniformToFill };
+            RootGrid.Background = new ImageBrush(bitmap) { Stretch = Stretch.UniformToFill };
         }
         catch
         {
