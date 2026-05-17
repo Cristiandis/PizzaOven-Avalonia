@@ -73,6 +73,8 @@ public static class Setup
                 else
                 {
                     Global.logger.WriteLine("PizzaTower.exe not found", LoggerType.Error);
+                    if (Global.ronnietutorial)
+                        PLUSTutorial.RonnieVariables.SetupSucessful = 0;
                     return false;
                 }
             }
@@ -86,6 +88,8 @@ public static class Setup
         Global.config.Launcher   = defaultPath;
         Global.UpdateConfig();
         Global.logger.WriteLine("Setup completed for Pizza Tower!", LoggerType.Info);
+        if (Global.ronnietutorial)
+            PLUSTutorial.RonnieVariables.SetupSucessful = 1;
         return true;
     }
 }

@@ -1,7 +1,8 @@
+using System;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
+using Avalonia.Platform;
 using SoundFlow.Abstracts.Devices;
 using SoundFlow.Backends.MiniAudio;
 using SoundFlow.Components;
@@ -25,7 +26,7 @@ public static class PLUSMUSIC
     public static string MusicFolder = "Default";
 
     private static SoundPlayer? _tutorialPlayer;
-    private static FileStream? _tutorialStream;
+    private static Stream? _tutorialStream;
     private static bool _tutorialInitializing;
 
     public static void InitializeEngine()
@@ -103,25 +104,33 @@ public static class PLUSMUSIC
     {
         try
         {
-            var assembly = Assembly.GetExecutingAssembly();
-            var resource = assembly.GetManifestResourceStream("PizzaOven.OvenRonnie.TutorialMusic.wav");
+            Stop_TutorialMusic();
+
+            var audioUri = "avares://PizzaOven/OvenRonnie/TutorialMusic.wav";
+
+            var resource = AssetLoader.Open(new Uri(audioUri));
             if (resource == null) return;
 
-            var ms = new MemoryStream();
-            await resource.CopyToAsync(ms);
-            ms.Position = 0;
+            _tutorialStream = new MemoryStream();
+            await resource.CopyToAsync(_tutorialStream);
+            _tutorialStream.Position = 0;
+            resource.Dispose();
 
-            var provider = new StreamDataProvider(_engine!, ms);
+            InitializeEngine();
+
+            var provider = new StreamDataProvider(_engine!, _tutorialStream);
             _tutorialPlayer = new SoundPlayer(_engine!, _outputDevice!.Format, provider)
             {
                 IsLooping = true,
-                Volume = 1.0f
+                Volume = float.TryParse(PLUSSavesystem.read_ini("Audio", "SoundVolume", "100"), out var v)
+                    ? v / 100f
+                    : 1f
             };
 
             _outputDevice.MasterMixer.AddComponent(_tutorialPlayer);
             _tutorialPlayer.Play();
         }
-        catch
+        catch (Exception ex)
         {
         }
     }
@@ -184,6 +193,7 @@ public static class PLUSMUSIC
             _bgmPlayer.Dispose();
             _bgmPlayer = null;
         }
+
         if (_tutorialPlayer != null)
         {
             _tutorialPlayer.Stop();
@@ -191,6 +201,7 @@ public static class PLUSMUSIC
             _tutorialPlayer.Dispose();
             _tutorialPlayer = null;
         }
+
         _outputDevice?.MasterMixer.Components.ToList()
             .ForEach(c => _outputDevice.MasterMixer.RemoveComponent(c));
         _loopStream?.Dispose();
@@ -228,6 +239,49 @@ public static class PLUSMUSIC
         return float.TryParse(PLUSSavesystem.read_ini("Audio", "SoundVolume", "100"), out var v)
             ? v / 100f
             : 1f;
+    }
+
+    public static void PlayJingle()
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                InitializeEngine();
+
+                var audioUri = "avares://PizzaOven/OvenRonnie/RonnieJingle.wav";
+
+                var resource = AssetLoader.Open(new Uri(audioUri));
+                if (resource == null) return;
+
+                var ms = new MemoryStream();
+                await resource.CopyToAsync(ms);
+                ms.Position = 0;
+                resource.Dispose();
+
+                var provider = new StreamDataProvider(_engine!, ms);
+                var player = new SoundPlayer(_engine!, _outputDevice!.Format, provider)
+                {
+                    Volume = float.TryParse(PLUSSavesystem.read_ini("Audio", "SoundVolume", "100"), out var v)
+                        ? v / 100f
+                        : 1f
+                };
+
+                _outputDevice!.MasterMixer.AddComponent(player);
+                player.Play();
+
+                await Task.Delay(5000);
+
+                player.Stop();
+                _outputDevice.MasterMixer.RemoveComponent(player);
+                player.Dispose();
+                provider.Dispose();
+                ms.Dispose();
+            }
+            catch (Exception ex)
+            {
+            }
+        });
     }
 
     public static void Shutdown()

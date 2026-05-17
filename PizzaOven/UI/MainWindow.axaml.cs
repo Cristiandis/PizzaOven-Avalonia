@@ -63,9 +63,16 @@ public partial class MainWindow : Window
     private bool _updatingPageBox;
 
     public List<string> exes;
+    public PLUSRonnieAnimate gmloaderanimator;
     private int imageCount;
 
     private int imageCounter;
+    public PLUSRonnieAnimate introanimator;
+    public PLUSRonnieAnimate launchanimator;
+    public PLUSRonnieAnimate replayanimator;
+    public PLUSRonnieAnimate settinganimator;
+
+    public PLUSRonnieAnimate tutorialanimator;
     public string version;
 
     public MainWindow()
@@ -89,6 +96,8 @@ public partial class MainWindow : Window
         spinTimer.Start();
         Global.logger = new Logger(ConsoleWindow);
         Global.config = new Config();
+
+        Global.ronnietutorial = PLUSSavesystem.read_ini("Tutorial", "Finished", "false") != "true";
 
         var PizzaOvenVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
         version = PizzaOvenVersion.Substring(0, PizzaOvenVersion.LastIndexOf('.'));
@@ -272,6 +281,9 @@ public partial class MainWindow : Window
                     if (modFolder != currentFolder) continue;
                 }
 
+                if (Global.ronnietutorial && Path.GetFileName(mod) != "Ronnie Oven Mod")
+                    continue;
+
                 var m = new Mod();
                 m.name = Path.GetFileName(mod);
                 m.enabled = false;
@@ -288,23 +300,29 @@ public partial class MainWindow : Window
                 }
 
                 Dispatcher.UIThread.Invoke(() => Global.ModList.Add(m));
-                Global.logger.WriteLine($"Added {Path.GetFileName(mod)}", LoggerType.Info);
             }
 
         foreach (var mod in Global.ModList.ToList())
+        {
             if (!Directory.GetDirectories(currentModDirectory).ToList().Select(x => Path.GetFileName(x))
                     .Contains(mod.name))
             {
                 Dispatcher.UIThread.Invoke(() => Global.ModList.Remove(mod));
-                Global.logger.WriteLine($"Deleted {mod.name}", LoggerType.Info);
+                if (!Global.ronnietutorial)
+                    Global.logger.WriteLine($"Deleted {mod.name}", LoggerType.Info);
+                continue;
             }
+
+            if (Global.ronnietutorial && mod.name != "Ronnie Oven Mod")
+                Dispatcher.UIThread.Invoke(() => Global.ModList.Remove(mod));
+        }
 
         await Task.Run(() =>
         {
             Dispatcher.UIThread.Invoke(() =>
             {
                 ModGrid.ItemsSource = Global.ModList;
-                if (ModGrid.Items.Count == 0)
+                if (ModGrid.Items.Count == 0 && !Global.ronnietutorial)
                     DropBox.IsVisible = true;
                 else
                     DropBox.IsVisible = false;
@@ -319,12 +337,30 @@ public partial class MainWindow : Window
 
     private async void Setup_Click(object sender, RoutedEventArgs e)
     {
+        if (Global.ronnietutorial && !PLUSTutorial.RonnieVariables.SetupAllow)
+        {
+            Global.logger.WriteLine("Not yet...", LoggerType.Info);
+            return;
+        }
+
         if (await Setup.GameSetupAsync(this))
             LaunchButton.IsEnabled = true;
     }
 
     private async void Launch_Click(object sender, RoutedEventArgs e)
     {
+        if (Global.ronnietutorial && !PLUSTutorial.RonnieVariables.LauncherAllow)
+        {
+            Global.logger.WriteLine("Not yet...", LoggerType.Info);
+            return;
+        }
+
+        if (Global.ronnietutorial && Global.config.ModList.Where(x => x.enabled).ToList()[0].name != "Ronnie Oven Mod")
+        {
+            Global.logger.WriteLine("Select the Ronnie Mod", LoggerType.Info);
+            return;
+        }
+
         if (Global.config.ModsFolder != null)
         {
             ModGrid.IsEnabled = false;
@@ -427,6 +463,10 @@ public partial class MainWindow : Window
         Global.config.LeftGridWidth = MiddleGrid.ColumnDefinitions[0].Width.Value;
         Global.config.RightGridWidth = MiddleGrid.ColumnDefinitions[2].Width.Value;
         _settingAnimator?.Destroy();
+        introanimator?.Destroy();
+        tutorialanimator?.Destroy();
+        replayanimator?.Destroy();
+        gmloaderanimator?.Destroy();
         Global.UpdateConfig();
         POPRESENCE.Shutdown();
         PLUSMUSIC.Shutdown();
@@ -819,6 +859,12 @@ public partial class MainWindow : Window
 
     private void Download_Click(object sender, RoutedEventArgs e)
     {
+        if (Global.ronnietutorial && !PLUSTutorial.RonnieVariables.AllowDownloadMod)
+        {
+            Global.logger.WriteLine("Not yet...", LoggerType.Info);
+            return;
+        }
+
         var button = sender as Button;
         var item = button.DataContext as GameBananaRecord;
         new ModDownloader().BrowserDownload("Pizza Tower", item);
@@ -945,6 +991,17 @@ public partial class MainWindow : Window
 
     private async void InitializeBrowser()
     {
+        if (Global.ronnietutorial)
+        {
+            await FeedGenerator.GetFakeFeed();
+            FeedBox.ItemsSource = FeedGenerator.CurrentFeed.Records;
+            ErrorPanel.IsVisible = false;
+            LoadingBar.IsVisible = false;
+            FeedBox.IsVisible = true;
+            selected = true;
+            return;
+        }
+
         ErrorPanel.IsVisible = false;
         LoadingBar.IsVisible = true;
 
@@ -1342,6 +1399,40 @@ public partial class MainWindow : Window
         base.OnOpened(e);
         _isLoaded = true;
         PLUSrefresh();
+
+        if (Global.ronnietutorial)
+        {
+            _ = PLUSTutorial.RunTutorial(this);
+        }
+        else
+        {
+            PLUSTutorial.RonnieVariables.KeptMod = File.Exists(Path.Combine(
+                Global.appdata,
+                "PizzaTower_GM2", "RonnieTutorial.ini"));
+            PLUSTutorial.RonnieVariables.ModDeleted = PLUSTutorial.TutorialModPath() == "";
+
+            if (Directory.Exists(PLUSTutorial.TutorialModPath()))
+                Directory.Delete(PLUSTutorial.TutorialModPath(), true);
+
+            if (!PLUSTutorial.RonnieVariables.ModDeleted || PLUSTutorial.RonnieVariables.KeptMod)
+            {
+                introanimator = new PLUSRonnieAnimate();
+                introanimator.Initialize(this, Bounds.Width / 2, 250, 1.5);
+                SizeChanged += (s, ev) =>
+                {
+                    if (introanimator?._overlayCanvas != null)
+                    {
+                        introanimator._overlayCanvas.Width = Bounds.Width;
+                        introanimator._overlayCanvas.Height = Bounds.Height;
+                    }
+                };
+                _ = PLUSTutorial.RunIntro(this);
+            }
+            else
+            {
+                introanimator?.Destroy();
+            }
+        }
     }
 
     private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)

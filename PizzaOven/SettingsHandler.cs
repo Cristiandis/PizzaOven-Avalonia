@@ -138,7 +138,7 @@ public partial class MainWindow
 
     private void ReplayTutorial_Click(object sender, RoutedEventArgs e)
     {
-        Global.logger.WriteLine("Tutorial not yet implemented.", LoggerType.Warning);
+        _ = PLUSTutorial.ReplayTutorial(this);
     }
 
     #endregion
@@ -193,9 +193,6 @@ public partial class MainWindow
     {
         if (sender is not Button btn) return;
 
-        _settingAnimator?.Destroy();
-        _settingAnimator = null;
-
         var messages = new Dictionary<string, string>
         {
             ["NavTutorial"] = "You can use this to replay my tutorial",
@@ -213,22 +210,45 @@ public partial class MainWindow
             ["NavCredits"] = "Contributions to PizzaOven+ and the original PizzaOven too"
         };
 
-        if (btn.Name != null && messages.TryGetValue(btn.Name, out var message))
+        if (btn.Name == null || !messages.TryGetValue(btn.Name, out var message)) return;
+
+        if (Global.ronnietutorial && PLUSTutorial.RonnieVariables.RonnieExplainSettings != 1)
         {
-            _settingAnimator = new PLUSRonnieAnimate();
-            var ronnieX = Bounds.Width - 500;
-            var ronnieY = Bounds.Height - 250;
-            _settingAnimator.Initialize(this, ronnieX, ronnieY);
-            _settingAnimator.SetExpression(btn.Name == "NavTutorial" ? "happy" : "thinking");
-            _settingAnimator.MakeTextbox(
-                _settingAnimator.GetX() + 110,
-                _settingAnimator.GetY() + 25,
-                message);
+            if (PLUSTutorial.RonnieVariables.RonnieExplainSettings == 0)
+                PLUSTutorial.RonnieVariables.RonnieExplainSettings = 1;
+            return;
         }
+
+        if (Global.ronnietutorial && tutorialanimator != null)
+        {
+            tutorialanimator.DestroyTextbox(PLUSTutorial.RonnieVariables.publictextbox);
+            PLUSTutorial.RonnieVariables.publictextbox = tutorialanimator.MakeTextbox(
+                tutorialanimator.GetX() + 110, tutorialanimator.GetY() + 25, message);
+            _settingAnimator?.Destroy();
+            _settingAnimator = null;
+            return;
+        }
+
+        _settingAnimator?.Destroy();
+        _settingAnimator = new PLUSRonnieAnimate();
+        var ronnieX = Bounds.Width - 500;
+        var ronnieY = Bounds.Height - 250;
+        _settingAnimator.Initialize(this, ronnieX, ronnieY);
+        _settingAnimator.SetExpression(btn.Name == "NavTutorial" ? "happy" : "thinking");
+        _settingAnimator.MakeTextbox(
+            _settingAnimator.GetX() + 110,
+            _settingAnimator.GetY() + 25,
+            message);
     }
 
     private void SettingsNavButton_PointerExited(object sender, PointerEventArgs e)
     {
+        if (Global.ronnietutorial && tutorialanimator != null)
+        {
+            tutorialanimator.DestroyTextbox(PLUSTutorial.RonnieVariables.publictextbox);
+            PLUSTutorial.RonnieVariables.publictextbox = 0;
+            return;
+        }
         _settingAnimator?.Destroy();
         _settingAnimator = null;
     }
@@ -761,7 +781,7 @@ public partial class MainWindow
 
         if (init) return;
 
-        Color innerColor = Colors.Black;
+        var innerColor = Colors.Black;
         if (Application.Current?.Resources.TryGetValue("InnerBrush", out var innerRes) == true
             && innerRes is ISolidColorBrush innerScb)
             innerColor = innerScb.Color;
@@ -772,6 +792,7 @@ public partial class MainWindow
             ModGridBorder.BorderBrush = new SolidColorBrush(innerColor) { Opacity = modGridOpacity };
             ModGridBorder.Background = new SolidColorBrush(innerColor) { Opacity = modGridOpacity };
         }
+
         if (FeedBoxBorder != null)
         {
             FeedBoxBorder.BorderBrush = new SolidColorBrush(innerColor) { Opacity = 0.75 };
