@@ -48,7 +48,7 @@ Name=Pizza Oven
 Exec=/usr/bin/pizzaoven -download %u
 Type=Application
 NoDisplay=true
-MimeType=x-scheme-handler/pizzaoven;
+MimeType=x-scheme-handler/pizzaovenplus;
 EOF
 
 # Icon

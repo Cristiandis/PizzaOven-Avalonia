@@ -12,7 +12,7 @@ public static class RegistryConfig
             return false;
 
         string appPath = $"{Global.assemblyLocation}{Global.s}PizzaOven.exe";
-        const string protocolName = "pizzaoven";
+        const string protocolName = "pizzaovenplus";
         try
         {
             var registryType = Type.GetType("Microsoft.Win32.Registry, Microsoft.Win32.Registry");

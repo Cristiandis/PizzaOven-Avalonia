@@ -43,7 +43,7 @@ Name=Pizza Oven
 Exec=/usr/bin/pizzaoven -download %u
 Type=Application
 NoDisplay=true
-MimeType=x-scheme-handler/pizzaoven;
+MimeType=x-scheme-handler/pizzaovenplus;
 DESKTOP
 
 install -Dm644 "$srcdir/pizzaoven.png" "$pkgdir/usr/share/icons/hicolor/256x256/apps/pizzaoven.png"
