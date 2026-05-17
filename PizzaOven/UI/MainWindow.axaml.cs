@@ -405,7 +405,8 @@ public partial class MainWindow : Window
                 Global.UpdateConfig();
                 Global.logger.WriteLine($"Launching {path}", LoggerType.Info);
                 ProcessStartInfo ps;
-                if (OperatingSystem.IsLinux())
+                bool useSteam = OperatingSystem.IsLinux() || PLUSSavesystem.read_ini_bool("Launch", "Steam", false);
+                if (useSteam)
                     ps = new ProcessStartInfo("steam")
                     {
                         Arguments = "steam://rungameid/2231450",

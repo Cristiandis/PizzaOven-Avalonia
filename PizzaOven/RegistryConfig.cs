@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using System.Runtime.InteropServices;
 
 namespace PizzaOven;
@@ -11,19 +10,15 @@ public static class RegistryConfig
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             return false;
 
-        string appPath = $"{Global.assemblyLocation}{Global.s}PizzaOven.exe";
+        var appPath = $"{Global.assemblyLocation}{Global.s}PizzaOven.exe";
         const string protocolName = "pizzaovenplus";
         try
         {
             var registryType = Type.GetType("Microsoft.Win32.Registry, Microsoft.Win32.Registry");
             if (registryType == null)
-            {
                 RegisterWindows(appPath, protocolName);
-            }
             else
-            {
                 RegisterWindows(appPath, protocolName);
-            }
             return true;
         }
         catch
