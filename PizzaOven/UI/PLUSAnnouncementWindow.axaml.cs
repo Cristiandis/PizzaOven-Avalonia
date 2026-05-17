@@ -26,7 +26,7 @@ public partial class PLUSAnnouncementWindow : Window
 
     public static async Task<PLUSAnnouncement?> GetLatestAnnouncementAsync()
     {
-        const string url = "https://raw.githubusercontent.com/Cristiandis/PizzaOven-Avalonia/refs/heads/PO%2B/announcements.json";
+        const string url = "https://raw.githubusercontent.com/Cristiandis/PizzaOven-Avalonia/refs/heads/master/announcements.json";
         using var client = new HttpClient();
         var json = await client.GetStringAsync(url);
         return JsonSerializer.Deserialize<PLUSAnnouncement>(json);
