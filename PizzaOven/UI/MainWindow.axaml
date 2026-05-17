@@ -7,7 +7,7 @@
         xmlns:asyncImageLoader="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
         xmlns:local="using:PizzaOven"
         Background="{DynamicResource PrimaryBrush}"
-        Title="Pizza Oven+ | An Extenstion by SurfyCrescent97"
+        Title="Pizza Oven+ | An Extenstion by SurfyCrescent97 | Port by Cristiandis"
         mc:Ignorable="d"
         WindowStartupLocation="CenterScreen"
         Height="750" Width="1280" MinHeight="750" MinWidth="1280"
@@ -1380,6 +1380,7 @@
                                 <TextBlock Text="Mak n' Sauce — All Assets that aren't PizzaOven" />
                                 <TextBlock Text="noodlecup — Made Tutorial Theme" />
                                 <TextBlock Text="Joel Eastwood — Made Ronnie's Jingle" />
+                                <TextBlock Text="Cristiandis - Avalonia Port" />
 
                                 <TextBlock Text="Others" Classes="Header" />
                                 <TextBlock Text="EmeraldMan — AFOM" />

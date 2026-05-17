@@ -7,7 +7,7 @@ namespace PizzaOven
     public static class AutostartManager
     {
         private const string AppName = "pizzaoven";
-        private const string DisplayName = "Pizza Oven";
+        private const string DisplayName = "Pizza Oven+";
         private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
 
         public static void SetAutostart(bool enable)

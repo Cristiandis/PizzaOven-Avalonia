@@ -74,7 +74,7 @@ jobs:
 
           cat > "$PKGDIR/usr/share/applications/pizzaoven.desktop" << 'EOF'
           [Desktop Entry]
-          Name=Pizza Oven
+          Name=Pizza Oven+
           Comment=Mod manager for Pizza Tower
           Exec=/usr/bin/pizzaoven
           Icon=pizzaoven
@@ -84,7 +84,7 @@ jobs:
 
           cat > "$PKGDIR/usr/share/applications/pizzaoven-handler.desktop" << 'EOF'
           [Desktop Entry]
-          Name=Pizza Oven
+          Name=Pizza Oven+
           Exec=/usr/bin/pizzaoven -download %u
           Type=Application
           NoDisplay=true
