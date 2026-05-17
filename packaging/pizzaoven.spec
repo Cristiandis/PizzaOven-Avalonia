@@ -1,5 +1,5 @@
 Name:           pizzaoven
-Version:        1.1.0
+Version:        1.1.1
 Release:        1%{?dist}
 Summary:        Cross-platform mod manager for Pizza Tower
 License:        GPLv3
