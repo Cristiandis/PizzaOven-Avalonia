@@ -13,6 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -21,6 +22,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using PizzaOven.UI;
 using SharpCompress.Archives;
 using SharpCompress.Common;
@@ -78,6 +80,20 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        
+        ModGrid.LayoutUpdated += (s, e) =>
+        {
+            var grid = ModGrid.GetVisualDescendants().OfType<UniformGrid>().FirstOrDefault();
+            if (grid != null)
+                grid.Columns = Math.Max(1, (int)(grid.Bounds.Width / 240));
+        };
+
+        FeedBox.LayoutUpdated += (s, e) =>
+        {
+            var grid = FeedBox.GetVisualDescendants().OfType<UniformGrid>().FirstOrDefault();
+            if (grid != null)
+                grid.Columns = Math.Max(1, (int)(grid.Bounds.Width / 400) + 1);
+        };
 
         PLUSMUSIC.InitializeEngine();
 

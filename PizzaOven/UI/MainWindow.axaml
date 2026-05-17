@@ -206,6 +206,7 @@
         <DataTemplate x:Key="ModTemplate" x:DataType="local:Mod">
             <Border CornerRadius="5" Margin="5"
                     BorderThickness="1"
+                    Height="220"
                     BorderBrush="#bf101010"
                     Background="#bf101010">
                 <Grid VerticalAlignment="Center" Margin="3">
@@ -397,7 +398,7 @@
                                      ItemTemplate="{StaticResource ModTemplate}">
                                 <ListBox.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <WrapPanel ItemWidth="420" />
+                                        <UniformGrid x:Name="ModUniformGrid"/>
                                     </ItemsPanelTemplate>
                                 </ListBox.ItemsPanel>
                                 <ListBox.ContextMenu>
@@ -872,7 +873,7 @@
                                           ItemTemplate="{StaticResource BrowserTemplate}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <WrapPanel />
+                                        <UniformGrid x:Name="BrowserUniformGrid"/>
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                             </ItemsControl>
