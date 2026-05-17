@@ -39,7 +39,6 @@
     <EmbeddedResource Include="Dependencies\XDelta_Common_Checksum.txt">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="POSECRETS.json" />
   </ItemGroup>
 
   <ItemGroup>
