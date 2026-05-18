@@ -144,7 +144,7 @@ jobs:
             'URL: https://github.com/Cristiandis/PizzaOven-Avalonia' \
             'Source0: PizzaOven-linux-x64.tar.gz' \
             '' \
-            'Requires: dotnet-runtime-8.0'
+            'Requires: dotnet-runtime-8.0' \
             '' \
             'BuildArch: x86_64' \
             '' \
