@@ -7,9 +7,6 @@ Pizza Oven is a tool that allows gamers to download, install, and manage mods fo
 ## Getting Started
 ### Prerequisites
 - **.NET 8 Runtime** — required to run Pizza Oven
-- **xdelta3** — required for applying xdelta patches
-  - Windows: bundled with Pizza Oven, no action needed
-  - Linux: install via your package manager (e.g. `sudo pacman -S xdelta3` on Arch)
 
 ### Setup
 After launching, Pizza Oven will automatically try to locate the game directory. On Windows it checks the registry, on Linux it checks the default Steam path (`~/.local/share/Steam/steamapps/common/Pizza Tower`). If it fails to find it, it will prompt you to manually select your PizzaTower.exe. If you need to set up again, just click the Setup button.
@@ -86,8 +83,3 @@ Only one instance is allowed to run at a time. If it's already running, the app 
 ### Why doesn't Pizza Oven have permissions to copy over files?
 On Windows, try running as administrator. On Linux, check that the game directory is accessible by your user and that no other process is locking the files.
 
-### xdelta3 is not found on Linux
-Make sure xdelta3 is installed via your package manager:
-- **Arch:** `sudo pacman -S xdelta3`
-- **Debian/Ubuntu:** `sudo apt install xdelta3`
-<!-- - **Fedora:** `sudo dnf install xdelta` -->

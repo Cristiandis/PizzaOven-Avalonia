@@ -262,7 +262,6 @@ jobs:
 
             ### Requirements
             - .NET 8 Runtime
-            - xdelta3 (Linux only, not required on Windows)
 
           files: |
             artifacts/linux-tarball/PizzaOven-linux-x64.tar.gz
