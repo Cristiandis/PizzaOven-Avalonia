@@ -223,19 +223,37 @@ jobs:
             --dotnet 8 --freedesktop 24.08 --runtime linux-x64
 
       - name: Build Flatpak
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         run: |
           # Rewrite source to use the current git tag instead of local dir
           sed -i 's|type: dir|type: git|' packaging/flatpak/com.github.Cristiandis.PizzaOven.yml
           sed -i "s|path: ../../|url: https://github.com/Cristiandis/PizzaOven-Avalonia.git\n        tag: ${GITHUB_REF_NAME}|" \
             packaging/flatpak/com.github.Cristiandis.PizzaOven.yml
 
+          echo "$GPG_PRIVATE_KEY" | gpg --import
+          KEY_ID=$(gpg --list-secret-keys --with-colons | grep '^sec' | cut -d: -f5)
+
           flatpak-builder \
             --repo=flatpak-repo \
+            --gpg-sign="$KEY_ID" \
             --force-clean \
             build-dir \
             packaging/flatpak/com.github.Cristiandis.PizzaOven.yml
 
-          flatpak build-update-repo flatpak-repo
+          flatpak build-update-repo --gpg-sign="$KEY_ID" flatpak-repo
+
+          gpg --export "$KEY_ID" > pizzaoven.gpg
+          GPG_B64=$(base64 --wrap=0 < pizzaoven.gpg)
+          
+          printf "%s\n" \
+            "[Flatpak Repo]" \
+            "Title=PizzaOven" \
+            "Url=https://cristiandis.github.io/PizzaOven-Avalonia" \
+            "Homepage=https://github.com/Cristiandis/PizzaOven-Avalonia" \
+            "Comment=PizzaOven Flatpak Repository" \
+            "GPGKey=$GPG_B64" \
+            > flatpak-repo/pizzaoven.flatpakrepo
 
       - name: Create bundle
         run: |
@@ -341,7 +359,7 @@ jobs:
             ### Installing the Flatpak (recommended)
             Add the repo once, then install and get automatic updates:
             ```sh
-            flatpak remote-add --if-not-exists pizzaoven https://cristiandis.github.io/PizzaOven-Avalonia
+            flatpak remote-add --if-not-exists pizzaoven https://cristiandis.github.io/PizzaOven-Avalonia/pizzaoven.flatpakrepo
             flatpak install pizzaoven com.github.Cristiandis.PizzaOven
             ```
 
