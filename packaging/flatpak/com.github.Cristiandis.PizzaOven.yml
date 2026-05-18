@@ -7,6 +7,16 @@ sdk-extensions:
 
 command: pizzaoven
 
+build-options:
+  prepend-path: /usr/lib/sdk/dotnet8/bin
+  append-ld-library-path: /usr/lib/sdk/dotnet8/lib
+  prepend-pkg-config-path: /usr/lib/sdk/dotnet8/lib/pkgconfig
+  env:
+    DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+    DOTNET_NOLOGO: '1'
+    DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1'
+    MSBUILDDISABLENODEREUSE: '1'
+
 finish-args:
   - --share=network
   - --share=ipc
@@ -25,41 +35,28 @@ finish-args:
   - --filesystem=xdg-run/discord-ipc-0
   - --filesystem=xdg-run/app/com.discordapp.Discord
 
-build-options:
-  append-path: /usr/lib/sdk/dotnet8/bin
-  env:
-    DOTNET_ROOT: /usr/lib/sdk/dotnet8
-    DOTNET_CLI_TELEMETRY_OPTOUT: '1'
-    DOTNET_NOLOGO: '1'
-    DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1'
-    MSBUILDDISABLENODEREUSE: '1'
-
 modules:
+  - name: dotnet
+    buildsystem: simple
+    build-commands:
+      - /usr/lib/sdk/dotnet8/bin/install.sh
+
   - name: pizzaoven
     buildsystem: simple
 
     sources:
-      # For local development use:
-      #   type: dir
-      #   path: ../../
-      # CI switches this to type:git automatically — see release.yml
       - type: dir
         path: ../../
       - nuget-sources.json
 
     build-commands:
-
-      - dotnet restore PizzaOven/PizzaOven.csproj --source ./nuget-sources -r linux-x64 --packages ./packages
-
       - |
         dotnet publish PizzaOven/PizzaOven.csproj \
           -c Release \
           -r linux-x64 \
-          --no-restore \
-          --self-contained true \
-          -p:PublishSingleFile=true \
+          --no-self-contained \
+          --source ./nuget-sources \
           -p:IncludeNativeLibrariesForSelfExtract=true \
-          --packages ./packages \
           -o /app/bin
 
       - install -Dm755 PizzaOven/Dependencies/xdelta3 /app/bin/Dependencies/xdelta3

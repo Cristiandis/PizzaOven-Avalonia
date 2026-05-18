@@ -1,6 +1,6 @@
 # Maintainer: Cristiandis <pizzaoven@izzoserver.top>
 pkgname=pizzaoven-bin
-pkgver=1.1.2
+pkgver=1.1.3
 pkgrel=1
 pkgdesc="Cross-platform mod manager for Pizza Tower"
 arch=('x86_64')
