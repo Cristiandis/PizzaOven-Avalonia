@@ -32,24 +32,27 @@ finish-args:
   - --talk-name=org.freedesktop.portal.OpenURI
   - --env=DOTNET_ROOT=/app/lib/dotnet
   - --own-name=com.github.Cristiandis.PizzaOven
-  - --filesystem=xdg-run/discord-ipc-0
-  - --filesystem=xdg-run/app/com.discordapp.Discord
+  - --filesystem=xdg-run/keyring
 
 modules:
-  - name: dotnet
+  - name: dotnet-sdk
     buildsystem: simple
     build-commands:
-      - /usr/lib/sdk/dotnet8/bin/install.sh
+      - |
+        mkdir -p /app/lib/dotnet
+        cp -r /usr/lib/sdk/dotnet8/* /app/lib/dotnet/
 
   - name: pizzaoven
     buildsystem: simple
-
     sources:
       - type: dir
         path: ../../
-      - nuget-sources.json
-
+      - type: file
+        path: nuget-sources.json
     build-commands:
+      - |
+        mkdir nuget-sources
+        tar -xf nuget-sources.json -C nuget-sources
       - |
         dotnet publish PizzaOven/PizzaOven.csproj \
           -c Release \
@@ -71,24 +74,22 @@ modules:
       - |
         cat > /app/bin/pizzaoven <<'EOF'
         #!/bin/sh
-        exec /app/bin/PizzaOven "$@"
+        # Se il primo argomento inizia con il protocollo di GameBanana, inserisce automaticamente -download
+        if echo "$1" | grep -q "^pizzaovenplus:"; then
+            exec /app/bin/PizzaOven -download "$@"
+        else
+            exec /app/bin/PizzaOven "$@"
+        fi
         EOF
       - chmod 755 /app/bin/pizzaoven
 
       - install -Dm644 packaging/flatpak/com.github.Cristiandis.PizzaOven.desktop /app/share/applications/com.github.Cristiandis.PizzaOven.desktop
 
-      - |
-        cat > /tmp/pizzaoven-handler.desktop <<'EOF'
-        [Desktop Entry]
-        Name=Pizza Oven+
-        Exec=/app/bin/pizzaoven -download %u
-        Type=Application
-        NoDisplay=true
-        MimeType=x-scheme-handler/pizzaovenplus;
-        EOF
-        install -Dm644 /tmp/pizzaoven-handler.desktop \
-          /app/share/applications/com.github.Cristiandis.PizzaOven.Handler.desktop
-
-      - install -Dm644 PizzaOven/Assets/PizzaOvenIcon.png /app/share/icons/hicolor/256x256/apps/com.github.Cristiandis.PizzaOven.png
-
       - install -Dm644 packaging/flatpak/com.github.Cristiandis.PizzaOven.metainfo.xml /app/share/metainfo/com.github.Cristiandis.PizzaOven.metainfo.xml
+
+      - |
+        for size in 16 32 48 64 128 256 512; do
+          if [ -f PizzaOven/Assets/PizzaOvenIcon.png ]; then
+            install -Dm644 PizzaOven/Assets/PizzaOvenIcon.png /app/share/icons/hicolor/${size}x${size}/apps/com.github.Cristiandis.PizzaOven.png
+          fi
+        done

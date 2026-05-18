@@ -6,3 +6,4 @@ Icon=com.github.Cristiandis.PizzaOven
 Type=Application
 Categories=Game;
 StartupNotify=true
+MimeType=x-scheme-handler/pizzaovenplus;

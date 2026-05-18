@@ -54,18 +54,21 @@ public static class RegistryConfig
 
     private static void RegisterLinux()
     {
-        var applicationsDir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".local", "share", "applications");
+        bool isFlatpak = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FLATPAK_ID"));
+        if (isFlatpak)
+        {
+            return;
+        }
+
+        var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var xdgDataHome = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
+        var applicationsDir = Path.Combine(!string.IsNullOrEmpty(xdgDataHome) ? xdgDataHome : Path.Combine(homeDir, ".local", "share"), "applications");
 
         Directory.CreateDirectory(applicationsDir);
         
-        bool isFlatpak = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FLATPAK_ID"));
-        string exec = isFlatpak
-            ? "/app/bin/pizzaoven -download %u"
-            : $"{Global.appLocation}{Global.s}pizzaoven -download %u";
+        string exec = $"{Global.appLocation}{Global.s}pizzaoven -download %u";
+        var handlerDesktop = Path.Combine(applicationsDir, "com.github.Cristiandis.PizzaOven.Handler.desktop");
 
-        var handlerDesktop = Path.Combine(applicationsDir, "pizzaoven-handler.desktop");
         File.WriteAllText(handlerDesktop,
             "[Desktop Entry]\n" +
             "Name=Pizza Oven+\n" +
@@ -74,7 +77,7 @@ public static class RegistryConfig
             "NoDisplay=true\n" +
             "MimeType=x-scheme-handler/pizzaovenplus;\n");
 
-        RunSilent("xdg-mime", "default pizzaoven-handler.desktop x-scheme-handler/pizzaovenplus");
+        RunSilent("xdg-mime", "default com.github.Cristiandis.PizzaOven.Handler.desktop x-scheme-handler/pizzaovenplus");
         RunSilent("update-desktop-database", applicationsDir);
     }
 
