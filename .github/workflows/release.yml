@@ -29,6 +29,8 @@ jobs:
       - name: Create tarball
         run: |
           cp PizzaOven/Assets/PizzaOvenIcon.png publish/linux/pizzaoven.png
+          mkdir -p publish/linux/Dependencies
+          cp -r PizzaOven/Dependencies/* publish/linux/Dependencies/ 2>/dev/null || cp -r Dependencies/* publish/linux/Dependencies/
           cd publish/linux
           tar -czf ../../PizzaOven-linux-x64.tar.gz .
 
