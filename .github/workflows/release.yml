@@ -195,6 +195,61 @@ jobs:
           name: rpm-package
           path: pizzaoven-*.rpm
 
+  build-flatpak:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install flatpak and flatpak-builder
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder python3-pip
+          sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          sudo flatpak install -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
+          sudo flatpak install -y flathub org.freedesktop.Sdk.Extension.dotnet8//24.08
+
+      - name: Setup .NET (for nuget source generation)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Generate NuGet sources
+        run: |
+          pip install aiohttp
+          python3 packaging/flatpak/flatpak-dotnet-generator.py \
+            --dotnet 8 --freedesktop 24.08 \
+            packaging/flatpak/nuget-sources.json \
+            PizzaOven/PizzaOven.csproj
+
+      - name: Update manifest to use git tag source
+        run: |
+          # Switch from type:dir (local dev) to type:git (CI) with the current tag
+          sed -i 's|type: dir|type: git|' packaging/flatpak/com.github.Cristiandis.PizzaOven.yml
+          sed -i "s|path: ../../|url: https://github.com/Cristiandis/PizzaOven-Avalonia.git\n        tag: ${GITHUB_REF_NAME}|" \
+            packaging/flatpak/com.github.Cristiandis.PizzaOven.yml
+
+      - name: Build Flatpak
+        run: |
+          flatpak-builder \
+            --repo=flatpak-repo \
+            --force-clean \
+            build-dir \
+            packaging/flatpak/com.github.Cristiandis.PizzaOven.yml
+
+      - name: Create bundle
+        run: |
+          flatpak build-bundle \
+            flatpak-repo \
+            PizzaOven-linux-x64.flatpak \
+            com.github.Cristiandis.PizzaOven
+
+      - name: Upload flatpak bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: flatpak-bundle
+          path: PizzaOven-linux-x64.flatpak
+
   build-windows:
     runs-on: windows-latest
 
@@ -224,6 +279,7 @@ jobs:
   release:
     needs:
       - build-linux
+      - build-flatpak
       - build-windows
 
     runs-on: ubuntu-latest
@@ -258,15 +314,23 @@ jobs:
             ### Downloads
             - **Windows**: `PizzaOven-windows-x64.zip`
             - **Linux (tarball)**: `PizzaOven-linux-x64.tar.gz`
+            - **Linux (Flatpak)**: `PizzaOven-linux-x64.flatpak`
             - **Linux (Debian/Ubuntu)**: `pizzaoven_${{ steps.version.outputs.VERSION }}_amd64.deb`
             - **Linux (Fedora/RHEL)**: `pizzaoven-${{ steps.version.outputs.VERSION }}-1.x86_64.rpm`
             - **Arch Linux**: Use the PKGBUILD from the `packaging/` folder or install via [AUR](https://aur.archlinux.org/packages/pizzaoven-bin)
 
+            ### Installing the Flatpak
+            ```sh
+            flatpak install PizzaOven-linux-x64.flatpak
+            flatpak run com.github.Cristiandis.PizzaOven
+            ```
+
             ### Requirements
-            - .NET 8 Runtime
+            - .NET 8 Runtime (not needed for Flatpak — it's bundled)
 
           files: |
             artifacts/linux-tarball/PizzaOven-linux-x64.tar.gz
+            artifacts/flatpak-bundle/PizzaOven-linux-x64.flatpak
             artifacts/deb-package/pizzaoven_*.deb
             artifacts/rpm-package/pizzaoven-*.rpm
             artifacts/windows-zip/PizzaOven-windows-x64.zip
