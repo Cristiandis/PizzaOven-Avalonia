@@ -423,11 +423,17 @@ public partial class MainWindow : Window
                 ProcessStartInfo ps;
                 bool useSteam = OperatingSystem.IsLinux() || PLUSSavesystem.read_ini_bool("Launch", "Steam", false);
                 if (useSteam)
-                    ps = new ProcessStartInfo("steam")
-                    {
-                        Arguments = "steam://rungameid/2231450",
-                        UseShellExecute = true
-                    };
+                    ps = OperatingSystem.IsLinux()
+                        ? new ProcessStartInfo("xdg-open")
+                        {
+                            Arguments = "steam://rungameid/2231450",
+                            UseShellExecute = false
+                        }
+                        : new ProcessStartInfo("steam")
+                        {
+                            Arguments = "steam://rungameid/2231450",
+                            UseShellExecute = true
+                        };
                 else
                     ps = new ProcessStartInfo(path)
                     {

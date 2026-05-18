@@ -1,0 +1,97 @@
+app-id: com.github.Cristiandis.PizzaOven
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.dotnet8
+
+command: pizzaoven
+
+finish-args:
+  - --share=network
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --device=dri
+  - --filesystem=home
+  - --filesystem=~/.local/share/Steam
+  - --filesystem=~/.steam
+  - --talk-name=com.valvesoftware.Steam
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.freedesktop.portal.OpenURI
+  - --env=DOTNET_ROOT=/app/lib/dotnet
+  - --own-name=com.github.Cristiandis.PizzaOven
+  - --filesystem=xdg-run/discord-ipc-0
+  - --filesystem=xdg-run/app/com.discordapp.Discord
+
+build-options:
+  append-path: /usr/lib/sdk/dotnet8/bin
+  env:
+    DOTNET_ROOT: /usr/lib/sdk/dotnet8
+    DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+    DOTNET_NOLOGO: '1'
+    DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1'
+    MSBUILDDISABLENODEREUSE: '1'
+
+modules:
+  - name: pizzaoven
+    buildsystem: simple
+
+    sources:
+      # For local development use:
+      #   type: dir
+      #   path: ../../
+      # CI switches this to type:git automatically — see release.yml
+      - type: dir
+        path: ../../
+      - nuget-sources.json
+
+    build-commands:
+
+      - dotnet restore PizzaOven/PizzaOven.csproj --source ./nuget-sources -r linux-x64 --packages ./packages
+
+      - |
+        dotnet publish PizzaOven/PizzaOven.csproj \
+          -c Release \
+          -r linux-x64 \
+          --no-restore \
+          --self-contained true \
+          -p:PublishSingleFile=true \
+          -p:IncludeNativeLibrariesForSelfExtract=true \
+          --packages ./packages \
+          -o /app/bin
+
+      - install -Dm755 PizzaOven/Dependencies/xdelta3 /app/bin/Dependencies/xdelta3
+
+      - |
+        if [ -f PizzaOven/Dependencies/DepotDownloader-linux/DepotDownloader ]; then
+          install -Dm755 \
+            PizzaOven/Dependencies/DepotDownloader-linux/DepotDownloader \
+            /app/bin/Dependencies/DepotDownloader-linux/DepotDownloader
+        fi
+
+      - |
+        cat > /app/bin/pizzaoven <<'EOF'
+        #!/bin/sh
+        exec /app/bin/PizzaOven "$@"
+        EOF
+      - chmod 755 /app/bin/pizzaoven
+
+      - install -Dm644 packaging/flatpak/com.github.Cristiandis.PizzaOven.desktop /app/share/applications/com.github.Cristiandis.PizzaOven.desktop
+
+      - |
+        cat > /tmp/pizzaoven-handler.desktop <<'EOF'
+        [Desktop Entry]
+        Name=Pizza Oven+
+        Exec=/app/bin/pizzaoven -download %u
+        Type=Application
+        NoDisplay=true
+        MimeType=x-scheme-handler/pizzaovenplus;
+        EOF
+        install -Dm644 /tmp/pizzaoven-handler.desktop \
+          /app/share/applications/com.github.Cristiandis.PizzaOven.Handler.desktop
+
+      - install -Dm644 PizzaOven/Assets/PizzaOvenIcon.png /app/share/icons/hicolor/256x256/apps/com.github.Cristiandis.PizzaOven.png
+
+      - install -Dm644 packaging/flatpak/com.github.Cristiandis.PizzaOven.metainfo.xml /app/share/metainfo/com.github.Cristiandis.PizzaOven.metainfo.xml

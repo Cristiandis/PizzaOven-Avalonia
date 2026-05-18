@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.github.Cristiandis.PizzaOven</id>
+
+  <name>Pizza Oven+</name>
+  <summary>Mod manager for Pizza Tower</summary>
+
+  <metadata_license>FSFAP</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+
+  <description>
+    <p>
+      Pizza Oven allows you to download, install, and manage mods for Pizza Tower
+      using GameBanana integration. It supports one-click installs via the
+      pizzaovenplus:// URL scheme.
+    </p>
+  </description>
+
+  <url type="homepage">https://github.com/Cristiandis/PizzaOven-Avalonia</url>
+  <url type="bugtracker">https://github.com/Cristiandis/PizzaOven-Avalonia/issues</url>
+
+  <developer_name>Cristiandis</developer_name>
+
+  <launchable type="desktop-id">com.github.Cristiandis.PizzaOven.desktop</launchable>
+
+  <provides>
+    <binary>pizzaoven</binary>
+  </provides>
+
+  <mimetypes>
+    <mimetype>x-scheme-handler/pizzaovenplus</mimetype>
+  </mimetypes>
+
+  <categories>
+    <category>Game</category>
+  </categories>
+
+  <icon type="remote" width="256" height="256">
+    https://raw.githubusercontent.com/Cristiandis/PizzaOven-Avalonia/main/PizzaOven/Assets/PizzaOvenIcon.png
+  </icon>
+
+  <releases>
+    <release version="1.1.2" date="2025-01-01">
+      <description>
+        <p>Latest release.</p>
+      </description>
+    </release>
+  </releases>
+
+  <content_rating type="oars-1.1" />
+</component>

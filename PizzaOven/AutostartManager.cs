@@ -34,19 +34,32 @@ namespace PizzaOven
             if (enable)
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
+                string? flatpakId = Environment.GetEnvironmentVariable("FLATPAK_ID");
+                bool isFlatpak = !string.IsNullOrEmpty(flatpakId);
+
+                string execCommand = isFlatpak 
+                    ? $"flatpak run {flatpakId}" 
+                    : $"/usr/bin/{AppName}";
+
+                string iconName = isFlatpak
+                    ? "com.github.Cristiandis.PizzaOven"
+                    : "pizzaoven";
+
                 File.WriteAllText(filePath, $"""
-                    [Desktop Entry]
-                    Type=Application
-                    Name={DisplayName}
-                    Comment=Mod manager for Pizza Tower
-                    Exec=/usr/bin/{AppName}
-                    Icon={AppName}
-                    Terminal=false
-                    X-GNOME-Autostart-enabled=true
-                    """);
+                                             [Desktop Entry]
+                                             Type=Application
+                                             Name={DisplayName}
+                                             Comment=Mod manager for Pizza Tower
+                                             Exec={execCommand}
+                                             Icon={iconName}
+                                             Terminal=false
+                                             X-GNOME-Autostart-enabled=true
+                                             """);
             }
             else if (File.Exists(filePath))
+            {
                 File.Delete(filePath);
+            }
         }
         #endregion
 

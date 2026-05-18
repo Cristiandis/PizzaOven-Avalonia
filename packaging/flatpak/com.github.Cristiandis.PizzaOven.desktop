@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Pizza Oven+
+Comment=Mod manager for Pizza Tower
+Exec=pizzaoven %u
+Icon=com.github.Cristiandis.PizzaOven
+Type=Application
+Categories=Game;
+StartupNotify=true
