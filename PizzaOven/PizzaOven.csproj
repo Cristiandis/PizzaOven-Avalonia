@@ -36,12 +36,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Dependencies\XDelta_Common_Checksum.txt">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </EmbeddedResource>
-  </ItemGroup>
-
-  <ItemGroup>
     <None Update="Dependencies\xdelta.exe" Condition="Exists('Dependencies\xdelta.exe') AND '$(RuntimeIdentifier)' == 'win-x64'">
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 </None>
@@ -54,19 +48,13 @@
     <None Update="GMLOADER-linux\**">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Downgrades\**">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
 
-    <None Update="Dependencies\DepotDownloader-windows\**">
+    <None Include="Dependencies\**\*">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Dependencies\DepotDownloader-linux\**">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-      <None Update="Downgrades\**">
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-  </None>
-  <None Include="Dependencies\ptversions.json">
-  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-</None>
 </ItemGroup>
 
 <ItemGroup>
@@ -81,6 +69,10 @@
     <None Update="Themes\**\*">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+</ItemGroup>
+
+<ItemGroup>
+  <AvaloniaResource Include="Dependencies\XDelta_Common_Checksum.txt" />
 </ItemGroup>
 
 </Project>

@@ -45,6 +45,7 @@ if [ -d Dependencies ]; then
     done
     chmod -f 755 \
         "%{buildroot}/usr/lib/pizzaoven/Dependencies/DepotDownloader-linux/DepotDownloader" \
+        "%{buildroot}/usr/lib/pizzaoven/Dependencies/xdelta3" \
         || true
 fi
 

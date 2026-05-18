@@ -223,7 +223,7 @@ public class PLUSDepotDownloader
         }
         else
         {
-            xdelta = "xdelta3";
+            xdelta = Path.Combine(Global.appLocation, "Dependencies", "xdelta3");
             depotDownloaderPath = Path.Combine(Global.appLocation, "Dependencies", "DepotDownloader-linux",
                 "DepotDownloader");
 

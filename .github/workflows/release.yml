@@ -54,6 +54,7 @@ jobs:
           cp -r publish/linux/. "$PKGDIR/usr/lib/pizzaoven/"
 
           chmod -f 755 "$PKGDIR/usr/lib/pizzaoven/Dependencies/DepotDownloader-linux/DepotDownloader" || true
+          chmod -f 755 "$PKGDIR/usr/lib/pizzaoven/Dependencies/xdelta3" || true
           find "$PKGDIR/usr/lib/pizzaoven/GMLOADER-linux" -type f -exec chmod 755 {} + 2>/dev/null || true
           find "$PKGDIR/usr/lib/pizzaoven/GMLOADER-windows" -type f -exec chmod 755 {} + 2>/dev/null || true
 
@@ -63,7 +64,7 @@ jobs:
             'Section: games' \
             'Priority: optional' \
             'Architecture: amd64' \
-            'Depends: dotnet-runtime-8.0, xdelta3' \
+            'Depends: dotnet-runtime-8.0' \
             'Maintainer: Cristiandis <pizzaoven@izzoserver.top>' \
             'Homepage: https://github.com/Cristiandis/PizzaOven-Avalonia' \
             'Description: Cross-platform mod manager for Pizza Tower' \
@@ -143,8 +144,7 @@ jobs:
             'URL: https://github.com/Cristiandis/PizzaOven-Avalonia' \
             'Source0: PizzaOven-linux-x64.tar.gz' \
             '' \
-            'Requires: dotnet-runtime-8.0' \
-            'Requires: xdelta' \
+            'Requires: dotnet-runtime-8.0'
             '' \
             'BuildArch: x86_64' \
             '' \
@@ -161,6 +161,8 @@ jobs:
             'mkdir -p %{buildroot}/usr/bin' \
             'printf "#!/bin/sh\nexec /usr/lib/pizzaoven/PizzaOven \"\$@\"\n" > %{buildroot}/usr/bin/pizzaoven' \
             'chmod 755 %{buildroot}/usr/bin/pizzaoven' \
+            'chmod -f 755 %{buildroot}/usr/lib/pizzaoven/Dependencies/DepotDownloader-linux/DepotDownloader || true' \
+            'chmod -f 755 %{buildroot}/usr/lib/pizzaoven/Dependencies/xdelta3 || true' \
             '' \
             'mkdir -p %{buildroot}/usr/share/applications' \
             'printf "[Desktop Entry]\nName=Pizza Oven+\nComment=Mod manager for Pizza Tower\nExec=/usr/bin/pizzaoven\nIcon=pizzaoven\nType=Application\nCategories=Game;\n" > %{buildroot}/usr/share/applications/pizzaoven.desktop' \

@@ -6,7 +6,7 @@ pkgdesc="Cross-platform mod manager for Pizza Tower"
 arch=('x86_64')
 url="https://github.com/Cristiandis/PizzaOven-Avalonia"
 license=('GPL3')
-depends=('dotnet-runtime-8.0' 'xdelta3')
+depends=('dotnet-runtime-8.0')
 provides=('pizzaoven')
 conflicts=('pizzaoven')
 options=('!strip')
@@ -39,13 +39,18 @@ package() {
     fi
 
     # Dependencies
-    if [ -d "$srcdir/Dependencies" ]; then
+   if [ -d "$srcdir/Dependencies" ]; then
         find "$srcdir/Dependencies" -type f | while read -r f; do
             rel="${f#$srcdir/}"
             install -Dm644 "$f" "$pkgdir/usr/lib/pizzaoven/$rel"
         done
+
         if [ -f "$pkgdir/usr/lib/pizzaoven/Dependencies/DepotDownloader-linux/DepotDownloader" ]; then
             chmod 755 "$pkgdir/usr/lib/pizzaoven/Dependencies/DepotDownloader-linux/DepotDownloader"
+        fi
+
+        if [ -f "$pkgdir/usr/lib/pizzaoven/Dependencies/xdelta3" ]; then
+            chmod 755 "$pkgdir/usr/lib/pizzaoven/Dependencies/xdelta3"
         fi
     fi
 

@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Platform;
 using Avalonia.Threading;
 using PizzaOven.UI;
 
@@ -378,20 +378,13 @@ public static class ModLoader
         var FilesToPatch = Directory.GetFiles($"{Global.config.ModsFolder}{Global.s}sound{Global.s}Desktop").ToList();
         FilesToPatch.Insert(0, $"{Global.config.ModsFolder}{Global.s}data.win");
         FilesToPatch.Insert(1, $"{Global.config.ModsFolder}{Global.s}PizzaTower.exe");
-        var xdelta = OperatingSystem.IsWindows()
-            ? $"{Global.assemblyLocation}{Global.s}Dependencies{Global.s}xdelta.exe"
-            : "xdelta3";
+        var xdelta = Path.Combine(Global.appLocation, "Dependencies",
+            OperatingSystem.IsWindows() ? "xdelta.exe" : "xdelta3");
 
-        if (OperatingSystem.IsLinux() && !File.Exists(xdelta) && !IsSystemXDelta3Available())
+        if (!File.Exists(xdelta))
         {
-            Global.logger.WriteLine("xdelta3 is not installed. Please install with your distro's package manager",
+            Global.logger.WriteLine($"{xdelta} is not found. Please try redownloading Pizza Oven",
                 LoggerType.Error);
-            return false;
-        }
-
-        if (OperatingSystem.IsWindows() && !File.Exists(xdelta))
-        {
-            Global.logger.WriteLine($"{xdelta} is not found. Please try redownloading Pizza Oven", LoggerType.Error);
             return false;
         }
 
@@ -871,8 +864,7 @@ public static class ModLoader
         try
         {
             string[] checksumLines = null;
-            using (var stream = Assembly.GetEntryAssembly()
-                       .GetManifestResourceStream("PizzaOven.Dependencies.XDelta_Common_Checksum.txt"))
+            using (var stream = AssetLoader.Open(new Uri("avares://PizzaOven/Dependencies/XDelta_Common_Checksum.txt")))
             using (var reader = new StreamReader(stream))
             {
                 checksumLines = EnumerateLines(reader).ToArray();
@@ -913,27 +905,6 @@ public static class ModLoader
         string line;
         while ((line = reader.ReadLine()) != null)
             yield return line;
-    }
-
-    private static bool IsSystemXDelta3Available()
-    {
-        try
-        {
-            var process = Process.Start(new ProcessStartInfo("xdelta3")
-            {
-                Arguments = "-V",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true
-            });
-            process?.WaitForExit();
-            return process?.ExitCode == 0;
-        }
-        catch
-        {
-            return false;
-        }
     }
 
     public static string GetModType(string modPath)
@@ -1091,11 +1062,11 @@ public static class ModLoader
 
         return true;
     }
+
     public static bool Downgrade(string path)
     {
-        var xdelta = OperatingSystem.IsWindows()
-            ? $"{Global.assemblyLocation}{Global.s}Dependencies{Global.s}xdelta.exe"
-            : "xdelta3";
+        var xdelta = Path.Combine(Global.appLocation, "Dependencies",
+            OperatingSystem.IsWindows() ? "xdelta.exe" : "xdelta3");
         var source = $"{Global.config.ModsFolder}{Global.s}data.win";
         try
         {

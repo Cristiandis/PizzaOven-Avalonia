@@ -122,6 +122,7 @@ public partial class MainWindow
                         SteamToggleText.Text = "Use Steam? [IT'S ON]";
                         return;
                     }
+
                     SteamToggleText.Text = enabled ? "Don't use Steam? [IT'S ON]" : "Use Steam? [IT'S OFF]";
                     return;
             }
@@ -257,6 +258,7 @@ public partial class MainWindow
             PLUSTutorial.RonnieVariables.publictextbox = 0;
             return;
         }
+
         _settingAnimator?.Destroy();
         _settingAnimator = null;
     }
@@ -270,9 +272,9 @@ public partial class MainWindow
         InitPLUSToggle("Mute", PLUSMUSIC.MuteEnabled);
         InitPLUSToggle("UnfocusedMute", PLUSMUSIC.UnfocusedMuteEnabled);
         InitPLUSToggle("SteamLaunch", PLUSSavesystem.read_ini_bool("Launch", "Steam", false));
-        
+
         if (OperatingSystem.IsLinux() && SteamToggle != null)
-            SteamToggle.IsEnabled = false; 
+            SteamToggle.IsEnabled = false;
 
         if (double.TryParse(PLUSSavesystem.read_ini("Audio", "SoundVolume", "100"), out var vol))
             if (SoundVolume != null)
@@ -351,11 +353,11 @@ public partial class MainWindow
     {
         HandlePLUStoggle("Launch", "Debug", false, "Debug");
     }
-    
+
     private void SteamToggle_Click(object sender, RoutedEventArgs e)
     {
         if (OperatingSystem.IsLinux()) return;
-        bool enabled = PLUSSavesystem.toggle_ini_bool("Launch", "Steam", false);
+        var enabled = PLUSSavesystem.toggle_ini_bool("Launch", "Steam", false);
         SteamToggleText.Text = enabled ? "Don't use Steam? [IT'S ON]" : "Use Steam? [IT'S OFF]";
     }
 
@@ -488,133 +490,135 @@ public partial class MainWindow
         if (ModFolderCombo.SelectedItem == null)
             ModFolderCombo.SelectedIndex = 0;
     }
-    
+
     private async void SavePTFolderMod_Click(object sender, RoutedEventArgs e)
-{
-    if (Global.config.ModsFolder == null) return;
-
-    var includedFiles = new Dictionary<string, bool>
     {
-        { "Data.win", true },
-        { "Language Files", false },
-        { "Banks", false },
-        { "DLLs", false },
-        { "Credits", false }
-    };
+        if (Global.config.ModsFolder == null) return;
 
-    var nameBox = new TextBox
-    {
-        Height = 30, Margin = new Thickness(0, 0, 0, 10),
-        Text = "Enter Mod Name...",
-        Background = Application.Current?.Resources["PrimaryBrush"] as IBrush,
-        Foreground = Application.Current?.Resources["TextBrush"] as IBrush,
-    };
-
-    var panel = new StackPanel { Margin = new Thickness(10) };
-    panel.Children.Add(nameBox);
-
-    foreach (var kvp in includedFiles)
-    {
-        var key = kvp.Key;
-        var cb = new CheckBox
+        var includedFiles = new Dictionary<string, bool>
         {
-            Content = key,
-            IsChecked = kvp.Value,
-            IsEnabled = key != "Data.win",
-            Foreground = Application.Current?.Resources["TextBrush"] as IBrush,
-            Margin = new Thickness(0, 5, 0, 5)
+            { "Data.win", true },
+            { "Language Files", false },
+            { "Banks", false },
+            { "DLLs", false },
+            { "Credits", false }
         };
-        cb.IsCheckedChanged += (s, ev) => includedFiles[key] = cb.IsChecked == true;
-        panel.Children.Add(cb);
-    }
 
-    var errorText = new TextBlock { Foreground = Brushes.Red, Margin = new Thickness(0, 10, 0, 0) };
-    panel.Children.Add(errorText);
-
-    var ok = new Button
-    {
-        Content = "OK", Height = 30, Margin = new Thickness(0, 10, 0, 0),
-        Background = Application.Current?.Resources["PrimaryBrush"] as IBrush,
-        Foreground = Application.Current?.Resources["TextBrush"] as IBrush,
-    };
-    panel.Children.Add(ok);
-
-    var win = new Window
-    {
-        Title = "Create Mod", Width = 320, Height = 360,
-        WindowStartupLocation = WindowStartupLocation.CenterOwner,
-        Background = Application.Current?.Resources["PrimaryBrush"] as IBrush,
-        Content = panel
-    };
-
-    ok.Click += (s, ev) =>
-    {
-        var modName = nameBox.Text.Trim();
-        if (string.IsNullOrWhiteSpace(modName) || modName == "Enter Mod Name...")
+        var nameBox = new TextBox
         {
-            errorText.Text = "Mod name is required.";
-            return;
-        }
+            Height = 30, Margin = new Thickness(0, 0, 0, 10),
+            Text = "Enter Mod Name...",
+            Background = Application.Current?.Resources["PrimaryBrush"] as IBrush,
+            Foreground = Application.Current?.Resources["TextBrush"] as IBrush
+        };
 
-        var path = Path.Combine(Global.assemblyLocation, "Mods", modName);
-        if (Directory.Exists(path))
+        var panel = new StackPanel { Margin = new Thickness(10) };
+        panel.Children.Add(nameBox);
+
+        foreach (var kvp in includedFiles)
         {
-            errorText.Text = "Mod folder already exists.";
-            return;
-        }
-
-        Directory.CreateDirectory(path);
-        win.Close();
-
-        if (includedFiles["Data.win"])
-            File.Copy(Path.Combine(Global.config.ModsFolder, "data.win"),
-                Path.Combine(path, "data.win"), true);
-
-        if (includedFiles["Language Files"])
-        {
-            var src = Path.Combine(Global.config.ModsFolder, "lang");
-            var dst = Path.Combine(path, "lang");
-            if (Directory.Exists(src))
-                foreach (var file in Directory.GetFiles(src, "*.*", SearchOption.AllDirectories))
-                {
-                    var dest = file.Replace(src, dst);
-                    Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
-                    File.Copy(file, dest, true);
-                }
-        }
-
-        if (includedFiles["Banks"])
-        {
-            var src = Path.Combine(Global.config.ModsFolder, "sound", "Desktop");
-            var dst = Path.Combine(path, "sound", "Desktop");
-            if (Directory.Exists(src))
-                foreach (var file in Directory.GetFiles(src, "*.*", SearchOption.AllDirectories))
-                {
-                    var dest = file.Replace(src, dst);
-                    Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
-                    File.Copy(file, dest, true);
-                }
-        }
-
-        if (includedFiles["DLLs"])
-            foreach (var file in Directory.GetFiles(Global.config.ModsFolder, "*.dll", SearchOption.TopDirectoryOnly))
-                File.Copy(file, Path.Combine(path, Path.GetFileName(file)), true);
-
-        if (includedFiles["Credits"])
-            foreach (var file in Directory.GetFiles(Global.config.ModsFolder, "*credits*.txt", SearchOption.AllDirectories))
+            var key = kvp.Key;
+            var cb = new CheckBox
             {
-                var rel = file.Replace(Global.config.ModsFolder, "");
-                var dest = path + rel;
-                Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
-                File.Copy(file, dest, true);
+                Content = key,
+                IsChecked = kvp.Value,
+                IsEnabled = key != "Data.win",
+                Foreground = Application.Current?.Resources["TextBrush"] as IBrush,
+                Margin = new Thickness(0, 5, 0, 5)
+            };
+            cb.IsCheckedChanged += (s, ev) => includedFiles[key] = cb.IsChecked == true;
+            panel.Children.Add(cb);
+        }
+
+        var errorText = new TextBlock { Foreground = Brushes.Red, Margin = new Thickness(0, 10, 0, 0) };
+        panel.Children.Add(errorText);
+
+        var ok = new Button
+        {
+            Content = "OK", Height = 30, Margin = new Thickness(0, 10, 0, 0),
+            Background = Application.Current?.Resources["PrimaryBrush"] as IBrush,
+            Foreground = Application.Current?.Resources["TextBrush"] as IBrush
+        };
+        panel.Children.Add(ok);
+
+        var win = new Window
+        {
+            Title = "Create Mod", Width = 320, Height = 360,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Background = Application.Current?.Resources["PrimaryBrush"] as IBrush,
+            Content = panel
+        };
+
+        ok.Click += (s, ev) =>
+        {
+            var modName = nameBox.Text.Trim();
+            if (string.IsNullOrWhiteSpace(modName) || modName == "Enter Mod Name...")
+            {
+                errorText.Text = "Mod name is required.";
+                return;
             }
 
-        Global.logger.WriteLine($"Saved Pizza Tower folder as mod: {modName}", LoggerType.Info);
-        Refresh();
-    };
+            var path = Path.Combine(Global.assemblyLocation, "Mods", modName);
+            if (Directory.Exists(path))
+            {
+                errorText.Text = "Mod folder already exists.";
+                return;
+            }
 
-    await win.ShowDialog(this);
-}
+            Directory.CreateDirectory(path);
+            win.Close();
+
+            if (includedFiles["Data.win"])
+                File.Copy(Path.Combine(Global.config.ModsFolder, "data.win"),
+                    Path.Combine(path, "data.win"), true);
+
+            if (includedFiles["Language Files"])
+            {
+                var src = Path.Combine(Global.config.ModsFolder, "lang");
+                var dst = Path.Combine(path, "lang");
+                if (Directory.Exists(src))
+                    foreach (var file in Directory.GetFiles(src, "*.*", SearchOption.AllDirectories))
+                    {
+                        var dest = file.Replace(src, dst);
+                        Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+                        File.Copy(file, dest, true);
+                    }
+            }
+
+            if (includedFiles["Banks"])
+            {
+                var src = Path.Combine(Global.config.ModsFolder, "sound", "Desktop");
+                var dst = Path.Combine(path, "sound", "Desktop");
+                if (Directory.Exists(src))
+                    foreach (var file in Directory.GetFiles(src, "*.*", SearchOption.AllDirectories))
+                    {
+                        var dest = file.Replace(src, dst);
+                        Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+                        File.Copy(file, dest, true);
+                    }
+            }
+
+            if (includedFiles["DLLs"])
+                foreach (var file in Directory.GetFiles(Global.config.ModsFolder, "*.dll",
+                             SearchOption.TopDirectoryOnly))
+                    File.Copy(file, Path.Combine(path, Path.GetFileName(file)), true);
+
+            if (includedFiles["Credits"])
+                foreach (var file in Directory.GetFiles(Global.config.ModsFolder, "*credits*.txt",
+                             SearchOption.AllDirectories))
+                {
+                    var rel = file.Replace(Global.config.ModsFolder, "");
+                    var dest = path + rel;
+                    Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+                    File.Copy(file, dest, true);
+                }
+
+            Global.logger.WriteLine($"Saved Pizza Tower folder as mod: {modName}", LoggerType.Info);
+            Refresh();
+        };
+
+        await win.ShowDialog(this);
+    }
 
     #endregion
 
@@ -695,9 +699,8 @@ public partial class MainWindow
 
         if (Path.GetExtension(modded).Equals(".xdelta", StringComparison.OrdinalIgnoreCase))
         {
-            var xdelta = OperatingSystem.IsWindows()
-                ? Path.Combine(Global.appLocation, "Dependencies", "xdelta.exe")
-                : "xdelta3";
+            var xdelta = Path.Combine(Global.appLocation, "Dependencies",
+                OperatingSystem.IsWindows() ? "xdelta.exe" : "xdelta3");
             var moddedWin = Path.Combine(gmLoaderFolder, "modded.win");
             try
             {
