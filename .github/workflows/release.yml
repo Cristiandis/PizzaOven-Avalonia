@@ -209,7 +209,7 @@ jobs:
           sudo flatpak install -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
           sudo flatpak install -y flathub org.freedesktop.Sdk.Extension.dotnet8//24.08
 
-      - name: Setup .NET (for nuget source generation)
+      - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
@@ -222,20 +222,20 @@ jobs:
             PizzaOven/PizzaOven.csproj \
             --dotnet 8 --freedesktop 24.08 --runtime linux-x64
 
-      - name: Update manifest to use git tag source
+      - name: Build Flatpak
         run: |
-          # Switch from type:dir (local dev) to type:git (CI) with the current tag
+          # Rewrite source to use the current git tag instead of local dir
           sed -i 's|type: dir|type: git|' packaging/flatpak/com.github.Cristiandis.PizzaOven.yml
           sed -i "s|path: ../../|url: https://github.com/Cristiandis/PizzaOven-Avalonia.git\n        tag: ${GITHUB_REF_NAME}|" \
             packaging/flatpak/com.github.Cristiandis.PizzaOven.yml
 
-      - name: Build Flatpak
-        run: |
           flatpak-builder \
             --repo=flatpak-repo \
             --force-clean \
             build-dir \
             packaging/flatpak/com.github.Cristiandis.PizzaOven.yml
+
+          flatpak build-update-repo flatpak-repo
 
       - name: Create bundle
         run: |
@@ -244,11 +244,17 @@ jobs:
             PizzaOven-linux-x64.flatpak \
             com.github.Cristiandis.PizzaOven
 
-      - name: Upload flatpak bundle
+      - name: Upload flatpak bundle artifact
         uses: actions/upload-artifact@v4
         with:
           name: flatpak-bundle
           path: PizzaOven-linux-x64.flatpak
+
+      - name: Upload flatpak repo artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flatpak-repo
+          path: flatpak-repo/
 
   build-windows:
     runs-on: windows-latest
@@ -286,6 +292,7 @@ jobs:
 
     permissions:
       contents: write
+      pages: write
 
     steps:
       - uses: actions/checkout@v4
@@ -304,6 +311,18 @@ jobs:
           SHA256=$(sha256sum artifacts/linux-tarball/PizzaOven-linux-x64.tar.gz | awk '{print $1}')
           sed -i "s/sha256sums=('SKIP'/sha256sums=('$SHA256'/" packaging/PKGBUILD
 
+      - name: Push Flatpak repo to gh-pages
+        run: |
+          cd artifacts/flatpak-repo
+          git init
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/Cristiandis/PizzaOven-Avalonia.git
+          git checkout -b flatpak-repo
+          git add .
+          git commit -m "Flatpak repo update ${{ github.ref_name }}"
+          git push --force origin flatpak-repo
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -314,15 +333,21 @@ jobs:
             ### Downloads
             - **Windows**: `PizzaOven-windows-x64.zip`
             - **Linux (tarball)**: `PizzaOven-linux-x64.tar.gz`
-            - **Linux (Flatpak)**: `PizzaOven-linux-x64.flatpak`
+            - **Linux (Flatpak bundle)**: `PizzaOven-linux-x64.flatpak`
             - **Linux (Debian/Ubuntu)**: `pizzaoven_${{ steps.version.outputs.VERSION }}_amd64.deb`
             - **Linux (Fedora/RHEL)**: `pizzaoven-${{ steps.version.outputs.VERSION }}-1.x86_64.rpm`
             - **Arch Linux**: Use the PKGBUILD from the `packaging/` folder or install via [AUR](https://aur.archlinux.org/packages/pizzaoven-bin)
 
-            ### Installing the Flatpak
+            ### Installing the Flatpak (recommended)
+            Add the repo once, then install and get automatic updates:
+            ```sh
+            flatpak remote-add --if-not-exists pizzaoven https://cristiandis.github.io/PizzaOven-Avalonia
+            flatpak install pizzaoven com.github.Cristiandis.PizzaOven
+            ```
+
+            Or install the bundle directly (no automatic updates):
             ```sh
             flatpak install PizzaOven-linux-x64.flatpak
-            flatpak run com.github.Cristiandis.PizzaOven
             ```
 
             ### Requirements
