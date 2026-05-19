@@ -118,8 +118,8 @@ public partial class MainWindow
                 case "SteamLaunch":
                     if (OperatingSystem.IsLinux())
                     {
-                        SteamToggle.IsEnabled = false;
-                        SteamToggleText.Text = "Use Steam? [IT'S ON]";
+                        SteamToggle.IsEnabled = true;
+                        SteamToggleText.Text = enabled ? "Don't use Steam? [IT'S ON]" : "Use Wine? [IT'S OFF]";
                         return;
                     }
 
@@ -273,9 +273,6 @@ public partial class MainWindow
         InitPLUSToggle("UnfocusedMute", PLUSMUSIC.UnfocusedMuteEnabled);
         InitPLUSToggle("SteamLaunch", PLUSSavesystem.read_ini_bool("Launch", "Steam", false));
 
-        if (OperatingSystem.IsLinux() && SteamToggle != null)
-            SteamToggle.IsEnabled = false;
-
         if (double.TryParse(PLUSSavesystem.read_ini("Audio", "SoundVolume", "100"), out var vol))
             if (SoundVolume != null)
                 SoundVolume.Value = vol;
@@ -354,11 +351,29 @@ public partial class MainWindow
         HandlePLUStoggle("Launch", "Debug", false, "Debug");
     }
 
-    private void SteamToggle_Click(object sender, RoutedEventArgs e)
+    private async void SteamToggle_Click(object sender, RoutedEventArgs e)
     {
-        if (OperatingSystem.IsLinux()) return;
-        var enabled = PLUSSavesystem.toggle_ini_bool("Launch", "Steam", false);
-        SteamToggleText.Text = enabled ? "Don't use Steam? [IT'S ON]" : "Use Steam? [IT'S OFF]";
+        if (OperatingSystem.IsLinux())
+        {
+            var currentlyEnabled = PLUSSavesystem.read_ini_bool("Launch", "Steam", false);
+            // Show warning when turning Steam OFF (switching to Wine)
+            if (currentlyEnabled)
+            {
+                var box = MessageBoxManager.GetMessageBoxStandard(
+                    "Switch to Wine?",
+                    "Disabling Steam launch will run Pizza Tower through Wine.\n" +
+                    "This only works if you have a non-Steam copy of Pizza Tower.",
+                    MsBox.Avalonia.Enums.ButtonEnum.YesNo,
+                    MsBox.Avalonia.Enums.Icon.Warning);
+                var result = await box.ShowWindowDialogAsync(this);
+                if (result != MsBox.Avalonia.Enums.ButtonResult.Yes) return;
+            }
+            var enabled = PLUSSavesystem.toggle_ini_bool("Launch", "Steam", false);
+            SteamToggleText.Text = enabled ? "Don't use Steam? [IT'S ON]" : "Use Wine? [IT'S OFF]";
+            return;
+        }
+        var steamEnabled = PLUSSavesystem.toggle_ini_bool("Launch", "Steam", false);
+        SteamToggleText.Text = steamEnabled ? "Don't use Steam? [IT'S ON]" : "Use Steam? [IT'S OFF]";
     }
 
     #endregion

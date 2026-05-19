@@ -421,7 +421,7 @@ public partial class MainWindow : Window
                 Global.UpdateConfig();
                 Global.logger.WriteLine($"Launching {path}", LoggerType.Info);
                 ProcessStartInfo ps;
-                bool useSteam = OperatingSystem.IsLinux() || PLUSSavesystem.read_ini_bool("Launch", "Steam", false);
+                bool useSteam = PLUSSavesystem.read_ini_bool("Launch", "Steam", false);
                 if (useSteam)
                     ps = OperatingSystem.IsLinux()
                         ? new ProcessStartInfo("xdg-open")
@@ -434,6 +434,24 @@ public partial class MainWindow : Window
                             Arguments = "steam://rungameid/2231450",
                             UseShellExecute = true
                         };
+                else if (OperatingSystem.IsLinux())
+                {
+                    bool isFlatpak = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FLATPAK_ID"));
+                    if (isFlatpak)
+                        ps = new ProcessStartInfo("flatpak-spawn")
+                        {
+                            Arguments = $"--host wine \"{path}\"",
+                            UseShellExecute = false,
+                            WorkingDirectory = Path.GetDirectoryName(path)
+                        };
+                    else
+                        ps = new ProcessStartInfo("wine")
+                        {
+                            Arguments = $"\"{path}\"",
+                            UseShellExecute = false,
+                            WorkingDirectory = Path.GetDirectoryName(path)
+                        };
+                }
                 else
                     ps = new ProcessStartInfo(path)
                     {

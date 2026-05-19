@@ -34,6 +34,7 @@ finish-args:
   - --own-name=com.github.Cristiandis.PizzaOven
   - --filesystem=xdg-run/discord-ipc-0
   - --filesystem=xdg-run/app/com.discordapp.Discord
+  - --talk-name=org.freedesktop.Flatpak
 
 modules:
   - name: dotnet
