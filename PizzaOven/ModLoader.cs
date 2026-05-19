@@ -749,8 +749,19 @@ public static class ModLoader
             FileName = xdelta,
             WindowStyle = ProcessWindowStyle.Hidden,
             WorkingDirectory = OperatingSystem.IsWindows() ? Path.GetDirectoryName(xdelta) : Global.assemblyLocation,
-            Arguments = $@"-d -s ""{file}"" ""{patch}"" ""{output}"""
         };
+        if (OperatingSystem.IsLinux())
+        {
+            startInfo.ArgumentList.Add("-d");
+            startInfo.ArgumentList.Add("-s");
+            startInfo.ArgumentList.Add(file);
+            startInfo.ArgumentList.Add(patch);
+            startInfo.ArgumentList.Add(output);
+        }
+        else
+        {
+            startInfo.Arguments = $@"-d -s ""{file}"" ""{patch}"" ""{output}""";
+        }
         using var process = new Process { StartInfo = startInfo };
         process.Start();
         process.WaitForExit();
@@ -791,8 +802,19 @@ public static class ModLoader
                 FileName = OperatingSystem.IsWindows() ? tempXdeltaPath : xdelta,
                 WorkingDirectory = workingDir,
                 WindowStyle = ProcessWindowStyle.Hidden,
-                Arguments = $@"-d -s ""{tempFile}"" ""{tempPatch}"" ""{tempOutput}"""
             };
+            if (OperatingSystem.IsLinux())
+            {
+                startInfo.ArgumentList.Add("-d");
+                startInfo.ArgumentList.Add("-s");
+                startInfo.ArgumentList.Add(tempFile);
+                startInfo.ArgumentList.Add(tempPatch);
+                startInfo.ArgumentList.Add(tempOutput);
+            }
+            else
+            {
+                startInfo.Arguments = $@"-d -s ""{tempFile}"" ""{tempPatch}"" ""{tempOutput}""";
+            }
 
             using var process = new Process { StartInfo = startInfo };
             process.Start();
@@ -837,7 +859,7 @@ public static class ModLoader
             FileName = xdelta,
             WindowStyle = ProcessWindowStyle.Hidden,
             WorkingDirectory = OperatingSystem.IsWindows() ? Path.GetDirectoryName(xdelta) : Global.assemblyLocation,
-            Arguments = $@"printhdr ""{patch}"""
+            Arguments = OperatingSystem.IsLinux() ? $"printhdr {patch}" : $@"printhdr ""{patch}"""
         };
 
         using (var process = new Process { StartInfo = startInfo })
