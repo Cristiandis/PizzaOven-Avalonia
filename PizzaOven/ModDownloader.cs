@@ -179,7 +179,7 @@ public class ModDownloader
     {
         try
         {
-            line = line.Replace("pizzaovenplus://", "").Replace("pizzaoven:", "").TrimStart('/');
+            line = line.Replace("pizzaovenplus://", "").Replace("pizzaovenplus:", "").Replace("pizzaoven:", "").TrimStart('/');
             var data = line.Split(',');
             _urlToArchive = data[0];
             _dlId = Regex.Match(_urlToArchive, @"\d*$").Value;
