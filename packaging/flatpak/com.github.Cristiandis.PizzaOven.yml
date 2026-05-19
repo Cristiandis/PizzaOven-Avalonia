@@ -69,19 +69,15 @@ modules:
             /app/bin/Dependencies/DepotDownloader-linux/DepotDownloader
         fi
 
+      - install -Dm644 packaging/flatpak/com.github.Cristiandis.PizzaOven.desktop
+          /app/share/applications/com.github.Cristiandis.PizzaOven.desktop
+
+      - install -Dm644 PizzaOven/Assets/PizzaOvenIcon.png
+          /app/share/icons/hicolor/256x256/apps/com.github.Cristiandis.PizzaOven.png
+
+      - install -Dm644 packaging/flatpak/com.github.Cristiandis.PizzaOven.metainfo.xml
+          /app/share/metainfo/com.github.Cristiandis.PizzaOven.metainfo.xml
+
       - |
-        cat > /app/bin/pizzaoven <<'EOF'
-        #!/bin/sh
-        if echo "$1" | grep -q "^pizzaovenplus:"; then
-            exec /app/bin/PizzaOven -download "$@"
-        else
-            exec /app/bin/PizzaOven "$@"
-        fi
-        EOF
+        printf '#!/bin/sh\nif echo "$1" | grep -q "^pizzaovenplus:"; then\n    exec /app/bin/PizzaOven -download "$@"\nelse\n    exec /app/bin/PizzaOven "$@"\nfi\n' > /app/bin/pizzaoven
       - chmod 755 /app/bin/pizzaoven
-
-      - install -Dm644 packaging/flatpak/com.github.Cristiandis.PizzaOven.desktop /app/share/applications/com.github.Cristiandis.PizzaOven.desktop
-
-      - install -Dm644 PizzaOven/Assets/PizzaOvenIcon.png /app/share/icons/hicolor/256x256/apps/com.github.Cristiandis.PizzaOven.png
-
-      - install -Dm644 packaging/flatpak/com.github.Cristiandis.PizzaOven.metainfo.xml /app/share/metainfo/com.github.Cristiandis.PizzaOven.metainfo.xml
