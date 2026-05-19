@@ -1,7 +1,7 @@
 {
-  "date": "2026-05-17T20:30:52.0000000Z",
-  "message": "WELCOME TO THE INITIAL LINUX VERSION!!",
+  "date": "2026-05-19T10:21:12.0000000Z",
+  "message": "If you were using the .deb or .rpm release, please uninstall and use the flatpak :3",
   "enabled": true,
-  "expression": "happy",
+  "expression": "dumb",
   "shake": false
 }
