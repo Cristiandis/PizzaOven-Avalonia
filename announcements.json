@@ -1,7 +1,7 @@
 {
-  "date": "2026-05-19T10:21:12.0000000Z",
-  "message": "If you were using the .deb or .rpm release, please uninstall and use the flatpak :3",
+  "date": "2026-06-04T17:37:04.0000000Z",
+  "message": "Happy pride month :3",
   "enabled": true,
-  "expression": "dumb",
+  "expression": "happy",
   "shake": false
 }
