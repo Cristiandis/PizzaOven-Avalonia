@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using Microsoft.Win32;
+using System.Runtime.Versioning;
 
 namespace PizzaOven
 {
@@ -64,6 +65,7 @@ namespace PizzaOven
         #endregion
 
         #region Windows
+        [SupportedOSPlatform("windows")]
         private static void SetWindowsAutostart(bool enable)
         {
             using RegistryKey? key = Registry.CurrentUser.OpenSubKey(RunKey, true);
@@ -78,6 +80,7 @@ namespace PizzaOven
                 key.DeleteValue(DisplayName, false);
         }
 
+        [SupportedOSPlatform("windows")]
         private static bool IsWindowsEnabled()
         {
             using RegistryKey? key = Registry.CurrentUser.OpenSubKey(RunKey);
