@@ -64,18 +64,18 @@ public partial class MainWindow : Window
     private bool _isLoaded;
     private bool _updatingPageBox;
 
-    public List<string> exes;
-    public PLUSRonnieAnimate gmloaderanimator;
+    public List<string>? exes;
+    public PLUSRonnieAnimate? gmloaderanimator;
     private int imageCount;
 
     private int imageCounter;
-    public PLUSRonnieAnimate introanimator;
-    public PLUSRonnieAnimate launchanimator;
-    public PLUSRonnieAnimate replayanimator;
-    public PLUSRonnieAnimate settinganimator;
+    public PLUSRonnieAnimate? introanimator;
+    public PLUSRonnieAnimate? launchanimator;
+    public PLUSRonnieAnimate? replayanimator;
+    public PLUSRonnieAnimate? settinganimator;
 
-    public PLUSRonnieAnimate tutorialanimator;
-    public string version;
+    public PLUSRonnieAnimate? tutorialanimator;
+    public string? version;
 
     public MainWindow()
     {
@@ -263,7 +263,9 @@ public partial class MainWindow : Window
         Dispatcher.UIThread.Post(() => Activate());
     }
 
-    private async void SelectItem()
+    private async void SelectItem() => await SelectItemAsync();
+
+    private async Task SelectItemAsync()
     {
         await Task.Run(() =>
         {
@@ -284,7 +286,9 @@ public partial class MainWindow : Window
         });
     }
 
-    private async void Refresh()
+    private async void Refresh() => await RefreshAsync();
+
+    private async Task RefreshAsync()
     {
         var currentModDirectory = $@"{Global.assemblyLocation}{Global.s}Mods";
         var currentFolder = ModFolderCombo?.SelectedItem as string ?? "All";
@@ -351,7 +355,9 @@ public partial class MainWindow : Window
         Global.logger.WriteLine("Refreshed!", LoggerType.Info);
     }
 
-    private async void Setup_Click(object sender, RoutedEventArgs e)
+    private async void Setup_Click(object sender, RoutedEventArgs e) => await Setup_ClickAsync(sender, e);
+
+    private async Task Setup_ClickAsync(object sender, RoutedEventArgs e)
     {
         if (Global.ronnietutorial && !PLUSTutorial.RonnieVariables.SetupAllow)
         {
@@ -363,7 +369,9 @@ public partial class MainWindow : Window
             LaunchButton.IsEnabled = true;
     }
 
-    private async void Launch_Click(object sender, RoutedEventArgs e)
+    private async void Launch_Click(object sender, RoutedEventArgs e) => await Launch_ClickAsync(sender, e);
+
+    private async Task Launch_ClickAsync(object sender, RoutedEventArgs e)
     {
         if (Global.ronnietutorial && !PLUSTutorial.RonnieVariables.LauncherAllow)
         {
@@ -576,7 +584,9 @@ public partial class MainWindow : Window
         ModsWatcher.EnableRaisingEvents = true;
     }
 
-    private async void DeleteItem_Click(object sender, RoutedEventArgs e)
+    private async void DeleteItem_Click(object sender, RoutedEventArgs e) => await DeleteItem_ClickAsync(sender, e);
+
+    private async Task DeleteItem_ClickAsync(object sender, RoutedEventArgs e)
     {
         var selectedMods = ModGrid.SelectedItems.OfType<Mod>().ToArray();
         foreach (var row in selectedMods)
@@ -691,7 +701,9 @@ public partial class MainWindow : Window
         DropBox.IsVisible = false;
     }
 
-    private async void Add_Drop(object sender, DragEventArgs e)
+    private async void Add_Drop(object sender, DragEventArgs e) => await Add_DropAsync(sender, e);
+
+    private async Task Add_DropAsync(object sender, DragEventArgs e)
     {
         e.Handled = true;
         var ModsFolder = $"{Global.assemblyLocation}{Global.s}Mods";
@@ -809,7 +821,7 @@ public partial class MainWindow : Window
         });
     }
 
-    private async void ShowMetadata(string mod)
+    private async Task ShowMetadata(string mod)
     {
         if (mod == null || !File.Exists($"{Global.assemblyLocation}{Global.s}Mods{Global.s}{mod}{Global.s}mod.json"))
         {
@@ -978,7 +990,9 @@ public partial class MainWindow : Window
         DescPanel.IsVisible = true;
     }
 
-    private async void LoadImage(GameBananaRecord item, int idx)
+    private async void LoadImage(GameBananaRecord item, int idx) => await LoadImageAsync(item, idx);
+
+    private async Task LoadImageAsync(GameBananaRecord item, int idx)
     {
         try
         {
@@ -1030,7 +1044,9 @@ public partial class MainWindow : Window
         LoadImage(item, imageCounter);
     }
 
-    private async void InitializeBrowser()
+    private async void InitializeBrowser() => await InitializeBrowserAsync();
+
+    private async Task InitializeBrowserAsync()
     {
         if (Global.ronnietutorial)
         {
@@ -1135,7 +1151,9 @@ public partial class MainWindow : Window
         else RefreshFilter();
     }
 
-    private async void RefreshFilter()
+    private async void RefreshFilter() => await RefreshFilterAsync();
+
+    private async Task RefreshFilterAsync()
     {
         NSFWCheckbox.IsEnabled = false;
         SearchBar.IsEnabled = false;
@@ -1537,7 +1555,9 @@ public partial class MainWindow : Window
         CreatePatchNotes();
     }
 
-    public async void CheckLauncherUpdates_Click(object sender, RoutedEventArgs e)
+    public async void CheckLauncherUpdates_Click(object sender, RoutedEventArgs e) => await CheckLauncherUpdatesAsync();
+
+    public async Task CheckLauncherUpdatesAsync()
     {
         var cts = new CancellationTokenSource();
         await AutoUpdater.CheckForPizzaOvenUpdate(cts);
@@ -1681,7 +1701,9 @@ public partial class MainWindow : Window
             }
     }
 
-    public async void CreatePatchNotes()
+    public async void CreatePatchNotes() => await CreatePatchNotesAsync();
+
+    public async Task CreatePatchNotesAsync()
     {
         try
         {

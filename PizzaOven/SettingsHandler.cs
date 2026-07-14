@@ -321,7 +321,9 @@ public partial class MainWindow
             Global.logger.WriteLine("Game folder not set. Please run Setup first.", LoggerType.Warning);
     }
 
-    private async void ChooseNewPTFolder_Click(object sender, RoutedEventArgs e)
+    private async void ChooseNewPTFolder_Click(object sender, RoutedEventArgs e) => await ChooseNewPTFolderAsync();
+
+    private async Task ChooseNewPTFolderAsync()
     {
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
@@ -351,7 +353,9 @@ public partial class MainWindow
         HandlePLUStoggle("Launch", "Debug", false, "Debug");
     }
 
-    private async void SteamToggle_Click(object sender, RoutedEventArgs e)
+    private async void SteamToggle_Click(object sender, RoutedEventArgs e) => await SteamToggleAsync();
+
+    private async Task SteamToggleAsync()
     {
         if (OperatingSystem.IsLinux())
         {
@@ -400,7 +404,9 @@ public partial class MainWindow
         HandlePLUStoggle("Files", "POLanguage", true, "POLanguage");
     }
 
-    private async void MakeDataWinPO_Click(object sender, RoutedEventArgs e)
+    private async void MakeDataWinPO_Click(object sender, RoutedEventArgs e) => await MakeDataWinPOAsync();
+
+    private async Task MakeDataWinPOAsync()
     {
         if (Global.config.ModsFolder == null) return;
         var dataWin = Path.Combine(Global.config.ModsFolder, "data.win");
@@ -440,7 +446,9 @@ public partial class MainWindow
         if (IsLoaded()) Refresh();
     }
 
-    private async void DeleteModFolder_Click(object? sender, RoutedEventArgs e)
+    private async void DeleteModFolder_Click(object? sender, RoutedEventArgs e) => await DeleteModFolderAsync(sender, e);
+
+    private async Task DeleteModFolderAsync(object? sender, RoutedEventArgs e)
     {
         var selectedItem = ModFolderCombo.SelectedItem is ComboBoxItem cbi
             ? cbi.Content?.ToString()
@@ -506,7 +514,9 @@ public partial class MainWindow
             ModFolderCombo.SelectedIndex = 0;
     }
 
-    private async void SavePTFolderMod_Click(object sender, RoutedEventArgs e)
+    private async void SavePTFolderMod_Click(object sender, RoutedEventArgs e) => await SavePTFolderModAsync();
+
+    private async Task SavePTFolderModAsync()
     {
         if (Global.config.ModsFolder == null) return;
 
@@ -639,7 +649,9 @@ public partial class MainWindow
 
     #region GMLoader Settings
 
-    private async void ConvertToGMLoader_Click(object sender, RoutedEventArgs e)
+    private async void ConvertToGMLoader_Click(object sender, RoutedEventArgs e) => await ConvertToGMLoaderAsync();
+
+    private async Task ConvertToGMLoaderAsync()
     {
         var gmLoaderFolder = Path.Combine(Global.appLocation, "GMLOADER-windows");
         var gmLoaderExe = Path.Combine(gmLoaderFolder, "GMLoader.exe");
@@ -870,7 +882,9 @@ public partial class MainWindow
         Themes_GrabColor(brushname);
     }
 
-    private async void Themes_GrabColor(string brushname)
+    private async void Themes_GrabColor(string brushname) => await Themes_GrabColorAsync(brushname);
+
+    private async Task Themes_GrabColorAsync(string brushname)
     {
         var current = PLUSSavesystem.read_ini("Themes", brushname,
             defaultBrushHexes.GetValueOrDefault(brushname, "#131313"));
@@ -980,7 +994,9 @@ public partial class MainWindow
         return double.TryParse(value, out var p) ? p / 100.0 : 1.0;
     }
 
-    private async void ApplyBackgroundImage()
+    private async void ApplyBackgroundImage() => await ApplyBackgroundImageAsync();
+
+    private async Task ApplyBackgroundImageAsync()
     {
         if (!Directory.Exists(CustomAssetsFolder)) return;
         var bgPath = Directory.GetFiles(CustomAssetsFolder)
@@ -1031,7 +1047,9 @@ public partial class MainWindow
         }
     }
 
-    private async void ThemesSave_Click(object sender, RoutedEventArgs e)
+    private async void ThemesSave_Click(object sender, RoutedEventArgs e) => await ThemesSaveAsync();
+
+    private async Task ThemesSaveAsync()
     {
         var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
@@ -1043,7 +1061,9 @@ public partial class MainWindow
         ThemesSaveFile(file.Path.LocalPath);
     }
 
-    private async void ThemesLoad_Click(object sender, RoutedEventArgs e)
+    private async void ThemesLoad_Click(object sender, RoutedEventArgs e) => await ThemesLoadAsync();
+
+    private async Task ThemesLoadAsync()
     {
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
@@ -1095,7 +1115,9 @@ public partial class MainWindow
         }
     }
 
-    private async void ThemesBackgroundUpload_Click(object sender, RoutedEventArgs e)
+    private async void ThemesBackgroundUpload_Click(object sender, RoutedEventArgs e) => await ThemesBackgroundUploadAsync();
+
+    private async Task ThemesBackgroundUploadAsync()
     {
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {

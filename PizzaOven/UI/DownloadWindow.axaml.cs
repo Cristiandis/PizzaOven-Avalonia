@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Net.Http;
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
@@ -27,7 +28,7 @@ public partial class DownloadWindow : Window
         SetPreview(record.Image);
     }
 
-    private async void SetPreview(Uri? uri)
+    private async Task SetPreview(Uri? uri)
     {
         if (uri == null) return;
         try

@@ -10,9 +10,9 @@ namespace PizzaOven
     public class GameBananaItem
     {
         [JsonPropertyName("Game().name")]
-        public string Game { get; set; }
+        public string? Game { get; set; }
         [JsonPropertyName("name")]
-        public string Name { get; set; }
+        public string? Name { get; set; }
         [JsonPropertyName("views")]
         public int? Views { get; set; }
         [JsonPropertyName("downloads")]
@@ -20,31 +20,31 @@ namespace PizzaOven
         [JsonPropertyName("likes")]
         public int? Likes { get; set; }
         [JsonPropertyName("Owner().name")]
-        public string Owner { get; set; }
+        public string? Owner { get; set; }
         [JsonPropertyName("description")]
-        public string Description { get; set; }
+        public string? Description { get; set; }
         [JsonPropertyName("RootCategory().name")]
-        public string RootCat { get; set; }
+        public string? RootCat { get; set; }
         [JsonPropertyName("Preview().sSubFeedImageUrl()")]
-        public Uri SubFeedImage { get; set; }
+        public Uri? SubFeedImage { get; set; }
         [JsonPropertyName("Preview().sStructuredDataFullsizeUrl()")]
-        public Uri EmbedImage { get; set; }
+        public Uri? EmbedImage { get; set; }
         [JsonPropertyName("Updates().bSubmissionHasUpdates()")]
         public bool? HasUpdates { get; set; }
 
         [JsonPropertyName("Updates().aGetLatestUpdates()")]
-        public GameBananaItemUpdate[] Updates { get; set; }
+        public GameBananaItemUpdate[]? Updates { get; set; }
         [JsonPropertyName("Files().aFiles()")]
-        public Dictionary<string, GameBananaItemFile> Files { get; set; }
+        public Dictionary<string, GameBananaItemFile>? Files { get; set; }
 
     }
     public class GameBananaItemFile
     {
         private static readonly DateTime Epoch = new DateTime(1970, 1, 1);
         [JsonPropertyName("_idRow")]
-        public string Id { get; set; }
+        public string? Id { get; set; }
         [JsonPropertyName("_sFile")]
-        public string FileName { get; set; }
+        public string? FileName { get; set; }
 
         [JsonPropertyName("_nFilesize")]
         public long Filesize { get; set; }
@@ -52,10 +52,10 @@ namespace PizzaOven
         public string ConvertedFileSize => StringConverters.FormatSize(Filesize);
 
         [JsonPropertyName("_sDownloadUrl")]
-        public string DownloadUrl { get; set; }
+        public string? DownloadUrl { get; set; }
 
         [JsonPropertyName("_sDescription")]
-        public string Description { get; set; }
+        public string? Description { get; set; }
         [JsonPropertyName("_bContainsExe")]
         public bool ContainsExe { get; set; }
         [JsonPropertyName("_nDownloadCount")]
@@ -75,34 +75,34 @@ namespace PizzaOven
     public class GameBananaGame
     {
         [JsonPropertyName("_sName")]
-        public string Name { get; set; }
+        public string? Name { get; set; }
     }
     public class GameBananaAPIV4
     {
         [JsonPropertyName("_sName")]
-        public string Title { get; set; }
+        public string? Title { get; set; }
         [JsonPropertyName("_aGame")]
-        public GameBananaGame Game { get; set; }
+        public GameBananaGame? Game { get; set; }
         [JsonPropertyName("_sProfileUrl")]
-        public Uri Link { get; set; }
+        public Uri? Link { get; set; }
         [JsonIgnore]
         public Uri Image => Media.Where(x => x.Type == "image").ToList().Count > 0 ? new Uri($"{Media[0].Base}/{Media[0].File}")
             : new Uri("https://images.gamebanana.com/static/img/DefaultEmbeddables/Sound.jpg");
         [JsonPropertyName("_aPreviewMedia")]
-        public List<GameBananaImage> Media { get; set; }
+        public List<GameBananaImage>? Media { get; set; }
         [JsonPropertyName("_sDescription")]
-        public string Description { get; set; }
+        public string? Description { get; set; }
         [JsonPropertyName("_aSubmitter")]
-        public GameBananaMember Owner { get; set; }
+        public GameBananaMember? Owner { get; set; }
         [JsonPropertyName("_aCategory")]
-        public GameBananaCategory Category { get; set; }
+        public GameBananaCategory? Category { get; set; }
         [JsonPropertyName("_aSuperCategory")]
-        public GameBananaCategory RootCategory { get; set; }
+        public GameBananaCategory? RootCategory { get; set; }
         [JsonIgnore]
-        public string CategoryName => RootCategory == null ? StringConverters.FormatSingular(null, Category.Name)
-            : StringConverters.FormatSingular(RootCategory.Name, Category.Name);
+        public string CategoryName => RootCategory == null ? StringConverters.FormatSingular(null, Category?.Name ?? "")
+            : StringConverters.FormatSingular(RootCategory?.Name ?? "", Category?.Name ?? "");
         [JsonPropertyName("_aFiles")]
-        public List<GameBananaItemFile> Files { get; set; }
+        public List<GameBananaItemFile>? Files { get; set; }
         [JsonPropertyName("_tsDateUpdated")]
         public long? DateUpdatedLong { get; set; }
         private static readonly DateTime Epoch = new DateTime(1970, 1, 1);
@@ -110,11 +110,11 @@ namespace PizzaOven
         [JsonIgnore]
         public DateTime? DateUpdated => DateUpdatedLong != null ? Epoch.AddSeconds((long)DateUpdatedLong) : null;
         [JsonPropertyName("_aAlternateFileSources")]
-        public List<GameBananaAlternateFileSource> AlternateFileSources { get; set; }
+        public List<GameBananaAlternateFileSource>? AlternateFileSources { get; set; }
         [JsonPropertyName("_bHasUpdates")]
         public bool? HasUpdates { get; set; }
         [JsonPropertyName("_aLatestUpdates")]
-        public GameBananaItemUpdate[] Updates { get; set; }
+        public GameBananaItemUpdate[]? Updates { get; set; }
     }
     public class GameBananaInstallerIntegration
     {
