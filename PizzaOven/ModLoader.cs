@@ -10,7 +10,10 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using MsBox.Avalonia;
+using MsBox.Avalonia.Enums;
 using PizzaOven.UI;
 
 namespace PizzaOven;
@@ -29,7 +32,7 @@ public static class ModLoader
     {
         RestoreDirectory(Global.config.ModsFolder);
         var banks = new List<string>(new[] { "master.bank", "master.strings.bank", "music.bank", "sfx.bank" });
-        foreach (var file in Directory.GetFiles($"{Global.config.ModsFolder}{Global.s}sound{Global.s}Desktop", "*",
+        foreach (var file in Directory.GetFiles(Path.Combine(Global.config.ModsFolder, "sound", "Desktop"), "*",
                      SearchOption.AllDirectories))
             if (!banks.Contains(Path.GetFileName(file).ToLowerInvariant()))
                 try
@@ -72,7 +75,7 @@ public static class ModLoader
                 }
 
         foreach (var directory in Directory.GetDirectories(
-                     $"{Global.config.ModsFolder}{Global.s}sound{Global.s}Desktop"))
+                     Path.Combine(Global.config.ModsFolder, "sound", "Desktop")))
             try
             {
                 if (Directory.GetFiles(directory).Length == 0 && Directory.GetDirectories(directory).Length == 0)
@@ -89,16 +92,16 @@ public static class ModLoader
                 return false;
             }
 
-        if (File.Exists($"{Global.config.ModsFolder}{Global.s}PizzaOven.win"))
+        if (File.Exists(Path.Combine(Global.config.ModsFolder, "PizzaOven.win")))
             try
             {
-                File.Delete($"{Global.config.ModsFolder}{Global.s}PizzaOven.win");
+                File.Delete(Path.Combine(Global.config.ModsFolder, "PizzaOven.win"));
             }
             catch (Exception e)
             {
                 if (e is UnauthorizedAccessException)
                     Global.logger.WriteLine(
-                        $"Access denied when trying to delete {Global.config.ModsFolder}{Global.s}PizzaOven.win. Try reinstalling Pizza Tower to a folder you have access to or running Pizza Oven in administrator mode",
+                        $"Access denied when trying to delete {Path.Combine(Global.config.ModsFolder, "PizzaOven.win")}. Try reinstalling Pizza Tower to a folder you have access to or running Pizza Oven in administrator mode",
                         LoggerType.Error);
                 else
                     throw;
@@ -375,9 +378,9 @@ public static class ModLoader
         var langapply = PLUSSavesystem.read_ini_bool("Files", "POLanguage", true);
         var errors = 0;
         var successes = 0;
-        var FilesToPatch = Directory.GetFiles($"{Global.config.ModsFolder}{Global.s}sound{Global.s}Desktop").ToList();
-        FilesToPatch.Insert(0, $"{Global.config.ModsFolder}{Global.s}data.win");
-        FilesToPatch.Insert(1, $"{Global.config.ModsFolder}{Global.s}PizzaTower.exe");
+        var FilesToPatch = Directory.GetFiles(Path.Combine(Global.config.ModsFolder, "sound", "Desktop")).ToList();
+        FilesToPatch.Insert(0, Path.Combine(Global.config.ModsFolder, "data.win"));
+        FilesToPatch.Insert(1, Path.Combine(Global.config.ModsFolder, "PizzaTower.exe"));
         var xdelta = Path.Combine(Global.appLocation, "Dependencies",
             OperatingSystem.IsWindows() ? "xdelta.exe" : "xdelta3");
 
@@ -411,34 +414,34 @@ public static class ModLoader
                             Global.logger.WriteLine(
                                 $"Attempting to patch {Path.GetFileName(file)} with {Path.GetFileName(modFile)}...",
                                 LoggerType.Info);
-                            Patch(file, modFile, $"{Path.GetDirectoryName(file)}{Global.s}temp", xdelta);
+                            Patch(file, modFile, Path.Combine(Path.GetDirectoryName(file), "temp"), xdelta);
                             if (!File.Exists($"{file}.po"))
                                 File.Copy(file, $"{file}.po", true);
-                            File.Move($"{Path.GetDirectoryName(file)}{Global.s}temp", file, true);
+                            File.Move(Path.Combine(Path.GetDirectoryName(file), "temp"), file, true);
                             Global.logger.WriteLine($"Applied {Path.GetFileName(modFile)} to {Path.GetFileName(file)}.",
                                 LoggerType.Info);
                             successes++;
                             if (Path.GetFileName(modFile).ToLowerInvariant().Contains("yyc") &&
-                                File.Exists($"{Global.config.ModsFolder}{Global.s}Steamworks_x64.dll"))
-                                File.Move($"{Global.config.ModsFolder}{Global.s}Steamworks_x64.dll",
-                                    $"{Global.config.ModsFolder}{Global.s}Steamworks_x64.dll.po", true);
+                                File.Exists(Path.Combine(Global.config.ModsFolder, "Steamworks_x64.dll")))
+                                File.Move(Path.Combine(Global.config.ModsFolder, "Steamworks_x64.dll"),
+                                    Path.Combine(Global.config.ModsFolder, "Steamworks_x64.dll.po"), true);
                         }
                         catch
                         {
                             try
                             {
-                                PathFixPatch(file, modFile, $"{Path.GetDirectoryName(file)}{Global.s}temp", xdelta);
+                                PathFixPatch(file, modFile, Path.Combine(Path.GetDirectoryName(file), "temp"), xdelta);
                                 if (!File.Exists($"{file}.po"))
                                     File.Copy(file, $"{file}.po", true);
-                                File.Move($"{Path.GetDirectoryName(file)}{Global.s}temp", file, true);
+                                File.Move(Path.Combine(Path.GetDirectoryName(file), "temp"), file, true);
                                 Global.logger.WriteLine(
                                     $"Applied {Path.GetFileName(modFile)} to {Path.GetFileName(file)}.",
                                     LoggerType.Info);
                                 successes++;
                                 if (Path.GetFileName(modFile).ToLowerInvariant().Contains("yyc") &&
-                                    File.Exists($"{Global.config.ModsFolder}{Global.s}Steamworks_x64.dll"))
-                                    File.Move($"{Global.config.ModsFolder}{Global.s}Steamworks_x64.dll",
-                                        $"{Global.config.ModsFolder}{Global.s}Steamworks_x64.dll.po", true);
+                                    File.Exists(Path.Combine(Global.config.ModsFolder, "Steamworks_x64.dll")))
+                                    File.Move(Path.Combine(Global.config.ModsFolder, "Steamworks_x64.dll"),
+                                        Path.Combine(Global.config.ModsFolder, "Steamworks_x64.dll.po"), true);
                             }
                             catch (Exception e)
                             {
@@ -481,7 +484,7 @@ public static class ModLoader
                     var basename = Path.GetFileNameWithoutExtension(modFile);
                     if (File.ReadAllText(modFile).Contains("lang = ", StringComparison.InvariantCultureIgnoreCase))
                     {
-                        var file = $"{Global.config.ModsFolder}{Global.s}lang{Global.s}{Path.GetFileName(modFile)}";
+var file = Path.Combine(Global.config.ModsFolder, "lang", Path.GetFileName(modFile));
                         if (langapply)
                         {
                             if (File.Exists(file)) File.Copy(file, $"{file}.po", true);
@@ -495,7 +498,7 @@ public static class ModLoader
                     }
                     else if (basename.Contains("credits", StringComparison.InvariantCultureIgnoreCase))
                     {
-                        var file = $"{Global.config.ModsFolder}{Global.s}{Path.GetFileName(modFile)}";
+                        var file = Path.Combine(Global.config.ModsFolder, Path.GetFileName(modFile));
                         if (File.Exists(file)) File.Copy(file, $"{file}.po", true);
                         else File.WriteAllText($"{file}.custompo", string.Empty);
                         File.Copy(modFile, file, true);
@@ -507,7 +510,7 @@ public static class ModLoader
                 }
                 else if (extension.Equals(".win", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    var dataWin = $"{Global.config.ModsFolder}{Global.s}data.win";
+                    var dataWin = Path.Combine(Global.config.ModsFolder, "data.win");
                     if (!File.Exists($"{dataWin}.po"))
                         File.Copy(dataWin, $"{dataWin}.po", true);
                     File.Copy(modFile, dataWin, true);
@@ -518,7 +521,7 @@ public static class ModLoader
                 else if (extension.Equals(".bank", StringComparison.InvariantCultureIgnoreCase))
                 {
                     var FileToReplace =
-                        $"{Global.config.ModsFolder}{Global.s}sound{Global.s}Desktop{Global.s}{Path.GetFileName(modFile)}";
+                        Path.Combine(Global.config.ModsFolder, "sound", "Desktop", Path.GetFileName(modFile));
                     if (File.Exists(FileToReplace))
                     {
                         if (!File.Exists($"{FileToReplace}.po"))
@@ -530,28 +533,28 @@ public static class ModLoader
                     else
                     {
                         var FileToAdd =
-                            $"{Global.config.ModsFolder}{Global.s}sound{Global.s}Desktop{Global.s}{Path.GetFileName(modFile)}";
+                            Path.Combine(Global.config.ModsFolder, "sound", "Desktop", Path.GetFileName(modFile));
                         if (!string.Equals(Path.GetFileName(Path.GetDirectoryName(modFile)), "Desktop",
                                 StringComparison.InvariantCultureIgnoreCase))
                             if (!Path.GetFileName(Path.GetDirectoryName(modFile)).Equals(Path.GetFileName(mod),
                                     StringComparison.InvariantCultureIgnoreCase))
                                 FileToAdd =
-                                    $"{Global.config.ModsFolder}{Global.s}sound{Global.s}Desktop{Global.s}{Path.GetFileName(Path.GetDirectoryName(modFile))}{Global.s}{Path.GetFileName(modFile)}";
+                                    Path.Combine(Global.config.ModsFolder, "sound", "Desktop", Path.GetFileName(Path.GetDirectoryName(modFile)), Path.GetFileName(modFile));
                         Directory.CreateDirectory(Path.GetDirectoryName(FileToAdd)!);
                         File.Copy(modFile, FileToAdd, true);
                     }
 
                     successes++;
                 }
-                else if (extension.Equals(".dll", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    File.Copy(modFile, $"{Global.config.ModsFolder}{Global.s}{Path.GetFileName(modFile)}", true);
-                    Global.logger.WriteLine($"Copied over {Path.GetFileName(modFile)} to game folder", LoggerType.Info);
-                    successes++;
-                }
-                else if (extension.Equals(".mp4", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    File.Copy(modFile, $"{Global.config.ModsFolder}{Global.s}{Path.GetFileName(modFile)}", true);
+else if (extension.Equals(".dll", StringComparison.InvariantCultureIgnoreCase))
+            {
+                File.Copy(modFile, Path.Combine(Global.config.ModsFolder, Path.GetFileName(modFile)), true);
+                Global.logger.WriteLine($"Copied over {Path.GetFileName(modFile)} to game folder", LoggerType.Info);
+                successes++;
+            }
+            else if (extension.Equals(".mp4", StringComparison.InvariantCultureIgnoreCase))
+            {
+                File.Copy(modFile, Path.Combine(Global.config.ModsFolder, Path.GetFileName(modFile)), true);
                     Global.logger.WriteLine($"Copied over {Path.GetFileName(modFile)} to game folder", LoggerType.Info);
                     successes++;
                 }
@@ -567,7 +570,7 @@ public static class ModLoader
             }
         }
 
-        var langfolder = $"{Global.config.ModsFolder}{Global.s}lang{Global.s}";
+        var langfolder = Path.Combine(Global.config.ModsFolder, "lang");
         var langFiles = Directory.GetFiles(langfolder, "*.txt", SearchOption.TopDirectoryOnly).OrderBy(f => f).ToList();
         var langlist = new List<string>();
         var langlistfile = new List<string>();
@@ -591,7 +594,7 @@ public static class ModLoader
                     extension.Equals(".otf", StringComparison.InvariantCultureIgnoreCase))
                 {
                     var file =
-                        $"{Global.config.ModsFolder}{Global.s}lang{Global.s}fonts{Global.s}{Path.GetFileName(modFile)}";
+                        Path.Combine(Global.config.ModsFolder, "lang", "fonts", Path.GetFileName(modFile));
                     if (langapply)
                     {
                         if (File.Exists(file)) File.Copy(file, $"{file}.po", true);
@@ -606,7 +609,7 @@ public static class ModLoader
                 }
                 else if (extension.Equals(".def", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    var file = $"{Global.config.ModsFolder}{Global.s}lang{Global.s}{Path.GetFileName(modFile)}";
+                    var file = Path.Combine(Global.config.ModsFolder, "lang", Path.GetFileName(modFile));
                     if (langapply)
                     {
                         if (File.Exists(file)) File.Copy(file, $"{file}.po", true);
@@ -639,7 +642,7 @@ public static class ModLoader
                         !fontList.Any(x => x.StartsWith(basename, StringComparison.OrdinalIgnoreCase)))
                     {
                         var file =
-                            $"{Global.config.ModsFolder}{Global.s}lang{Global.s}graphics{Global.s}{Path.GetFileName(modFile)}";
+                            Path.Combine(Global.config.ModsFolder, "lang", "graphics", Path.GetFileName(modFile));
                         if (langapply)
                         {
                             if (File.Exists(file)) File.Copy(file, $"{file}.po", true);
@@ -661,7 +664,7 @@ public static class ModLoader
                                                basename.EndsWith($"_{langlistfile[i]}")))
                             {
                                 var file =
-                                    $"{Global.config.ModsFolder}{Global.s}lang{Global.s}fonts{Global.s}{Path.GetFileName(modFile)}";
+                                    Path.Combine(Global.config.ModsFolder, "lang", "fonts", Path.GetFileName(modFile));
                                 if (langapply)
                                 {
                                     if (File.Exists(file)) File.Copy(file, $"{file}.po", true);
@@ -688,7 +691,7 @@ public static class ModLoader
                     if (langlist.Contains(basename) || langlistfile.Contains(basename))
                     {
                         var file =
-                            $"{Global.config.ModsFolder}{Global.s}lang{Global.s}graphics{Global.s}{Path.GetFileName(modFile)}";
+                            Path.Combine(Global.config.ModsFolder, "lang", "graphics", Path.GetFileName(modFile));
                         if (langapply)
                         {
                             if (File.Exists(file)) File.Copy(file, $"{file}.po", true);
@@ -723,17 +726,17 @@ public static class ModLoader
         if (successes == 0)
             Global.logger.WriteLine("No file was used from the current mod", LoggerType.Error);
 
-        if (File.Exists($"{Global.config.ModsFolder}{Global.s}data.win.downgradepo"))
+        if (File.Exists(Path.Combine(Global.config.ModsFolder, "data.win.downgradepo")))
         {
             if (errors != 0 || successes <= 0)
             {
-                File.Move($"{Global.config.ModsFolder}{Global.s}data.win.downgradepo",
-                    $"{Global.config.ModsFolder}{Global.s}data.win", true);
+                File.Move(Path.Combine(Global.config.ModsFolder, "data.win.downgradepo"),
+                    Path.Combine(Global.config.ModsFolder, "data.win"), true);
                 Global.logger.WriteLine("Undowngrading the patch", LoggerType.Warning);
             }
             else
             {
-                File.Delete($"{Global.config.ModsFolder}{Global.s}data.win.downgradepo");
+                File.Delete(Path.Combine(Global.config.ModsFolder, "data.win.downgradepo"));
             }
         }
 
@@ -979,7 +982,7 @@ public static class ModLoader
 
     private static string AFOMFilepath()
     {
-        var modsFolder = $"{Global.assemblyLocation}{Global.s}Mods";
+        var modsFolder = Path.Combine(Global.assemblyLocation, "Mods");
         const string AFOMHomepage = "https://gamebanana.com/mods/466970";
 
         if (!Directory.Exists(modsFolder))
@@ -1089,7 +1092,7 @@ public static class ModLoader
     {
         var xdelta = Path.Combine(Global.appLocation, "Dependencies",
             OperatingSystem.IsWindows() ? "xdelta.exe" : "xdelta3");
-        var source = $"{Global.config.ModsFolder}{Global.s}data.win";
+        var source = Path.Combine(Global.config.ModsFolder, "data.win");
         try
         {
             Global.logger.WriteLine($"Attempting to downgrade with {Path.GetFileName(path)}...", LoggerType.Info);
@@ -1105,5 +1108,267 @@ public static class ModLoader
             Global.logger.WriteLine($"Failed to downgrade: {e.Message}", LoggerType.Error);
             return false;
         }
+    }
+
+    public static async Task<bool> Upgrade(string modPath)
+    {
+        var mainWindow = GetMainWindow();
+        if (mainWindow == null)
+        {
+            Global.logger.WriteLine("Could not find main window for upgrade dialogs", LoggerType.Error);
+            return false;
+        }
+
+        var box = MessageBoxManager.GetMessageBoxStandard(
+            "Confirmation",
+            "Please ensure your data.win.po(most likely true) or if that doesn't exist your data.win is base Pizza Tower\n\nPress yes if you are sure\nPress no if you are unsure or no (this will open you to choose the correct one)",
+            MsBox.Avalonia.Enums.ButtonEnum.YesNo,
+            MsBox.Avalonia.Enums.Icon.Question);
+        var isbase = await box.ShowWindowDialogAsync(mainWindow);
+        string ogWinFile = "";
+
+        if (isbase == MsBox.Avalonia.Enums.ButtonResult.Yes)
+        {
+            if (File.Exists(Path.Combine(Global.config.ModsFolder, "data.win.po")))
+            {
+                ogWinFile = Path.Combine(Global.config.ModsFolder, "data.win.po");
+            }
+            else if (File.Exists(Path.Combine(Global.config.ModsFolder, "data.win")))
+            {
+                ogWinFile = Path.Combine(Global.config.ModsFolder, "data.win");
+            }
+            else
+            {
+                var errorBox = MessageBoxManager.GetMessageBoxStandard(
+                    "Error", "No data.win or data.win.po file found in the application directory try again but press no.",
+                    MsBox.Avalonia.Enums.ButtonEnum.Ok, MsBox.Avalonia.Enums.Icon.Error);
+                await errorBox.ShowWindowDialogAsync(mainWindow);
+                return false;
+            }
+        }
+        else
+        {
+            var filePicker = new FilePickerOpenOptions
+            {
+                Title = "Select Source (*.win)",
+                AllowMultiple = false,
+                FileTypeFilter = new[] { new FilePickerFileType("Source (*.win)") { Patterns = new[] { "*.win" } } }
+            };
+            if (!string.IsNullOrEmpty(Global.config.ModsFolder) && Directory.Exists(Global.config.ModsFolder))
+            {
+                var storageProvider = mainWindow.StorageProvider;
+                filePicker.SuggestedStartLocation = await storageProvider.TryGetFolderFromPathAsync(Global.config.ModsFolder);
+            }
+            
+            var files = await mainWindow.StorageProvider.OpenFilePickerAsync(filePicker);
+            if (files.Count > 0)
+            {
+                ogWinFile = files[0].Path.LocalPath;
+            }
+            else
+            {
+                var errorBox = MessageBoxManager.GetMessageBoxStandard(
+                    "Error", "No file selected.",
+                    MsBox.Avalonia.Enums.ButtonEnum.Ok, MsBox.Avalonia.Enums.Icon.Error);
+                await errorBox.ShowWindowDialogAsync(mainWindow);
+                return false;
+            }
+            if (string.IsNullOrEmpty(ogWinFile))
+            {
+                var errorBox = MessageBoxManager.GetMessageBoxStandard(
+                    "Error", "Please select a .win file first.",
+                    MsBox.Avalonia.Enums.ButtonEnum.Ok, MsBox.Avalonia.Enums.Icon.Error);
+                await errorBox.ShowWindowDialogAsync(mainWindow);
+                return false;
+            }
+        }
+
+        var xdeltaFiles = Directory.GetFiles(modPath, "*.xdelta", SearchOption.AllDirectories)
+            .Select(f => Path.GetRelativePath(modPath, f)).ToList();
+
+        if (xdeltaFiles.Count == 0)
+        {
+            var errorBox = MessageBoxManager.GetMessageBoxStandard(
+                "Error", "No .xdelta files found in the selected folder.",
+                MsBox.Avalonia.Enums.ButtonEnum.Ok, MsBox.Avalonia.Enums.Icon.Error);
+            await errorBox.ShowWindowDialogAsync(mainWindow);
+            return false;
+        }
+
+        string[] result = Array.Empty<string>();
+        Dictionary<string, string> versions = new();
+        List<string> failedpatches = new();
+        List<string> uptodate = new();
+
+        if (xdeltaFiles.Count == 1)
+        {
+            result = new[] { xdeltaFiles[0] };
+        }
+        else
+        {
+            var win = new PLUSxdeltawindow(xdeltaFiles);
+            var dialogResult = await win.ShowDialog<string[]?>(mainWindow);
+            if (dialogResult != null)
+            {
+                result = dialogResult;
+            }
+            if (dialogResult == null)
+            {
+                var errorBox = MessageBoxManager.GetMessageBoxStandard(
+                    "Error", "Cancelled.",
+                    MsBox.Avalonia.Enums.ButtonEnum.Ok, MsBox.Avalonia.Enums.Icon.Error);
+                await errorBox.ShowWindowDialogAsync(mainWindow);
+                return false;
+            }
+        }
+
+        string patchtestpath = Path.Combine(Global.assemblyLocation, "PatchTest");
+
+        if (Directory.Exists(patchtestpath))
+            Directory.Delete(patchtestpath, true);
+        Directory.CreateDirectory(patchtestpath);
+        Directory.CreateDirectory(Path.Combine(patchtestpath, "XDELTAS"));
+        var sourcepath = Path.Combine(patchtestpath, "source.win");
+        File.Copy(ogWinFile, sourcepath, true);
+
+        foreach (var mod in result)
+        {
+            string fullpath = Path.Combine(modPath, mod);
+            string destPath = Path.Combine(patchtestpath, "XDELTAS", Path.GetRelativePath(modPath, fullpath));
+            Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
+            File.Copy(fullpath, destPath, true);
+        }
+        string DowngradePath = Path.Combine(Global.appLocation, "Downgrades");
+        var xdelta = Path.Combine(Global.appLocation, "Dependencies", "xdelta.exe");
+        if (OperatingSystem.IsLinux())
+            xdelta = Path.Combine(Global.appLocation, "Dependencies", "xdelta3");
+        if (!File.Exists(xdelta))
+        {
+            Global.logger.WriteLine($"{xdelta} is not found. Please try redownloading Pizza Oven", LoggerType.Error); 
+            return false;
+}
+            string[] modxdeltafiles = Array.Empty<string>();
+            foreach (var downgrade in Directory.GetFiles(DowngradePath))
+        {
+            var downgradepath = Path.Combine(patchtestpath, Path.GetFileName(downgrade));
+            File.Copy(downgrade, downgradepath, true);
+            PathFixPatch(sourcepath, downgradepath, Path.Combine(patchtestpath, Path.GetFileNameWithoutExtension(downgrade) + ".win"), xdelta);
+            if (File.Exists(Path.Combine(patchtestpath, Path.GetFileNameWithoutExtension(downgrade) + ".win")))
+            {
+                File.Delete(downgradepath);
+                downgradepath = Path.Combine(patchtestpath, Path.GetFileNameWithoutExtension(downgrade) + ".win");
+            }
+            else
+            {
+                File.Delete(downgradepath);
+                failedpatches.Add(Path.GetFileName(downgradepath));
+                continue;
+            }
+            modxdeltafiles = Directory.GetFiles(Path.Combine(patchtestpath, "XDELTAS"), "*", SearchOption.AllDirectories);
+            foreach (var modxdelta in modxdeltafiles)
+            {  
+                try
+                {
+                    if (File.Exists(Path.Combine(patchtestpath, "temp.win")))
+                        File.Delete(Path.Combine(patchtestpath, "temp.win"));
+                    PathFixPatch(downgradepath, modxdelta, Path.Combine(patchtestpath, "temp.win"), xdelta);
+                    if (File.Exists(Path.Combine(patchtestpath, "temp.win")))
+                    {
+                        File.Delete(modxdelta);
+                        PLUSDepotDownloader.CreatePatch(sourcepath, Path.Combine(patchtestpath, "temp.win"), modxdelta, xdelta);
+                        versions.Add(Path.GetRelativePath(Path.Combine(patchtestpath, "XDELTAS"), modxdelta), Path.GetFileName(downgrade));
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+                catch
+                {
+                    string dir = Path.GetDirectoryName(modxdelta)!;
+                    string tempPath = Path.Combine(dir, "xdeltatemp.win");
+                    try
+                    {
+                        PathFixPatch(sourcepath, modxdelta, tempPath, xdelta);
+                        if (File.Exists(tempPath))
+                        {
+                            File.Delete(tempPath);
+                            if (uptodate.Contains(Path.GetRelativePath(Path.Combine(patchtestpath, "XDELTAS"), modxdelta)))
+                                continue;
+                            uptodate.Add(Path.GetRelativePath(Path.Combine(patchtestpath, "XDELTAS"), modxdelta));
+                        }
+                    }
+                    catch
+                    {
+                        if (File.Exists(tempPath))
+                            File.Delete(tempPath);
+                    }
+                    continue; 
+                }
+            }
+            File.Delete(downgradepath);
+        }
+            foreach (var modfile in modxdeltafiles)
+        {
+            var ogmodfile = Path.Combine(modPath, Path.GetRelativePath(Path.Combine(patchtestpath, "XDELTAS"), modfile));
+            if (File.Exists(ogmodfile))
+                File.Delete(ogmodfile);
+            File.Move(modfile, ogmodfile);
+        }
+        var outputentry = "";
+        if (versions.Count <= 0)
+        {
+            if (failedpatches.Count > 0)
+            {
+                outputentry += "\n\nThere were also Failed Downgrade Patches to Source could also be the cause(Likely reason your source data.win isn't up to date)...\n";
+                foreach (var entry in failedpatches)
+                {
+                    outputentry += $"{entry} failed\n";
+                }
+            }
+            if (uptodate.Count > 0)
+            {
+                var uptodatedatawinstext = uptodate.Count == 1 ? "was also a data.win" : "were also data.wins";
+                outputentry += $"\n\nThere {uptodatedatawinstext} that were already up to date with source\n";
+                foreach (var entry in uptodate)
+                {
+                    outputentry += $"{entry} was up to date with source\n";
+                }
+                }
+            if (modxdeltafiles.Length > 1)
+            {
+                outputentry = $"No files were upgraded ensure you have a bunch of downgrades it hypothetically maybe{outputentry}";
+            }
+            else
+            {
+                outputentry = $"The file was not upgraded ensure it is a modfile or ensure you have a bunch of downgrades it hypothetically maybe{outputentry}";
+            }
+
+            var errorBox = MessageBoxManager.GetMessageBoxStandard("None Upgraded", outputentry, MsBox.Avalonia.Enums.ButtonEnum.Ok, MsBox.Avalonia.Enums.Icon.Error);
+            await errorBox.ShowWindowDialogAsync(mainWindow);
+            if (Directory.Exists(patchtestpath))
+                Directory.Delete(patchtestpath, true);
+            return false;
+        }
+        else
+        {
+            foreach (var entry in versions)
+            {
+                outputentry += $"{entry.Key} is now upgraded from {entry.Value}\n";
+            }
+            if (modxdeltafiles.Length > 1)
+            {
+                outputentry = $"File(s) below have been upgraded\n\n{outputentry}";
+            }
+            else
+            {
+                outputentry = $"The file {outputentry}";
+            }
+            var successBox = MessageBoxManager.GetMessageBoxStandard($"{versions.Count} Upgraded", outputentry, MsBox.Avalonia.Enums.ButtonEnum.Ok);
+            await successBox.ShowWindowDialogAsync(mainWindow);
+        }
+        if (Directory.Exists(patchtestpath))
+            Directory.Delete(patchtestpath, true);
+        return true;
     }
 }

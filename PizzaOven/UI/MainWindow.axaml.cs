@@ -7,12 +7,14 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Reflection;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
 using Avalonia.Data;
 using Avalonia.Input;
@@ -23,6 +25,8 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using MsBox.Avalonia;
+using MsBox.Avalonia.Enums;
 using PizzaOven.UI;
 using SharpCompress.Archives;
 using SharpCompress.Common;
@@ -54,6 +58,8 @@ public partial class MainWindow : Window
 
     private static readonly List<string> FilterBoxListWhenSearched =
         new[] { "Featured", "Recent", "Popular", "- - -" }.ToList();
+
+    public static string SavedDirectionBrowserGridSearch = "";
 
     private readonly string defaultText =
         "No mod is currently selected. Pressing launch will start a vanilla Pizza Tower. " +
@@ -120,10 +126,10 @@ public partial class MainWindow : Window
 
         Global.logger.WriteLine($"Launched PizzaOven+ Mod Manager v{version}!", LoggerType.Info);
 
-        if (File.Exists($@"{Global.assemblyLocation}{Global.s}Config.json"))
+        if (File.Exists(Path.Combine(Global.assemblyLocation, "Config.json")))
             try
             {
-                var configString = File.ReadAllText($@"{Global.assemblyLocation}{Global.s}Config.json");
+                var configString = File.ReadAllText(Path.Combine(Global.assemblyLocation, "Config.json"));
                 Global.config = JsonSerializer.Deserialize<Config>(configString);
             }
             catch (Exception e)
@@ -153,9 +159,9 @@ public partial class MainWindow : Window
             Global.config.ModList = new ObservableCollection<Mod>();
         Global.ModList = Global.config.ModList;
 
-        Directory.CreateDirectory($@"{Global.assemblyLocation}{Global.s}Mods");
+        Directory.CreateDirectory(Path.Combine(Global.assemblyLocation, "Mods"));
 
-        ModsWatcher = new FileSystemWatcher($@"{Global.assemblyLocation}{Global.s}Mods");
+        ModsWatcher = new FileSystemWatcher(Path.Combine(Global.assemblyLocation, "Mods"));
         ModsWatcher.Created += OnModified;
         ModsWatcher.Deleted += OnModified;
         ModsWatcher.Renamed += OnModified;
@@ -180,7 +186,7 @@ public partial class MainWindow : Window
         ModGridSearchButton.IsEnabled = false;
 
         _ = PLUSSavesystem.read_ini_bool("LowEnd", "ModUpdate", true)
-            ? ModUpdater.CheckForUpdatesAsync($"{Global.assemblyLocation}{Global.s}Mods", this)
+            ? ModUpdater.CheckForUpdatesAsync(Path.Combine(Global.assemblyLocation, "Mods"), this)
             : Task.CompletedTask;
 
         if (Global.config.ModsFolder == null)
@@ -206,6 +212,7 @@ public partial class MainWindow : Window
         InitThemes();
         InitToggles();
         PLUSRefreshFolders();
+        UpgradeRefresh();
 
         Task.Run(() =>
         {
@@ -290,7 +297,7 @@ public partial class MainWindow : Window
 
     private async Task RefreshAsync()
     {
-        var currentModDirectory = $@"{Global.assemblyLocation}{Global.s}Mods";
+        var currentModDirectory = Path.Combine(Global.assemblyLocation, "Mods");
         var currentFolder = ModFolderCombo?.SelectedItem as string ?? "All";
         foreach (var mod in Directory.GetDirectories(currentModDirectory))
             if (Global.ModList.ToList().Where(x => x.name == Path.GetFileName(mod)).Count() == 0)
@@ -308,9 +315,9 @@ public partial class MainWindow : Window
                 m.name = Path.GetFileName(mod);
                 m.enabled = false;
                 Thread.Sleep(1000);
-                if (File.Exists($"{mod}{Global.s}mod.json"))
+                if (File.Exists(Path.Combine(mod, "mod.json")))
                 {
-                    var metadataString = File.ReadAllText($"{mod}{Global.s}mod.json");
+                    var metadataString = File.ReadAllText(Path.Combine(mod, "mod.json"));
                     var metadata = JsonSerializer.Deserialize<Metadata>(metadataString);
                     m.preview = metadata.preview;
                 }
@@ -347,8 +354,8 @@ public partial class MainWindow : Window
                 else
                     DropBox.IsVisible = false;
                 Stats.Text =
-                    $"{Global.ModList.Count} mods • {Directory.GetFiles($@"{Global.assemblyLocation}{Global.s}Mods", "*", SearchOption.AllDirectories).Length.ToString("N0")} files • " +
-                    $"{StringConverters.FormatSize(new DirectoryInfo($@"{Global.assemblyLocation}{Global.s}Mods").GetDirectorySize())} • v{version}";
+                    $"{Global.ModList.Count} mods • {Directory.GetFiles(Path.Combine(Global.assemblyLocation, "Mods"), "*", SearchOption.AllDirectories).Length.ToString("N0")} files • " +
+                    $"{StringConverters.FormatSize(new DirectoryInfo(Path.Combine(Global.assemblyLocation, "Mods")).GetDirectorySize())} • v{version}";
             });
         });
         Global.config.ModList = Global.ModList;
@@ -535,7 +542,7 @@ public partial class MainWindow : Window
         var selectedMods = ModGrid.SelectedItems;
         foreach (var row in selectedMods.OfType<Mod>())
         {
-            var folderName = $@"{Global.assemblyLocation}{Global.s}Mods{Global.s}{row.name}";
+            var folderName = Path.Combine(Global.assemblyLocation, "Mods", row.name);
             if (Directory.Exists(folderName))
                 try
                 {
@@ -597,7 +604,7 @@ public partial class MainWindow : Window
                 try
                 {
                     await Task.Run(() =>
-                        Directory.Delete($@"{Global.assemblyLocation}{Global.s}Mods{Global.s}{row.name}", true));
+                        Directory.Delete(Path.Combine(Global.assemblyLocation, "Mods", row.name), true));
                     Global.logger.WriteLine($@"Deleting {row.name}.", LoggerType.Info);
                     ShowMetadata(null);
                 }
@@ -643,7 +650,7 @@ public partial class MainWindow : Window
             if (mods.Count == 0) return true;
 
             var modPaths = mods.Select(m =>
-                $"{Global.assemblyLocation}{Global.s}Mods{Global.s}{m.name}").ToArray();
+                Path.Combine(Global.assemblyLocation, "Mods", m.name)).ToArray();
             var gmloaderMods = modPaths.Where(ModLoader.IsGMLoaderMod).ToArray();
             var afomMods = modPaths.Where(ModLoader.IsAFOMMod).ToArray();
             var classicMods = modPaths.Where(p => !ModLoader.IsGMLoaderMod(p) && !ModLoader.IsAFOMMod(p)).ToArray();
@@ -706,7 +713,7 @@ public partial class MainWindow : Window
     private async Task Add_DropAsync(object sender, DragEventArgs e)
     {
         e.Handled = true;
-        var ModsFolder = $"{Global.assemblyLocation}{Global.s}Mods";
+        var ModsFolder = Path.Combine(Global.assemblyLocation, "Mods");
         Directory.CreateDirectory(ModsFolder);
         if (e.Data.Contains(DataFormats.Files))
         {
@@ -720,18 +727,18 @@ public partial class MainWindow : Window
 
     private void ExtractPackages(string[] fileList)
     {
-        var temp = $"{Global.assemblyLocation}{Global.s}temp";
-        var ModsFolder = $"{Global.assemblyLocation}{Global.s}Mods";
+        var temp = Path.Combine(Global.assemblyLocation, "temp");
+        var ModsFolder = Path.Combine(Global.assemblyLocation, "Mods");
         foreach (var file in fileList)
         {
             Directory.CreateDirectory(temp);
             if (Directory.Exists(file))
             {
-                var path = $@"{temp}{Global.s}{Path.GetFileName(file)}";
+                var path = Path.Combine(temp, Path.GetFileName(file));
                 var index = 2;
                 while (Directory.Exists(path))
                 {
-                    path = $@"{temp}{Global.s}{Path.GetFileName(file)} ({index})";
+                    path = Path.Combine(temp, Path.GetFileName(file) + " (" + index + ")");
                     index += 1;
                 }
 
@@ -747,11 +754,11 @@ public partial class MainWindow : Window
                     {
                         using (var archive = ArchiveFactory.OpenArchive(_ArchiveSource))
                         {
-                            Directory.CreateDirectory($"{temp}{Global.s}{Path.GetFileNameWithoutExtension(file)}");
+                            Directory.CreateDirectory(Path.Combine(temp, Path.GetFileNameWithoutExtension(file)));
                             foreach (var entry in archive.Entries)
                                 if (!entry.IsDirectory)
                                     entry.WriteToDirectory(
-                                        $"{temp}{Global.s}{Path.GetFileNameWithoutExtension(file)}",
+                                        Path.Combine(temp, Path.GetFileNameWithoutExtension(file)),
                                         new ExtractionOptions
                                         {
                                             ExtractFullPath = true,
@@ -770,11 +777,11 @@ public partial class MainWindow : Window
 
             foreach (var folder in Directory.GetDirectories(temp, "*", SearchOption.TopDirectoryOnly))
             {
-                var path = $@"{ModsFolder}{Global.s}{Path.GetFileName(folder)}";
+                var path = Path.Combine(ModsFolder, Path.GetFileName(folder));
                 var index = 2;
                 while (Directory.Exists(path))
                 {
-                    path = $@"{ModsFolder}{Global.s}{Path.GetFileName(folder)} ({index})";
+                    path = Path.Combine(ModsFolder, Path.GetFileName(folder) + " (" + index + ")");
                     index += 1;
                 }
 
@@ -817,13 +824,13 @@ public partial class MainWindow : Window
         ModGridSearchButton.IsEnabled = false;
         Dispatcher.UIThread.Invoke(async () =>
         {
-            await ModUpdater.CheckForUpdatesAsync($"{Global.assemblyLocation}{Global.s}Mods", this);
+            await ModUpdater.CheckForUpdatesAsync(Path.Combine(Global.assemblyLocation, "Mods"), this);
         });
     }
 
     private async Task ShowMetadata(string mod)
     {
-        if (mod == null || !File.Exists($"{Global.assemblyLocation}{Global.s}Mods{Global.s}{mod}{Global.s}mod.json"))
+        if (mod == null || !File.Exists(Path.Combine(Global.assemblyLocation, "Mods", mod, "mod.json")))
         {
             DescriptionWindow.Text = defaultText;
             var bitmap = new Bitmap(AssetLoader.Open(new Uri("avares://PizzaOven/Assets/PizzaOvenPreview.png")));
@@ -833,7 +840,7 @@ public partial class MainWindow : Window
         else
         {
             var metadataString =
-                File.ReadAllText($"{Global.assemblyLocation}{Global.s}Mods{Global.s}{mod}{Global.s}mod.json");
+                File.ReadAllText(Path.Combine(Global.assemblyLocation, "Mods", mod, "mod.json"));
             var metadata = JsonSerializer.Deserialize<Metadata>(metadataString);
 
             var descText = "";
@@ -957,7 +964,10 @@ public partial class MainWindow : Window
         DescPanel.DataContext = button.DataContext;
         MediaPanel.DataContext = button.DataContext;
 
-        DescText.Text = item.ConvertedText;
+        // Use HTML parser for rich text rendering
+        var htmlText = item.Text;
+        DescText.Inlines.Clear();
+        ConvertToFlowDocumentHTML(htmlText, DescText.Inlines);
 
         ImageLeft.IsEnabled = true;
         ImageRight.IsEnabled = true;
@@ -1168,6 +1178,7 @@ public partial class MainWindow : Window
         PerPageBox.IsEnabled = false;
         ClearCacheButton.IsEnabled = false;
         ErrorPanel.IsVisible = false;
+        TypeRedirection.IsVisible = false;
         filterSelect = true;
         PageBox.SelectedItem = page;
         filterSelect = false;
@@ -1213,6 +1224,13 @@ public partial class MainWindow : Window
             BrowserRefreshButton.IsVisible = false;
             BrowserMessage.IsVisible = true;
             BrowserMessage.Text = "Pizza Oven couldn't find any mods.";
+            var gbtype = (TypeFilter)TypeBox.SelectedIndex;
+            var gbtyperedirection = (gbtype == TypeFilter.Mods) ? "WIPs" : "MODs";
+            if (!Global.ronnietutorial && (gbtype == TypeFilter.Mods || gbtype == TypeFilter.WiPs))
+            {
+                TypeRedirection.Content = $"Click to go to {gbtyperedirection} instead to look for it";
+                TypeRedirection.IsVisible = true;
+            }
         }
 
         _updatingPageBox = true;
@@ -1231,6 +1249,19 @@ public partial class MainWindow : Window
         SearchButton.IsEnabled = true;
         NSFWCheckbox.IsEnabled = true;
         ClearCacheButton.IsEnabled = true;
+
+        if (SavedDirectionBrowserGridSearch != "")
+        {
+            var temp = SavedDirectionBrowserGridSearch;
+            SavedDirectionBrowserGridSearch = "";
+
+            SearchBar.Text = temp;
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                Search();
+            });
+        }
     }
 
     private void FilterSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -1458,6 +1489,7 @@ public partial class MainWindow : Window
         base.OnOpened(e);
         _isLoaded = true;
         PLUSrefresh();
+        UpgradeRefresh();
 
         if (Global.ronnietutorial)
         {
@@ -1546,6 +1578,7 @@ public partial class MainWindow : Window
             if (ModGrid.Items.Count > 0)
                 ModGrid.ScrollIntoView(ModGrid.Items[0]);
         });
+        UpgradeRefresh();
     }
 
     #region PatchNotes
@@ -1774,6 +1807,573 @@ public partial class MainWindow : Window
                 new[] { "Maybe Check your internet", "Maybe Gamebanana Servers are down" },
                 new[] { "Addition", "Addition" }, false, "Failed to load");
         }
+    }
+
+    #endregion
+
+    #region v1.0.9 Features
+
+    private void TypeRedirection_Click(object sender, RoutedEventArgs e)
+    {
+        SavedDirectionBrowserGridSearch = SearchBar.Text;
+        var gbtype = (TypeFilter)TypeBox.SelectedIndex;
+        if (gbtype == TypeFilter.Mods)
+        {
+            TypeBox.SelectedIndex = (int)TypeFilter.WiPs;
+        }
+        else if (gbtype == TypeFilter.WiPs)
+        {
+            TypeBox.SelectedIndex = (int)TypeFilter.Mods;
+        }
+    }
+
+    private void UpgradeRefresh()
+    {
+        string modsPath = Path.Combine(Global.assemblyLocation, "Mods");
+        if (Global.ronnietutorial)
+        {
+            UpgradeXDELTACombo.Items.Clear();
+            return;
+        }
+        if (Directory.Exists(modsPath))
+        {
+            Dispatcher.UIThread.Invoke(() =>
+            {
+                var savedUpgradeSelection = UpgradeXDELTACombo.SelectedItem as string;
+                if (string.IsNullOrEmpty(savedUpgradeSelection))
+                    savedUpgradeSelection = null;
+
+                UpgradeXDELTACombo.Items.Clear();
+
+                foreach (string dir in Directory.GetDirectories(modsPath))
+                {
+                    string modName = Path.GetFileName(dir);
+
+                    if (!UpgradeXDELTACombo.Items.Contains(modName))
+                        UpgradeXDELTACombo.Items.Add(modName);
+                }
+
+                bool hasSavedUpgradeSelection = false;
+                if (!string.IsNullOrEmpty(savedUpgradeSelection))
+                {
+                    hasSavedUpgradeSelection = UpgradeXDELTACombo.Items.Cast<object>().Any(i => string.Equals(i?.ToString(), savedUpgradeSelection, StringComparison.OrdinalIgnoreCase));
+                }
+
+                if (savedUpgradeSelection != null && hasSavedUpgradeSelection)
+                {
+                    var match = UpgradeXDELTACombo.Items.Cast<object>().FirstOrDefault(i => string.Equals(i?.ToString(), savedUpgradeSelection, StringComparison.OrdinalIgnoreCase));
+
+                    if (match != null)
+                        UpgradeXDELTACombo.SelectedItem = match;
+                }
+                else if (UpgradeXDELTACombo.Items.Count > 0)
+                {
+                    UpgradeXDELTACombo.SelectedIndex = 0;
+                }
+            });
+        }
+    }
+
+    public async void UpgradeXDELTA_Click(object sender, RoutedEventArgs e) => await UpgradeXDELTAAsync();
+
+    private async Task UpgradeXDELTAAsync()
+    {
+        if (Global.ronnietutorial)
+        {
+            var box = MessageBoxManager.GetMessageBoxStandard("Tutorial", "Wait for the tutorial to be over", MsBox.Avalonia.Enums.ButtonEnum.Ok, MsBox.Avalonia.Enums.Icon.Warning);
+            await box.ShowWindowDialogAsync(this);
+            return;
+        }
+        if (UpgradeXDELTACombo.SelectedValue == null)
+        {
+            var box = MessageBoxManager.GetMessageBoxStandard("No Option Selected", "Please select an option from the dropdown first.", MsBox.Avalonia.Enums.ButtonEnum.Ok, MsBox.Avalonia.Enums.Icon.Warning);
+            await box.ShowWindowDialogAsync(this);
+            return;
+        }
+        var path = Path.Combine(Global.assemblyLocation, "Mods", UpgradeXDELTACombo.SelectedValue.ToString());
+        if (Directory.Exists(path))
+        {
+            ModGrid.IsEnabled = false;
+            ConfigButton.IsEnabled = false;
+            LaunchButton.IsEnabled = false;
+            ClearButton.IsEnabled = false;
+            UpdateButton.IsEnabled = false;
+            ModGridSearchButton.IsEnabled = false;
+            if (await ModLoader.Upgrade(path))
+            {
+                var successBox = MessageBoxManager.GetMessageBoxStandard("Success", "Upgrade successful!", MsBox.Avalonia.Enums.ButtonEnum.Ok, MsBox.Avalonia.Enums.Icon.Info);
+                await successBox.ShowWindowDialogAsync(this);
+            }
+            else
+            {
+                var errorBox = MessageBoxManager.GetMessageBoxStandard("Error", "Upgrade failed.", MsBox.Avalonia.Enums.ButtonEnum.Ok, MsBox.Avalonia.Enums.Icon.Error);
+                await errorBox.ShowWindowDialogAsync(this);
+            }
+            ModGrid.IsEnabled = true;
+            ConfigButton.IsEnabled = true;
+            LaunchButton.IsEnabled = true;
+            ClearButton.IsEnabled = true;
+            UpdateButton.IsEnabled = true;
+            ModGridSearchButton.IsEnabled = true;
+        }
+        else
+        {
+            var errorBox = MessageBoxManager.GetMessageBoxStandard("Folder Not Found", "Selected mod folder does not exist.", MsBox.Avalonia.Enums.ButtonEnum.Ok, MsBox.Avalonia.Enums.Icon.Error);
+            await errorBox.ShowWindowDialogAsync(this);
+        }
+    }
+
+    private void ConvertToFlowDocumentHTML(string text, InlineCollection target)
+    {
+        int textid = 0;
+        bool inCode = false;
+        Stack<string> spanStack = new();
+        bool inTag = false;
+        bool inLink = false;
+        bool bold = false;
+        bool italic = false;
+        bool inList = false;
+
+        double fontSize = 16;
+
+        StringBuilder textBuffer = new StringBuilder();
+        StringBuilder tagBuffer = new StringBuilder();
+        StringBuilder linkText = new StringBuilder();
+
+        string linkHref = "";
+
+        void FlushText()
+        {
+            if (textBuffer.Length == 0)
+                return;
+
+            string textContent = textBuffer.ToString();
+            textBuffer.Clear();
+
+            bool isSpoiler = spanStack.Contains("Spoiler");
+            bool isRed = spanStack.Contains("RedColor");
+            bool isGreen = spanStack.Contains("GreenColor");
+
+            var run = new Run(textContent)
+            {
+                FontSize = fontSize,
+                FontWeight = bold ? FontWeight.Bold : FontWeight.Normal,
+                FontStyle = italic ? FontStyle.Italic : FontStyle.Normal
+            };
+            var textcolor = Brushes.White;
+            if (isRed)
+            {
+                run.Foreground = Brushes.Red;
+                textcolor = Brushes.Red;
+            }
+
+            if (isGreen)
+            {
+                run.Foreground = Brushes.Green;
+                textcolor = Brushes.Green;
+            }
+
+            if (inCode)
+            {
+                run.FontFamily = new FontFamily("Consolas");
+                run.Background = Brushes.LightGray;
+            }
+
+            if (isSpoiler)
+            {
+                var tb = new TextBlock
+                {
+                    Text = textContent,
+                    FontSize = fontSize,
+                    FontWeight = bold ? FontWeight.Bold : FontWeight.Normal,
+                    FontStyle = italic ? FontStyle.Italic : FontStyle.Normal,
+                    Foreground = Brushes.LightGray,
+                    Background = Brushes.LightGray
+                };
+
+                tb.PointerEntered += (s, e) =>
+                {
+                    tb.Foreground = textcolor;
+                    tb.Background = Brushes.Transparent;
+                };
+
+                tb.PointerExited += (s, e) =>
+                {
+                    tb.Foreground = Brushes.LightGray;
+                    tb.Background = Brushes.LightGray;
+                };
+
+                target.Add(new InlineUIContainer(tb));
+                return;
+            }
+
+            target.Add(run);
+        }
+
+        void FlushLink()
+        {
+            if (string.IsNullOrEmpty(linkHref))
+            {
+                linkText.Clear();
+                return;
+            }
+
+            string text = linkText.ToString();
+            linkText.Clear();
+
+            bool isSpoiler = spanStack.Contains("Spoiler");
+
+            if (isSpoiler)
+            {
+                var tb = new TextBlock
+                {
+                    Text = text,
+                    FontSize = fontSize,
+                    FontWeight = bold ? FontWeight.Bold : FontWeight.Normal,
+                    FontStyle = italic ? FontStyle.Italic : FontStyle.Normal,
+                    Foreground = Brushes.LightGray,
+                    Background = Brushes.LightGray
+                };
+
+                tb.PointerEntered += (s, e) =>
+                {
+                    tb.Foreground = Brushes.Blue;
+                    tb.Background = Brushes.Transparent;
+                };
+
+                tb.PointerExited += (s, e) =>
+                {
+                    tb.Foreground = Brushes.LightGray;
+                    tb.Background = Brushes.LightGray;
+                };
+
+                var hyperlinkButton = new HyperlinkButton
+                {
+                    Content = tb,
+                    NavigateUri = new Uri(linkHref)
+                };
+
+                var href = linkHref; // capture URL before clearing
+                hyperlinkButton.Click += (s, e) =>
+                {
+                    Process.Start(new ProcessStartInfo(href) { UseShellExecute = true });
+                };
+
+                target.Add(new InlineUIContainer(hyperlinkButton));
+
+                linkHref = "";
+                return;
+            }
+
+            var normalLinkButton = new HyperlinkButton
+            {
+                Content = text,
+                FontSize = fontSize,
+                Foreground = Brushes.Blue,
+                FontWeight = bold ? FontWeight.Bold : FontWeight.Normal,
+                FontStyle = italic ? FontStyle.Italic : FontStyle.Normal,
+                NavigateUri = new Uri(linkHref)
+            };
+
+            var href2 = linkHref; // capture URL before clearing
+            normalLinkButton.Click += (s, e) =>
+            {
+                Process.Start(new ProcessStartInfo(href2) { UseShellExecute = true });
+            };
+
+            target.Add(new InlineUIContainer(normalLinkButton));
+
+            linkHref = "";
+        }
+
+        bool TryReadEntity(string str, ref int i, out string result)
+        {
+            result = null;
+
+            if (str[i] != '&')
+                return false;
+
+            int start = i;
+            int j = i + 1;
+
+            while (j < str.Length)
+            {
+                char ch = str[j];
+
+                if (ch == ';')
+                {
+                    j++;
+
+                    string entity = str.Substring(start, j - start);
+                    string decoded = System.Net.WebUtility.HtmlDecode(entity);
+
+                    if (decoded != entity)
+                    {
+                        result = decoded;
+                        i = j - 1;
+                        return true;
+                    }
+
+                    result = entity;
+                    i = j - 1;
+                    return true;
+                }
+
+                if (!(char.IsLetterOrDigit(ch) || ch == '#' || ch == 'x'))
+                    break;
+
+                j++;
+            }
+
+            return false;
+        }
+
+        while (textid < text.Length)
+        {
+            char c = text[textid];
+
+            if (!inTag)
+            {
+                if (c == '<')
+                {
+                    FlushText();
+                    inTag = true;
+                    tagBuffer.Clear();
+                }
+                else
+                {
+                    if (c == '&')
+                    {
+                        if (TryReadEntity(text, ref textid, out string entity))
+                        {
+                            if (inLink)
+                                linkText.Append(entity);
+                            else
+                                textBuffer.Append(entity);
+
+                            textid++;
+                            continue;
+                        }
+                    }
+
+                    if (inLink)
+                        linkText.Append(c);
+                    else
+                        textBuffer.Append(c);
+                }
+            }
+            else
+            {
+                if (c == '>')
+                {
+                    string tag = tagBuffer.ToString().Trim();
+
+                    if (tag == "br")
+                    {
+                        FlushText();
+                        target.Add(new LineBreak());
+                    }
+
+                    else if (tag == "b")
+                        bold = true;
+                    else if (tag == "/b")
+                        bold = false;
+
+                    else if (tag == "i")
+                        italic = true;
+                    else if (tag == "/i")
+                        italic = false;
+
+                    else if (tag == "h1")
+                        fontSize = 28;
+                    else if (tag == "/h1")
+                    {
+                        fontSize = 16;
+                        target.Add(new LineBreak());
+                    }
+                    else if (tag == "h2")
+                        fontSize = 24;
+                    else if (tag == "/h2")
+                    {
+                        fontSize = 16;
+                        target.Add(new LineBreak());
+                    }
+                    else if (tag == "h3")
+                        fontSize = 20;
+                    else if (tag == "/h3")
+                    {
+                        fontSize = 16;
+                        target.Add(new LineBreak());
+                    }
+
+                    else if (tag == "ul")
+                        inList = true;
+                    else if (tag == "/ul")
+                        inList = false;
+
+                    else if (tag == "li")
+                    {
+                        FlushText();
+                        target.Add(new Run("• "));
+                    }
+                    else if (tag == "/li")
+                    {
+                        target.Add(new LineBreak());
+                    }
+                    else if (tag.StartsWith("a "))
+                    {
+                        inLink = true;
+
+                        int hrefIndex = tag.IndexOf("href=\"", StringComparison.OrdinalIgnoreCase);
+                        if (hrefIndex != -1)
+                        {
+                            int start = hrefIndex + 6;
+                            int end = tag.IndexOf('"', start);
+                            if (end > start)
+                                linkHref = tag.Substring(start, end - start);
+                        }
+
+                        linkText.Clear();
+                    }
+                    else if (tag == "/a")
+                    {
+                        inLink = false;
+                        FlushLink();
+                    }
+
+                    else if (tag.StartsWith("span "))
+                    {
+                        int classIndex = tag.IndexOf("class=\"", StringComparison.OrdinalIgnoreCase);
+
+                        if (classIndex != -1)
+                        {
+                            int start = classIndex + 7;
+                            int end = tag.IndexOf('"', start);
+
+                            if (end > start)
+                                spanStack.Push(tag.Substring(start, end - start));
+                        }
+                    }
+                    else if (tag == "/span")
+                    {
+                        if (spanStack.Count > 0)
+                            spanStack.Pop();
+                    }
+
+                    else if (tag == "code")
+                    {
+                        inCode = true;
+                    }
+                    else if (tag == "/code")
+                    {
+                        inCode = false;
+                    }
+
+                    else if (tag == "hr")
+                    {
+                        FlushText();
+
+                        target.Add(new Run(new string('─', 77)));
+                        target.Add(new LineBreak());
+                    }
+                    else if (tag.StartsWith("img"))
+                    {
+                        FlushText();
+
+                        string imgSrc = "";
+                        string altText = "[Image]";
+                        double imageWidth = 500;
+
+                        int srcIndex = tag.IndexOf("src=\"", StringComparison.OrdinalIgnoreCase);
+                        if (srcIndex != -1)
+                        {
+                            int start = srcIndex + 5;
+                            int end = tag.IndexOf('"', start);
+
+                            if (end > start)
+                                imgSrc = tag.Substring(start, end - start);
+                        }
+
+                        int altIndex = tag.IndexOf("alt=\"", StringComparison.OrdinalIgnoreCase);
+                        if (altIndex != -1)
+                        {
+                            int start = altIndex + 5;
+                            int end = tag.IndexOf('"', start);
+
+                            if (end > start)
+                                altText = tag.Substring(start, end - start);
+                        }
+
+                        int widthIndex = tag.IndexOf("width=\"", StringComparison.OrdinalIgnoreCase);
+                        if (widthIndex != -1)
+                        {
+                            int start = widthIndex + 7;
+                            int end = tag.IndexOf('"', start);
+
+                            if (end > start)
+                            {
+                                string widthValue = tag.Substring(start, end - start);
+
+                                if (widthValue.EndsWith("%"))
+                                {
+                                    if (double.TryParse(widthValue.TrimEnd('%'), out double percent))
+                                        imageWidth = 500 * (percent / 100.0);
+                                }
+                                else if (double.TryParse(widthValue, out double width))
+                                {
+                                    imageWidth = width;
+                                }
+                            }
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(imgSrc))
+                        {
+                            try
+                            {
+                                var image = new Image
+                                {
+                                    MaxWidth = imageWidth,
+                                    Margin = new Thickness(0, 5, 0, 5)
+                                };
+
+                                // Load image from URL
+                                _ = Task.Run(async () =>
+                                {
+                                    using var http = new HttpClient();
+                                    var bytes = await http.GetByteArrayAsync(imgSrc);
+                                    using var ms = new MemoryStream(bytes);
+                                    var bitmap = new Bitmap(ms);
+                                    await Dispatcher.UIThread.InvokeAsync(() => image.Source = bitmap);
+                                });
+
+                                target.Add(new InlineUIContainer(image));
+                            }
+                            catch
+                            {
+                                target.Add(new Run(altText));
+                            }
+                        }
+                        else
+                        {
+                            target.Add(new Run(altText));
+                        }
+                    }
+                    inTag = false;
+                    tagBuffer.Clear();
+                }
+                else
+                {
+                    tagBuffer.Append(c);
+                }
+            }
+
+            textid++;
+        }
+
+        FlushText();
+
+        if (inLink)
+            FlushLink();
     }
 
     #endregion

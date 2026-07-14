@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
 
 namespace PizzaOven;
@@ -10,7 +11,7 @@ public static class RegistryConfig
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             return false;
 
-        var appPath = $"{Global.assemblyLocation}{Global.s}PizzaOven.exe";
+        var appPath = Path.Combine(Global.assemblyLocation, "PizzaOven.exe");
         const string protocolName = "pizzaovenplus";
         try
         {

@@ -143,7 +143,7 @@ public class PLUSDepotDownloader
             return;
         }
 
-        var versionsDir = Path.Combine(Global.assemblyLocation, "Downgrades");
+        var versionsDir = Path.Combine(Global.appLocation, "Downgrades");
         var tempDir = Path.Combine(versionsDir, "temp");
         Directory.CreateDirectory(versionsDir);
         Directory.CreateDirectory(tempDir);
@@ -365,7 +365,7 @@ public class PLUSDepotDownloader
 
             var tempSource = Path.Combine(outputDir, "source.win");
             var tempTarget = Path.Combine(outputDir, "data.win");
-            var patchFile = Path.Combine(Global.assemblyLocation, "Downgrades", $"{version}.xdelta");
+            var patchFile = Path.Combine(Global.appLocation, "Downgrades", $"{version}.xdelta");
 
             File.Copy(ogWinFile, tempSource, true);
 

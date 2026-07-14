@@ -42,7 +42,7 @@ public static class ModUpdater
         foreach (var mod in Directory.GetDirectories(path).Where(x => File.Exists($"{x}/mod.json")))
         {
             Metadata? metadata;
-            try { metadata = JsonSerializer.Deserialize<Metadata>(File.ReadAllText($"{mod}{Global.s}mod.json")); }
+            try { metadata = JsonSerializer.Deserialize<Metadata>(File.ReadAllText(Path.Combine(mod, "mod.json"))); }
             catch (Exception e) { Global.logger.WriteLine($"Error reading metadata for {mod} ({e.Message})", LoggerType.Error); continue; }
 
             if (metadata?.homepage == null) continue;
@@ -97,7 +97,7 @@ public static class ModUpdater
         for (int i = 0; i < flatMods.Count; i++)
         {
             Metadata? meta;
-            try { meta = JsonSerializer.Deserialize<Metadata>(File.ReadAllText($"{flatMods[i]}{Global.s}mod.json")); }
+            try { meta = JsonSerializer.Deserialize<Metadata>(File.ReadAllText(Path.Combine(flatMods[i], "mod.json"))); }
             catch (Exception e) { Global.logger.WriteLine($"Error reading metadata ({e.Message})", LoggerType.Error); continue; }
             if (meta == null) continue;
             await ModUpdateAsync(responses[i], flatMods[i], meta,
@@ -127,7 +127,7 @@ public static class ModUpdater
         if (metadata.lastupdate == null)
         {
             metadata.lastupdate = item.HasUpdates == true ? item.Updates?[0].DateAdded : new DateTime(1970, 1, 1);
-            File.WriteAllText($"{mod}{Global.s}mod.json",
+            File.WriteAllText(Path.Combine(mod, "mod.json"),
                 JsonSerializer.Serialize(metadata, new JsonSerializerOptions { WriteIndented = true }));
             return;
         }
@@ -153,7 +153,7 @@ public static class ModUpdater
         if (skip)
         {
             metadata.lastupdate = update.DateAdded;
-            File.WriteAllText($"{mod}{Global.s}mod.json",
+            File.WriteAllText(Path.Combine(mod, "mod.json"),
                 JsonSerializer.Serialize(metadata, new JsonSerializerOptions { WriteIndented = true }));
             Global.logger.WriteLine($"Skipped update for {Path.GetFileName(mod)}.", LoggerType.Info);
             return;
@@ -213,7 +213,7 @@ public static class ModUpdater
     }
 
     private static void SaveMeta(string mod, Metadata m) =>
-        File.WriteAllText($"{mod}{Global.s}mod.json",
+        File.WriteAllText(Path.Combine(mod, "mod.json"),
             JsonSerializer.Serialize(m, new JsonSerializerOptions { WriteIndented = true }));
 
     private static Avalonia.Controls.Window BuildYesNoDialog(MainWindow parent, string msg)

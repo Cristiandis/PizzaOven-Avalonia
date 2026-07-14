@@ -18,7 +18,7 @@ public class PLUSTutorial
 {
     public static async Task<bool> WaitUntilTutorialDownloaded(int checkDelayMs = 16)
     {
-        var modPath = $"{Global.assemblyLocation}{Global.s}Mods{Global.s}Ronnie Oven Mod";
+        var modPath = Path.Combine(Global.assemblyLocation, "Mods", "Ronnie Oven Mod");
         var jsonFile = Path.Combine(modPath, "mod.json");
 
         while (true)
@@ -44,7 +44,7 @@ public class PLUSTutorial
 
     public static string TutorialModPath()
     {
-        var currentModDirectory = $@"{Global.assemblyLocation}{Global.s}Mods";
+        var currentModDirectory = Path.Combine(Global.assemblyLocation, "Mods");
 
         foreach (var mod in Directory.GetDirectories(currentModDirectory))
         {
@@ -78,7 +78,7 @@ public class PLUSTutorial
 
     public static bool IsTutorialDownloaded()
     {
-        var modPath = $"{Global.assemblyLocation}{Global.s}Mods{Global.s}Ronnie Oven Mod";
+        var modPath = Path.Combine(Global.assemblyLocation, "Mods", "Ronnie Oven Mod");
         var jsonFile = Path.Combine(modPath, "mod.json");
 
         if (Directory.Exists(modPath) && File.Exists(jsonFile))
@@ -115,8 +115,8 @@ public class PLUSTutorial
     public static async Task RunTutorial(MainWindow window)
     {
         var tutorialskip = false;
-        if (File.Exists($@"{Global.appdata}{Global.s}PizzaTower_GM2{Global.s}RonnieTutorial.ini"))
-            File.Delete($@"{Global.appdata}{Global.s}PizzaTower_GM2{Global.s}RonnieTutorial.ini");
+        if (File.Exists(Path.Combine(Global.appdata, "PizzaTower_GM2", "RonnieTutorial.ini")))
+            File.Delete(Path.Combine(Global.appdata, "PizzaTower_GM2", "RonnieTutorial.ini"));
 
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
@@ -827,7 +827,7 @@ public class PLUSTutorial
         PLUSSavesystem.write_ini("Tutorial", "Finished", finished);
         PLUSSavesystem.write_ini("Tutorial", "BrokenModSkip", "false");
         PLUSSavesystem.write_ini("Tutorial", "SettingsSection", "false");
-        var exePath = $"{AppDomain.CurrentDomain.BaseDirectory}{Global.s}{AppDomain.CurrentDomain.FriendlyName}";
+        var exePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, AppDomain.CurrentDomain.FriendlyName);
         Process.Start(exePath);
         if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             desktop.Shutdown();
