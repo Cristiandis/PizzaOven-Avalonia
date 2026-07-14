@@ -119,11 +119,11 @@ public partial class MainWindow
                     if (OperatingSystem.IsLinux())
                     {
                         SteamToggle.IsEnabled = true;
-                        SteamToggleText.Text = enabled ? "Don't use Steam? [IT'S ON]" : "Use Wine? [IT'S OFF]";
+                        SteamToggleText.Text = enabled ? "Launch via Steam [ON]" : "Launch via Wine [ON]";
                         return;
                     }
 
-                    SteamToggleText.Text = enabled ? "Don't use Steam? [IT'S ON]" : "Use Steam? [IT'S OFF]";
+                    SteamToggleText.Text = enabled ? "Launch via Steam [ON]" : "Launch via Steam [OFF]";
                     return;
             }
 
@@ -373,11 +373,11 @@ public partial class MainWindow
                 if (result != MsBox.Avalonia.Enums.ButtonResult.Yes) return;
             }
             var enabled = PLUSSavesystem.toggle_ini_bool("Launch", "Steam", false);
-            SteamToggleText.Text = enabled ? "Don't use Steam? [IT'S ON]" : "Use Wine? [IT'S OFF]";
+            SteamToggleText.Text = enabled ? "Launch via Steam [ON]" : "Launch via Wine [ON]";
             return;
         }
         var steamEnabled = PLUSSavesystem.toggle_ini_bool("Launch", "Steam", false);
-        SteamToggleText.Text = steamEnabled ? "Don't use Steam? [IT'S ON]" : "Use Steam? [IT'S OFF]";
+        SteamToggleText.Text = steamEnabled ? "Launch via Steam [ON]" : "Launch via Steam [OFF]";
     }
 
     #endregion
