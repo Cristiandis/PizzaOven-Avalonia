@@ -290,7 +290,7 @@ public class ModDownloader
                 _progressBox.Show();
             });
 
-            using var fs = new FileStream(dest, FileMode.Create, FileAccess.Write, FileShare.None);
+            using var fs = new FileStream(dest, FileMode.Create, FileAccess.Write, FileShare.Read);
             await HttpClientProvider.Client.DownloadAsync(uri, fs, fileName, progress, cts.Token);
 
             await Dispatcher.UIThread.InvokeAsync(() => _progressBox?.Close());
