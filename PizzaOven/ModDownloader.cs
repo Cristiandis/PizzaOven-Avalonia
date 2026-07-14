@@ -21,7 +21,6 @@ namespace PizzaOven;
 
 public class ModDownloader
 {
-    private readonly HttpClient _client = new();
     private readonly CancellationTokenSource _cts = new();
     private bool _cancelled;
     private string? _dlId;
@@ -41,7 +40,7 @@ public class ModDownloader
             IClassicDesktopStyleApplicationLifetime)?.MainWindow;
     }
 
-    public async void BrowserDownload(string game, GameBananaRecord record)
+    public async Task BrowserDownload(string game, GameBananaRecord record)
     {
         var doDownload = false;
         var downloadAsTower = false;
@@ -121,7 +120,7 @@ public class ModDownloader
         }
     }
 
-    public async void Download(string line, bool running)
+    public async Task Download(string line, bool running)
     {
         if (ParseProtocol(line) && await GetDataAsync())
         {
@@ -149,7 +148,7 @@ public class ModDownloader
     {
         try
         {
-            var json = await _client.GetStringAsync(_url);
+            var json = await HttpClientProvider.Client.GetStringAsync(_url);
             _response = JsonSerializer.Deserialize<GameBananaAPIV4>(json) ?? new GameBananaAPIV4();
             var file = _response.Files?.First(x => x.Id == _dlId);
             _fileName = file?.FileName;
@@ -292,7 +291,7 @@ public class ModDownloader
             });
 
             using var fs = new FileStream(dest, FileMode.Create, FileAccess.Write, FileShare.None);
-            await _client.DownloadAsync(uri, fs, fileName, progress, cts.Token);
+            await HttpClientProvider.Client.DownloadAsync(uri, fs, fileName, progress, cts.Token);
 
             await Dispatcher.UIThread.InvokeAsync(() => _progressBox?.Close());
         }

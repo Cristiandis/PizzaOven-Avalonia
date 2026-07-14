@@ -35,7 +35,8 @@ public static class HttpClientExtensions
 
         var relativeProgress = new Progress<long>(totalBytes =>
             progress.Report(new DownloadProgress((float)totalBytes / contentLength.Value, totalBytes, contentLength.Value, fileName)));
-        await download.CopyToAsync(destination, 81920, relativeProgress, cancellationToken);
+        
+        await download.CopyToAsync(destination, 262144, relativeProgress, cancellationToken);
         progress.Report(new DownloadProgress(1, contentLength.Value, contentLength.Value, fileName));
     }
 }
@@ -53,12 +54,20 @@ public static class StreamExtensions
 
         var buffer = new byte[bufferSize];
         long totalRead = 0;
+        long lastReported = 0;
+        const long reportInterval = 65536;
         int read;
         while ((read = await source.ReadAsync(buffer, cancellationToken)) != 0)
         {
             await destination.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
             totalRead += read;
-            progress?.Report(totalRead);
+            if (progress != null && totalRead - lastReported >= reportInterval)
+            {
+                progress.Report(totalRead);
+                lastReported = totalRead;
+            }
         }
+        if (progress != null && totalRead != lastReported)
+            progress.Report(totalRead);
     }
 }

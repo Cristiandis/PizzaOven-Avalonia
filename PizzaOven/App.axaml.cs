@@ -11,7 +11,7 @@ public partial class App : Application
 {
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
 
-    public override void OnFrameworkInitializationCompleted()
+    public override async void OnFrameworkInitializationCompleted()
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
@@ -52,7 +52,7 @@ public partial class App : Application
                     // Need a hidden window to pump the message loop
                     desktop.MainWindow = new MainWindow { IsVisible = false };
                 }
-                new ModDownloader().Download(args[1], running);
+                await new ModDownloader().Download(args[1], running);
             }
             else if (running)
             {
