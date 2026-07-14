@@ -649,25 +649,35 @@ public partial class MainWindow : Window
             var mods = Global.config.ModList.Where(x => x.enabled).ToList();
             if (mods.Count == 0) return true;
 
-            var modPaths = mods.Select(m =>
-                Path.Combine(Global.assemblyLocation, "Mods", m.name)).ToArray();
-            var gmloaderMods = modPaths.Where(ModLoader.IsGMLoaderMod).ToArray();
-            var afomMods = modPaths.Where(ModLoader.IsAFOMMod).ToArray();
-            var classicMods = modPaths.Where(p => !ModLoader.IsGMLoaderMod(p) && !ModLoader.IsAFOMMod(p)).ToArray();
+            // Single-pass categorization to avoid multiple allocations
+            var gmloaderMods = new List<string>();
+            var afomMods = new List<string>();
+            var classicMods = new List<string>();
 
-            if (gmloaderMods.Length > 0 && classicMods.Length > 0)
+            foreach (var mod in mods)
+            {
+                var modPath = Path.Combine(Global.assemblyLocation, "Mods", mod.name);
+                if (ModLoader.IsGMLoaderMod(modPath))
+                    gmloaderMods.Add(modPath);
+                else if (ModLoader.IsAFOMMod(modPath))
+                    afomMods.Add(modPath);
+                else
+                    classicMods.Add(modPath);
+            }
+
+            if (gmloaderMods.Count > 0 && classicMods.Count > 0)
             {
                 Global.logger.WriteLine("Cannot mix GMLoader mods with other mod types.", LoggerType.Error);
                 return false;
             }
 
-            if (afomMods.Length > 1)
+            if (afomMods.Count > 1)
             {
                 Global.logger.WriteLine("Only one AFOM level pack can be selected at a time.", LoggerType.Error);
                 return false;
             }
 
-            if (afomMods.Length == 1)
+            if (afomMods.Count == 1)
             {
                 var afomMod = afomMods[0];
                 var afomResult = await ModLoader.BuildAFOM(afomMod, async msg =>
@@ -683,10 +693,10 @@ public partial class MainWindow : Window
                 if (!ModLoader.Build(mod))
                     return false;
 
-            if (gmloaderMods.Length == 1)
+            if (gmloaderMods.Count == 1)
                 return ModLoader.BuildGMLoader(gmloaderMods[0]);
-            if (gmloaderMods.Length > 1)
-                return await ModLoader.BuildGMLoaderMultiple(gmloaderMods);
+            if (gmloaderMods.Count > 1)
+                return await ModLoader.BuildGMLoaderMultiple(gmloaderMods.ToArray());
 
             return true;
         });
@@ -867,8 +877,7 @@ public partial class MainWindow : Window
                     }
                     else
                     {
-                        using var http = new HttpClient();
-                        var bytes = await http.GetByteArrayAsync(metadata.preview);
+                        var bytes = await HttpClientProvider.Client.GetByteArrayAsync(metadata.preview);
                         using var ms = new MemoryStream(bytes);
                         bitmap = new Bitmap(ms);
                     }
@@ -1010,7 +1019,7 @@ public partial class MainWindow : Window
             CaptionText.Text = item.Media[idx].Caption;
             BigCaptionText.Text = item.Media[idx].Caption;
             CaptionText.IsVisible = !string.IsNullOrEmpty(CaptionText.Text);
-            using var http = new HttpClient();
+            using var http = HttpClientProvider.Client;
             var bytes = await http.GetByteArrayAsync(uri);
             using var ms = new MemoryStream(bytes);
             var bitmap = new Bitmap(ms);
@@ -1076,7 +1085,6 @@ public partial class MainWindow : Window
         {
             await Task.Run(async () =>
             {
-                using var httpClient = new HttpClient();
                 var gameID = "7692";
                 var types = new[] { "Mod", "Wip", "Sound" };
                 var counter = 0;
@@ -1088,7 +1096,7 @@ public partial class MainWindow : Window
                         var requestUrl =
                             $"https://gamebanana.com/apiv4/{type}Category/ByGame?_aGameRowIds[]={gameID}&_sRecordSchema=Custom&_csvProperties=_idRow,_sName,_sProfileUrl,_sIconUrl,_idParentCategoryRow&_nPerpage=50";
 
-                        var responseMessage = await httpClient.GetAsync(requestUrl);
+                        var responseMessage = await HttpClientProvider.Client.GetAsync(requestUrl);
                         var responseString = await responseMessage.Content.ReadAsStringAsync();
 
                         responseString = Regex.Replace(responseString, @"""(\d+)""", @"$1");
@@ -1744,8 +1752,7 @@ public partial class MainWindow : Window
             var url =
                 "https://api.gamebanana.com/Core/Item/Data?itemtype=Tool&itemid=22718&fields=Updates().bSubmissionHasUpdates(),Updates().aGetLatestUpdates()&return_keys=1";
 
-            using var client = new HttpClient();
-            var jsonResponse = await client.GetStringAsync(url);
+            var jsonResponse = await HttpClientProvider.Client.GetStringAsync(url);
 
             using var doc = JsonDocument.Parse(jsonResponse);
             var root = doc.RootElement;
@@ -2339,8 +2346,7 @@ public partial class MainWindow : Window
                                 // Load image from URL
                                 _ = Task.Run(async () =>
                                 {
-                                    using var http = new HttpClient();
-                                    var bytes = await http.GetByteArrayAsync(imgSrc);
+                                    var bytes = await HttpClientProvider.Client.GetByteArrayAsync(imgSrc);
                                     using var ms = new MemoryStream(bytes);
                                     var bitmap = new Bitmap(ms);
                                     await Dispatcher.UIThread.InvokeAsync(() => image.Source = bitmap);
