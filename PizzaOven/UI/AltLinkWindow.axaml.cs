@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 
 namespace PizzaOven.UI;
 
@@ -17,10 +18,10 @@ public partial class AltLinkWindow : Window
         Description.Text = update
             ? $"Links from the Alternate File Sources section were found. You can select one to manually download.\n" +
               $"To update, delete previous files and extract into:\n" +
-              $"{Global.assemblyLocation}{Global.s}Mods{Global.s}{packageName}"
+              Path.Combine(Global.assemblyLocation, "Mods", "{packageName}")
             : $"Links from the Alternate File Sources section were found. You can select one to manually download.\n" +
               $"To install, drag and drop the downloaded file into the mod grid, or extract into:\n" +
-              $"{Global.assemblyLocation}{Global.s}Mods";
+              Path.Combine(Global.assemblyLocation, "Mods");
 
         FetchDescription.Text = update
             ? $"To fetch GameBanana metadata, right-click {packageName} > Fetch Metadata, and use:"

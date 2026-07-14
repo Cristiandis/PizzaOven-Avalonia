@@ -9,7 +9,6 @@ public static class Global
 {
     public static Config config = new();
     public static Logger logger = null!;
-    public static char s = Path.DirectorySeparatorChar;
     public static string assemblyLocation = GetUserDataPath();
 
     public static string appLocation = AppDomain.CurrentDomain.BaseDirectory
@@ -49,7 +48,7 @@ public static class Global
         var configString = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
         try
         {
-            File.WriteAllText($@"{assemblyLocation}{s}Config.json", configString);
+            File.WriteAllText(Path.Combine(assemblyLocation, "Config.json"), configString);
         }
         catch (Exception e)
         {

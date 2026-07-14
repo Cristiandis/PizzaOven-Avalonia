@@ -70,8 +70,19 @@ public static class FeedGenerator
         {
             var response = await http.GetAsync(url);
             var json = await response.Content.ReadAsStringAsync();
+            
             if (string.IsNullOrWhiteSpace(json) || json.Trim() == "[]" || json.Trim() == "")
             {
+                CurrentFeed.Records = new ObservableCollection<GameBananaRecord>();
+                CurrentFeed.TotalPages = 1;
+                return;
+            }
+
+            // Check if response is HTML/error page instead of JSON
+            var trimmedJson = json.TrimStart();
+            if (trimmedJson.StartsWith("<") || trimmedJson.StartsWith("W") || trimmedJson.StartsWith("E") || !trimmedJson.StartsWith("["))
+            {
+                Global.logger.WriteLine($"API returned non-JSON response: {trimmedJson[..Math.Min(300, trimmedJson.Length)]}", LoggerType.Error);
                 CurrentFeed.Records = new ObservableCollection<GameBananaRecord>();
                 CurrentFeed.TotalPages = 1;
                 return;
@@ -82,8 +93,15 @@ public static class FeedGenerator
             CurrentFeed.Records = new ObservableCollection<GameBananaRecord>();
             foreach (var el in list)
             {
-                var record = JsonSerializer.Deserialize<GameBananaRecord>(el.GetRawText(), options);
-                if (record != null) CurrentFeed.Records.Add(record);
+                try
+                {
+                    var record = JsonSerializer.Deserialize<GameBananaRecord>(el.GetRawText(), options);
+                    if (record != null) CurrentFeed.Records.Add(record);
+                }
+                catch (Exception ex)
+                {
+                    Global.logger.WriteLine($"Failed to parse record: {ex.Message}. Raw: {el.GetRawText()[..Math.Min(200, el.GetRawText().Length)]}", LoggerType.Error);
+                }
             }
 
             var numRecords = response.GetHeader("X-GbApi-Metadata_nRecordCount");
@@ -97,6 +115,7 @@ public static class FeedGenerator
         {
             error = true;
             exception = e;
+            Global.logger.WriteLine($"FeedGenerator error: {e.Message}", LoggerType.Error);
             return;
         }
 
