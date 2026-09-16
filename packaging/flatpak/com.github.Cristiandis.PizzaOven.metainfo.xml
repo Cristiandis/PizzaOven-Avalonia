@@ -36,6 +36,11 @@
   </categories>
 
   <releases>
+    <release version="1.2.1" date="2026-09-16">
+      <description>
+        <p>pizzaovenplus 1.0.10 protocol support</p>
+      </description>
+    </release>
     <release version="1.2.0" date="2026-07-14">
       <description>
         <p>1.0.9 features</p>
