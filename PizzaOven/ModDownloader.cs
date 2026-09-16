@@ -29,6 +29,7 @@ public class ModDownloader
     private string? _fileName;
     private string? _modId;
     private string? _modType;
+    private string? _queries;
     private ProgressBox? _progressBox;
     private GameBananaAPIV4 _response = new();
     private string? _url;
@@ -179,6 +180,16 @@ public class ModDownloader
         try
         {
             line = line.Replace("pizzaovenplus://", "").Replace("pizzaovenplus:", "").Replace("pizzaoven:", "").TrimStart('/');
+            try
+            {
+                string[] queryParts = line.Split('?', 2);
+                line = queryParts[0];
+                _queries = queryParts[1];
+            }
+            catch
+            {
+                _queries = "";
+            }
             var data = line.Split(',');
             _urlToArchive = data[0];
             _dlId = Regex.Match(_urlToArchive, @"\d*$").Value;
